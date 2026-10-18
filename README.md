@@ -1,5 +1,9 @@
 # PayBox
 
+The TEMSAFE Python and FastAPI backend is available in [`backend`](backend/README.md).
+See its README for environment setup, local startup, and the health check.
+The proposal below records the earlier PayBox design.
+
 **An IoT smart locker prototype for short-term storage rental, with Stripe test payments and remote access control.**
 
 ## Overview

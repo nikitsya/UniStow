@@ -1,2 +1,9 @@
-.idea
+.idea/
 /local-docs/
+.DS_Store
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.env
+*.egg-info/
