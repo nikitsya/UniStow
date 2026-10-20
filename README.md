@@ -1,5 +1,14 @@
 # PayBox
 
+## Repository structure
+
+```text
+PayBox/
+├── android/    # Android Studio project, Gradle wrapper and app module
+├── docs/       # Project presentation and design images
+└── README.md   # Repository guide and original project proposal
+```
+
 **An IoT smart locker prototype for short-term storage rental, with Stripe test payments and remote access control.**
 
 ## Overview

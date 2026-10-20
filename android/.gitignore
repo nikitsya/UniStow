@@ -1,0 +1,13 @@
+# Local IDE settings
+.idea/
+*.iml
+.DS_Store
+
+# Local SDK paths and generated build files
+local.properties
+.gradle/
+.kotlin/
+**/build/
+captures/
+.externalNativeBuild/
+.cxx/
