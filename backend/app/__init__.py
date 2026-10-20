@@ -1,1 +1,0 @@
-"""TEMSAFE backend application."""
