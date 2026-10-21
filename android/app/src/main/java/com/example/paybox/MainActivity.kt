@@ -1,9 +1,11 @@
 package com.example.paybox
 
+import android.R
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -48,10 +50,17 @@ class MainActivity : ComponentActivity() {
                         val totalPrice = if (days != null && days in 1..7) days * 1 else 0
                         val isError = daysInput.isNotEmpty() && (days == null || days !in 1..7)
 
-                        Column {
+                        Column(
+                            modifier = Modifier
+                                .padding(innerPadding)
+                                .padding(24.dp)
+                                .fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
                             Text(
-                                text = "Locker $selectedLocker Details",
-                                modifier = Modifier.padding(innerPadding)
+                                text = "Locker $selectedLocker",
+                                style = MaterialTheme.typography.headlineMedium,
+                                color = Color.White
                             )
                             TextField(
                                 value = daysInput,
