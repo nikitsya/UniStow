@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import com.example.paybox.ui.theme.PayBoxTheme
 
 class MainActivity : ComponentActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -58,21 +59,29 @@ class MainActivity : ComponentActivity() {
         modifier: Modifier = Modifier,
         onLockerClick: () -> Unit = {}
     ) {
+        val unavailableLockers = listOf(3, 5, 6, 9)
+
         LazyColumn(modifier = modifier) {
             items(9) { index ->
+                val lockerNumber = index + 1
+                val isAvailable = lockerNumber !in unavailableLockers
+
                 Card(
                     onClick = onLockerClick,
+                    enabled = isAvailable,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(8.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = Color.White,
                         contentColor = Color(0xFF183B35),
+                        disabledContainerColor = Color(0xFFE0E0E0),
+                        disabledContentColor = Color(0xFF595959)
                     )
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
-                            text = "Locker ${index + 1}",
+                            text = "Locker $lockerNumber",
                             style = MaterialTheme.typography.titleMedium
                         )
                         Text(
@@ -80,7 +89,7 @@ class MainActivity : ComponentActivity() {
                             style = MaterialTheme.typography.bodyMedium
                         )
                         Text(
-                            text = "Status: Available",
+                            text = if (isAvailable) "Status: Available" else "Status: Unavailable",
                             style = MaterialTheme.typography.bodyMedium
                         )
                         Text(
