@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -39,10 +40,17 @@ class MainActivity : ComponentActivity() {
                     containerColor = Color(0xFF183B35)
                 ) { innerPadding ->
                     if (selectedLocker != null) {
-                        Text(
-                            text = "Locker $selectedLocker Details",
-                            modifier = Modifier.padding(innerPadding)
-                        )
+                        Column() {
+                            Text(
+                                text = "Locker $selectedLocker Details",
+                                modifier = Modifier.padding(innerPadding)
+                            )
+                            Button(
+                                onClick = { selectedLocker = null },
+                            ) {
+                                Text("Back")
+                            }
+                        }
                     } else {
                         LockerList(
                             modifier = Modifier.padding(innerPadding),
