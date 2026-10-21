@@ -5,8 +5,10 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.Card
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -35,10 +37,14 @@ class MainActivity : ComponentActivity() {
 fun LockerList(modifier: Modifier = Modifier) {
     LazyColumn(modifier = modifier) {
         items(6) { index ->
-            Text(
-                text = "Locker ${index + 1}",
-                modifier = Modifier.padding(16.dp)
-            )
+            Card(modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp)) {
+                Text(
+                    text = "Locker ${index + 1}",
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
         }
     }
 }
