@@ -19,6 +19,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
@@ -52,7 +53,8 @@ class MainActivity : ComponentActivity() {
                         var daysInput by remember { mutableStateOf("") }
                         val days = daysInput.toIntOrNull()
                         val pricePerDay = if ((selectedLocker ?: 0) <= 6) 1.0 else 1.5
-                        val totalPrice: Double = if (days != null && days in 1..7) days * pricePerDay else 0.0
+                        val totalPrice: Double =
+                            if (days != null && days in 1..7) days * pricePerDay else 0.0
                         val isError = daysInput.isNotEmpty() && (days == null || days !in 1..7)
 
                         Column(
@@ -234,11 +236,28 @@ class MainActivity : ComponentActivity() {
                             horizontalAlignment = Alignment.End,
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Text(
-                                text = if (isAvailable) "Available" else "Unavailable",
-                                color = if (isAvailable) Color(0xFF237A57) else Color(0xFF595959),
-                                style = MaterialTheme.typography.bodyMedium
-                            )
+                            Surface(
+                                color = if (isAvailable) {
+                                    Color(0xFFE3F1E8)
+                                } else {
+                                    Color(0xFFCECECE)
+                                },
+                                contentColor = if (isAvailable) {
+                                    Color(0xFF1D6346)
+                                } else {
+                                    Color(0xFF454545)
+                                },
+                                shape = RoundedCornerShape(50)
+                            ) {
+                                Text(
+                                    text = if (isAvailable) "Available" else "Unavailable",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    modifier = Modifier.padding(
+                                        horizontal = 12.dp,
+                                        vertical = 6.dp
+                                    )
+                                )
+                            }
                             Text(
                                 text = if (index < 6) "€1 per day" else "€1.50 per day",
                                 style = MaterialTheme.typography.bodyMedium
