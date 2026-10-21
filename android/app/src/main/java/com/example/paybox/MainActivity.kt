@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -26,6 +27,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
@@ -208,27 +210,40 @@ class MainActivity : ComponentActivity() {
                         disabledContentColor = Color(0xFF595959)
                     )
                 ) {
-                    Column(
-                        modifier = Modifier.padding(20.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = "Locker $lockerNumber",
-                            style = MaterialTheme.typography.titleLarge
-                        )
-                        Text(
-                            text = if (index < 6) "Size: Small" else "Size: Large",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        Text(
-                            text = if (isAvailable) "Available" else "Unavailable",
-                            color = if (isAvailable) Color(0xFF237A57) else Color(0xFF595959),
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                        Text(
-                            text = if (index < 6) "€1 per day" else "€1.50 per day",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = "Locker $lockerNumber",
+                                style = MaterialTheme.typography.titleLarge
+                            )
+                            Text(
+                                text = if (index < 6) "Size: Small" else "Size: Large",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                        Column(
+                            horizontalAlignment = Alignment.End,
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = if (isAvailable) "Available" else "Unavailable",
+                                color = if (isAvailable) Color(0xFF237A57) else Color(0xFF595959),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                            Text(
+                                text = if (index < 6) "€1 per day" else "€1.50 per day",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
                     }
                 }
             }
