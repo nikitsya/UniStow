@@ -15,6 +15,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
@@ -26,60 +30,74 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
+            var showDetails by remember { mutableStateOf(false) }
+
             PayBoxTheme {
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
                     containerColor = Color(0xFF183B35)
                 ) { innerPadding ->
-                    LockerList(
-                        modifier = Modifier.padding(innerPadding)
-                    )
+                    if (showDetails) {
+                        Text(
+                            text = "Locker Details",
+                            modifier = Modifier.padding(innerPadding)
+                        )
+                    } else {
+                        LockerList(
+                            modifier = Modifier.padding(innerPadding),
+                            onLockerClick = { showDetails = true }
+                        )
+                    }
                 }
             }
         }
     }
-}
 
-@Composable
-fun LockerList(modifier: Modifier = Modifier) {
-    LazyColumn(modifier = modifier) {
-        items(9) { index ->
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = Color.White,
-                    contentColor = Color(0xFF183B35)
-                )
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "Locker ${index + 1}",
-                        style = MaterialTheme.typography.titleMedium
+    @Composable
+    fun LockerList(
+        modifier: Modifier = Modifier,
+        onLockerClick: () -> Unit = {}
+    ) {
+        LazyColumn(modifier = modifier) {
+            items(9) { index ->
+                Card(
+                    onClick = onLockerClick,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color.White,
+                        contentColor = Color(0xFF183B35),
                     )
-                    Text(
-                        text = if (index < 6) "Size: Small" else "Size: Large",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Text(
-                        text = "Status: Available",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Text(
-                        text = "€1 per day",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = "Locker ${index + 1}",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Text(
+                            text = if (index < 6) "Size: Small" else "Size: Large",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Text(
+                            text = "Status: Available",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Text(
+                            text = "€1 per day",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
                 }
             }
         }
     }
-}
 
-@Preview(showBackground = true)
-@Composable
-fun LockerListPreview() {
-    PayBoxTheme {
-        LockerList()
+    @Preview(showBackground = true)
+    @Composable
+    fun LockerListPreview() {
+        PayBoxTheme {
+            LockerList()
+        }
     }
 }
