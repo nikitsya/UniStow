@@ -49,7 +49,8 @@ class MainActivity : ComponentActivity() {
                     if (selectedLocker != null) {
                         var daysInput by remember { mutableStateOf("") }
                         val days = daysInput.toIntOrNull()
-                        val totalPrice = if (days != null && days in 1..7) days * 1 else 0
+                        val pricePerDay = if ((selectedLocker ?: 0) <= 6) 1.0 else 1.5
+                        val totalPrice = if (days != null && days in 1..7) days * pricePerDay else 0
                         val isError = daysInput.isNotEmpty() && (days == null || days !in 1..7)
 
                         Column(
@@ -110,11 +111,11 @@ class MainActivity : ComponentActivity() {
                                 }
                             )
                             Text(
-                                text = "Price per day: €1",
+                                text = "Price per day: €%.2f".format(pricePerDay),
                                 color = Color.White
                             )
                             Text(
-                                text = "Total price: €$totalPrice",
+                                text = "Total price: €%.2f".format(totalPrice),
                                 color = Color.White
                             )
                             Button(
@@ -182,7 +183,7 @@ class MainActivity : ComponentActivity() {
                         color = Color.White
                     )
                     Text(
-                        text = "Small and large lockers · €1 per day",
+                        text = "Small €1 · Large €1.50 per day",
                         style = MaterialTheme.typography.bodyMedium,
                         color = Color(0xFFDCE6E2)
                     )
@@ -225,7 +226,7 @@ class MainActivity : ComponentActivity() {
                             style = MaterialTheme.typography.bodyMedium
                         )
                         Text(
-                            text = "€1 per day",
+                            text = if (index < 6) "€1 per day" else "€1.50 per day",
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
