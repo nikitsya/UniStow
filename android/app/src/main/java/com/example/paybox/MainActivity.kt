@@ -50,7 +50,7 @@ class MainActivity : ComponentActivity() {
                         var daysInput by remember { mutableStateOf("") }
                         val days = daysInput.toIntOrNull()
                         val pricePerDay = if ((selectedLocker ?: 0) <= 6) 1.0 else 1.5
-                        val totalPrice = if (days != null && days in 1..7) days * pricePerDay else 0
+                        val totalPrice: Double = if (days != null && days in 1..7) days * pricePerDay else 0.0
                         val isError = daysInput.isNotEmpty() && (days == null || days !in 1..7)
 
                         Column(
