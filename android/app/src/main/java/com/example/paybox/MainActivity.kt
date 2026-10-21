@@ -44,6 +44,8 @@ class MainActivity : ComponentActivity() {
                 ) { innerPadding ->
                     if (selectedLocker != null) {
                         var daysInput by remember { mutableStateOf("") }
+                        val days = daysInput.toIntOrNull()
+                        val totalPrice = if (days != null && days in 1..7) days * 1 else 0
 
                         Column {
                             Text(
@@ -58,6 +60,14 @@ class MainActivity : ComponentActivity() {
                                 keyboardOptions = KeyboardOptions(
                                     keyboardType = KeyboardType.Number
                                 )
+                            )
+                            Text(
+                                text = "Price per day: €1",
+                                color = Color.White
+                            )
+                            Text(
+                                text = "Total price: €$totalPrice",
+                                color = Color.White
                             )
                             Button(
                                 onClick = { selectedLocker = null },
