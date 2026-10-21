@@ -1,6 +1,5 @@
 package com.example.paybox
 
-import android.R
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -13,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -93,12 +93,23 @@ class MainActivity : ComponentActivity() {
                                 onClick = {
                                     // TODO: Implement payment logic
                                 },
-                                enabled = days != null && days in 1..7
+                                enabled = days != null && days in 1..7,
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(0xFFE8D5B5),
+                                    contentColor = Color(0xFF183B35),
+                                    disabledContainerColor = Color(0xFF385650),
+                                    disabledContentColor = Color(0xFFB8C7C2)
+                                )
                             ) {
                                 Text("Confirm rental")
                             }
                             Button(
                                 onClick = { selectedLocker = null },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = ButtonDefaults.buttonColors(
+                                    contentColor = Color.White
+                                )
                             ) {
                                 Text("Back")
                             }
