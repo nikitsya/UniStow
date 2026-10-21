@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -19,6 +20,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -65,12 +67,38 @@ class MainActivity : ComponentActivity() {
                             TextField(
                                 value = daysInput,
                                 onValueChange = { daysInput = it },
+                                modifier = Modifier.fillMaxWidth(),
                                 label = { Text("Number of days") },
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(
                                     keyboardType = KeyboardType.Number
                                 ),
                                 isError = isError,
+                                shape = RoundedCornerShape(12.dp),
+                                colors = TextFieldDefaults.colors(
+                                    focusedContainerColor = Color(0xFFF5F2EC),
+                                    unfocusedContainerColor = Color(0xFFF5F2EC),
+                                    errorContainerColor = Color(0xFFFFEDEA),
+
+                                    focusedTextColor = Color(0xFF183B35),
+                                    unfocusedTextColor = Color(0xFF183B35),
+                                    errorTextColor = Color(0xFF183B35),
+
+                                    focusedLabelColor = Color(0xFF183B35),
+                                    unfocusedLabelColor = Color(0xFF52645F),
+                                    errorLabelColor = Color(0xFF9C2929),
+
+                                    cursorColor = Color(0xFF183B35),
+                                    errorCursorColor = Color(0xFF9C2929),
+
+                                    focusedIndicatorColor = Color.Transparent,
+                                    unfocusedIndicatorColor = Color.Transparent,
+                                    errorIndicatorColor = Color(0xFF9C2929),
+
+                                    focusedSupportingTextColor = Color(0xFFDCE6E2),
+                                    unfocusedSupportingTextColor = Color(0xFFDCE6E2),
+                                    errorSupportingTextColor = Color(0xFFFFB4AB)
+                                ),
                                 supportingText = {
                                     Text(
                                         text = if (isError) {
