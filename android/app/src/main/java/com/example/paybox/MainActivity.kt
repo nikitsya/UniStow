@@ -173,6 +173,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(8.dp),
+                    shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = Color.White,
                         contentColor = Color(0xFF183B35),
@@ -180,17 +181,21 @@ class MainActivity : ComponentActivity() {
                         disabledContentColor = Color(0xFF595959)
                     )
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
+                    Column(
+                        modifier = Modifier.padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
                         Text(
                             text = "Locker $lockerNumber",
-                            style = MaterialTheme.typography.titleMedium
+                            style = MaterialTheme.typography.titleLarge
                         )
                         Text(
                             text = if (index < 6) "Size: Small" else "Size: Large",
                             style = MaterialTheme.typography.bodyMedium
                         )
                         Text(
-                            text = if (isAvailable) "Status: Available" else "Status: Unavailable",
+                            text = if (isAvailable) "Available" else "Unavailable",
+                            color = if (isAvailable) Color(0xFF237A57) else Color(0xFF595959),
                             style = MaterialTheme.typography.bodyMedium
                         )
                         Text(
