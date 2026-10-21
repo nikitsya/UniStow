@@ -81,6 +81,14 @@ class MainActivity : ComponentActivity() {
                                 color = Color.White
                             )
                             Button(
+                                onClick = {
+                                    // TODO: Implement payment logic
+                                },
+                                enabled = days != null && days in 1..7
+                            ) {
+                                Text("Confirm rental")
+                            }
+                            Button(
                                 onClick = { selectedLocker = null },
                             ) {
                                 Text("Back")
