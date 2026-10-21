@@ -46,6 +46,7 @@ class MainActivity : ComponentActivity() {
                         var daysInput by remember { mutableStateOf("") }
                         val days = daysInput.toIntOrNull()
                         val totalPrice = if (days != null && days in 1..7) days * 1 else 0
+                        val isError = daysInput.isNotEmpty() && days == null && days !in 1..7
 
                         Column {
                             Text(
@@ -59,7 +60,11 @@ class MainActivity : ComponentActivity() {
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(
                                     keyboardType = KeyboardType.Number
-                                )
+                                ),
+                                isError = isError,
+                                supportingText = {
+                                    Text("Enter between 1 and 7 days")
+                                }
                             )
                             Text(
                                 text = "Price per day: €1",
