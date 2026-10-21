@@ -31,22 +31,24 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            var showDetails by remember { mutableStateOf(false) }
+            var selectedLocker by remember { mutableStateOf<Int?>(null) }
 
             PayBoxTheme {
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
                     containerColor = Color(0xFF183B35)
                 ) { innerPadding ->
-                    if (showDetails) {
+                    if (selectedLocker != null) {
                         Text(
-                            text = "Locker Details",
+                            text = "Locker $selectedLocker Details",
                             modifier = Modifier.padding(innerPadding)
                         )
                     } else {
                         LockerList(
                             modifier = Modifier.padding(innerPadding),
-                            onLockerClick = { showDetails = true }
+                            onLockerClick = { number ->
+                                selectedLocker = number
+                            }
                         )
                     }
                 }
@@ -57,7 +59,7 @@ class MainActivity : ComponentActivity() {
     @Composable
     fun LockerList(
         modifier: Modifier = Modifier,
-        onLockerClick: () -> Unit = {}
+        onLockerClick: (Int) -> Unit = {}
     ) {
         val unavailableLockers = listOf(3, 5, 6, 9)
 
@@ -67,7 +69,7 @@ class MainActivity : ComponentActivity() {
                 val isAvailable = lockerNumber !in unavailableLockers
 
                 Card(
-                    onClick = onLockerClick,
+                    onClick = { onLockerClick(lockerNumber) },
                     enabled = isAvailable,
                     modifier = Modifier
                         .fillMaxWidth()
