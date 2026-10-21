@@ -163,6 +163,32 @@ class MainActivity : ComponentActivity() {
         val unavailableLockers = listOf(3, 5, 6, 9)
 
         LazyColumn(modifier = modifier) {
+            item {
+                Column(
+                    modifier = Modifier.padding(
+                        horizontal = 16.dp,
+                        vertical = 24.dp
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "PayBox",
+                        style = MaterialTheme.typography.headlineLarge,
+                        color = Color.White
+                    )
+                    Text(
+                        text = "Select a locker to rent",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color.White
+                    )
+                    Text(
+                        text = "Small and large lockers · €1 per day",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color(0xFFDCE6E2)
+                    )
+                }
+            }
+
             items(9) { index ->
                 val lockerNumber = index + 1
                 val isAvailable = lockerNumber !in unavailableLockers
