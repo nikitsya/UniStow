@@ -43,7 +43,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun LockerList(modifier: Modifier = Modifier) {
     LazyColumn(modifier = modifier) {
-        items(6) { index ->
+        items(9) { index ->
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -57,6 +57,10 @@ fun LockerList(modifier: Modifier = Modifier) {
                     Text(
                         text = "Locker ${index + 1}",
                         style = MaterialTheme.typography.titleMedium
+                    )
+                    Text(
+                        text = if (index < 6) "Size: Small" else "Size: Large",
+                        style = MaterialTheme.typography.bodyMedium
                     )
                     Text(
                         text = "Status: Available",
