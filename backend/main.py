@@ -16,7 +16,7 @@ app.include_router(api.router)
 
 
 @app.exception_handler(RequestValidationError)
-async def validation_error(exception: RequestValidationError):
+async def validation_error(request: Request, exception: RequestValidationError):
     errors = [
         {"loc": error["loc"], "msg": error["msg"], "type": error["type"]}
         for error in exception.errors()
@@ -25,7 +25,7 @@ async def validation_error(exception: RequestValidationError):
 
 
 @app.exception_handler(SQLAlchemyError)
-async def database_error(request: Request):
+async def database_error(request: Request, exception: SQLAlchemyError):
     message = "The service is temporarily unavailable. Please try again shortly."
     if request.url.path.startswith("/api/"):
         return JSONResponse(status_code=503, content={"detail": message})
