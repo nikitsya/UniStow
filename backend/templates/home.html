@@ -1,6 +1,33 @@
 {% extends "layout.html" %}
 
 {% block content %}
-    <h1>{{ message }}</h1>
-    <p>A smart locker for short-term storage.</p>
+<header class="list-header">
+    <h1>PayBox</h1>
+    <p class="subtitle">Select a locker to rent</p>
+    <p class="supporting">Small €1 · Large €1.50 per day</p>
+</header>
+<ul aria-label="Lockers" class="locker-list">
+    {% for locker in lockers %}
+    <li>
+        {% if locker.status == 'available' %}
+        <a class="locker-card" href="{{ url_for('rental', locker_id=locker.id) }}">
+            {% else %}
+            <div aria-disabled="true" class="locker-card unavailable">
+                {% endif %}
+                <div class="locker-details">
+                    <h2>{{ locker.name }}</h2>
+                    <span>Size: {{ locker.size }}</span>
+                </div>
+                <div class="locker-price">
+                    <span class="status">{{ locker.status | capitalize }}</span>
+                    <span>€{{ '1' if locker.price_per_day_cents == 100 else '%.2f' | format(locker.price_per_day_cents / 100) }} per day</span>
+                </div>
+                {% if locker.status == 'available' %}
+        </a>
+        {% else %}
+        </div>
+        {% endif %}
+    </li>
+    {% endfor %}
+</ul>
 {% endblock content %}
