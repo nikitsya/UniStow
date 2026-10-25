@@ -11,8 +11,11 @@ A Raspberry Pi controls the latch and reports the door status.
 3. Open the locker and reopen it during the rental without paying again.
 4. Collect belongings, confirm the locker is empty and close the door to finish.
 
-The first version will use one locker with a fixed daily price. Payments will be in test
-mode, with no real money charged. The web pages should work on mobile and be easy to use
+The first version uses Locker 4 at EUR 1 per calendar day, with 1 day selected by default
+and up to 4 days payable in advance. Days end at 18:00 in Ireland; starts at or after 18:00
+count the next date as day one. EUR 1 becomes due at the unpaid deadline and each following
+18:00 until collection and rental completion. Payments will be in test mode, with no real money
+charged. The web pages should work on mobile and be easy to use
 with clear labels, keyboard controls and readable status messages.
 
 ## Planned stack

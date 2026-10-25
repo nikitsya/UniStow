@@ -64,3 +64,34 @@ a.locker-card:active { transform: translateY(0); }
 @keyframes enter { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 @media (min-width: 640px) { .app-shell { padding-top: 24px; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+.rental-terms {
+    margin-bottom: 20px;
+    color: var(--supporting);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.consent {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    font-size: 14px;
+    line-height: 1.5;
+    cursor: pointer;
+}
+
+.consent input {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    margin: 2px 0 0;
+    accent-color: var(--sand);
+}
+
+.operator-help {
+    margin: 12px 0 24px;
+    color: var(--supporting);
+    font-size: 13px;
+    line-height: 1.5;
+}
