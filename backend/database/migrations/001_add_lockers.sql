@@ -11,6 +11,7 @@ VALUES (1, 'small', 100, FALSE),
        (6, 'small', 100, FALSE),
        (7, 'large', 150, FALSE),
        (8, 'large', 150, FALSE),
-       (9, 'large', 150, FALSE) ON CONFLICT (number) DO NOTHING;
+       (9, 'large', 150, FALSE)
+ON CONFLICT (number) DO NOTHING;
 
 COMMIT;

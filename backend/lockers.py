@@ -2,15 +2,18 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 LOCKER_QUERY = """
-    SELECT lockers.id, lockers.number, lockers.size, lockers.price_per_day_cents,
-           lockers.door_state, lockers.last_seen_at,
-           lockers.is_enabled AND NOT EXISTS (
-               SELECT 1 FROM rentals
-               WHERE rentals.locker_id = lockers.id
-                 AND rentals.status IN ('pending', 'active', 'overdue')
-           ) AS is_available
-    FROM lockers
-"""
+               SELECT lockers.id,
+                      lockers.number,
+                      lockers.size,
+                      lockers.price_per_day_cents,
+                      lockers.door_state,
+                      lockers.last_seen_at,
+                      lockers.is_enabled AND NOT EXISTS (SELECT 1
+                                                         FROM rentals
+                                                         WHERE rentals.locker_id = lockers.id
+                                                           AND rentals.status IN ('pending', 'active', 'overdue')) AS is_available
+               FROM lockers \
+               """
 
 
 def read_lockers(db: Session, locker_id: int | None = None):
