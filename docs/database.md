@@ -96,3 +96,13 @@ Additional rental fields:
 | `device_commands` | Unique command ID, rental ID, action, expiry and acknowledgement status           |
 | `device_events`   | Locker ID, event type, observation time and reported state                        |
 
+## Data migrations
+
+After creating the tables, apply `001_add_lockers.sql` from the project folder:
+
+```sh
+docker compose exec -T db psql -U paybox -d paybox -v ON_ERROR_STOP=1 < backend/database/migrations/001_add_lockers.sql
+```
+
+This adds nine lockers with only Locker 4 enabled. Repeat runs leave existing records unchanged.
+Migrations are run manually; restarting Docker does not apply them.
