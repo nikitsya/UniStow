@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
@@ -30,12 +31,17 @@ def registration(request: Request):
 
 
 @router.get("/login")
-def sign_in(request: Request):
-    return templates.TemplateResponse(request, "login.html", {"title": "Sign in | PayBox"})
+def sign_in(request: Request, locker_id: int | None = None):
+    destination = f"/lockers/{locker_id}/rent" if locker_id is not None else "/"
+    return templates.TemplateResponse(
+        request, "login.html", {"title": "Sign in | PayBox", "destination": destination}
+    )
 
 
 @router.get("/lockers/{locker_id}/rent")
 def rental(request: Request, locker_id: int, db: Annotated[Session, Depends(get_db)]):
+    if current_user(db, request) is None:
+        return RedirectResponse(f"/login?locker_id={locker_id}", status_code=303)
     lockers = read_lockers(db, locker_id)
     if not lockers:
         raise HTTPException(status_code=404, detail="Locker not found")

@@ -69,7 +69,8 @@ email, or 422 for invalid input. Passwords are stored as Argon2 hashes.
 Open `/register` or select **Create account** on the locker list to register.
 Use `/login` to sign in. A session lasts 24 hours; **Sign out** revokes it.
 Sessions use an HttpOnly cookie, with Secure enabled on HTTPS. Session keys are
-stored as hashes in the database. Rentals are not linked to sign-in yet.
+stored as hashes in the database. Rental pages require sign-in; guests return to
+their selected locker after signing in. Creating and paying for rentals is not implemented yet.
 
 `POST /api/login` accepts email and password; `GET /api/me` returns the signed-in
 user. `POST /api/logout` signs out. Login and logout requests require the header

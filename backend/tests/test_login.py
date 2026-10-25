@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import patch
 
 from sqlalchemy import text
 
@@ -85,3 +86,21 @@ class LoginTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn('autocomplete="current-password"', response.text)
         self.assertEqual(self.client.get('/static/js/login.js').status_code, 200)
+
+    def test_rental_requires_valid_session(self):
+        path = '/lockers/4/rent'
+        response = self.client.get(path, follow_redirects=False)
+        self.assertEqual(response.status_code, 303)
+        self.assertEqual(response.headers['location'], '/login?locker_id=4')
+        self.assertIn('data-destination="/lockers/4/rent"', self.client.get(response.headers['location']).text)
+        self.login()
+        locker = {'id': 4, 'name': 'Locker 4', 'status': 'available', 'price_per_day_cents': 100}
+        with patch('routes.pages.read_lockers', return_value=[locker]):
+            self.assertEqual(self.client.get(path).status_code, 200)
+        with self.engine.begin() as connection:
+            connection.execute(text("UPDATE sessions SET expires_at = '2000-01-01'"))
+        self.assertEqual(self.client.get(path, follow_redirects=False).status_code, 303)
+
+    def test_login_destination_stays_local(self):
+        self.assertIn('data-destination="/"', self.client.get('/login').text)
+        self.assertEqual(self.client.get('/login', params={'locker_id': 'https://example.com'}).status_code, 422)

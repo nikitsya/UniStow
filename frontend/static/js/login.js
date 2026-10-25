@@ -21,7 +21,7 @@ loginForm.addEventListener('submit', async (event) => {
         });
         if (response.ok) {
             loginForm.reset();
-            window.location.assign('/');
+            window.location.assign(loginForm.dataset.destination);
             return;
         }
         loginMessage.textContent = response.status === 401
