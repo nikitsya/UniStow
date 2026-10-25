@@ -5,11 +5,21 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from lockers import read_lockers
-from schemas import Login, Registration
+from rentals import reserve_locker
+from schemas import Login, Registration, RentalRequest
 from sessions import check_browser_request, current_user, end_session, start_session
 from users import authenticate_user, create_user
 
 router = APIRouter(prefix="/api")
+
+
+@router.post("/rentals", status_code=201, dependencies=[Depends(check_browser_request)])
+def create_rental(details: RentalRequest, request: Request,
+                  db: Annotated[Session, Depends(get_db)]):
+    user = current_user(db, request)
+    if user is None:
+        raise HTTPException(status_code=401, detail="Please sign in.")
+    return reserve_locker(db, user["id"], details.locker_id, details.days)
 
 
 @router.post("/register", status_code=201)

@@ -4,7 +4,8 @@
 <section class="rental-screen">
     <a class="brand-link" href="{{ url_for('home') }}">PayBox</a>
     <h1>{{ locker.name }}</h1>
-    <form data-price-cents="{{ locker.price_per_day_cents }}" id="rental-form" novalidate>
+    <form action="{{ url_for('create_rental') }}" data-locker-id="{{ locker.id }}"
+          data-price-cents="{{ locker.price_per_day_cents }}" id="rental-form" method="post" novalidate>
         <div class="field">
             <label for="days">Number of days</label>
             <input aria-describedby="days-help" id="days" inputmode="numeric" max="4" min="1" name="days" required
@@ -23,7 +24,8 @@
         </label>
         <p class="operator-help">If you do not agree, or cannot collect your belongings, please contact the locker
             operator before proceeding.</p>
-        <button class="confirm-button" disabled id="confirm" type="submit">Confirm rental</button>
+        <p class="operator-help">Reserve for up to 15 minutes. No payment is taken at this step.</p>
+        <button class="confirm-button" disabled id="confirm" type="submit">Reserve locker</button>
         <p class="confirmation" hidden id="confirmation" role="status"></p>
     </form>
     <a class="back-button" href="{{ url_for('home') }}">Back</a>

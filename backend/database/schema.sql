@@ -75,7 +75,7 @@ CREATE TABLE rentals
         )
 );
 
--- Expiry does not free the locker: an overdue rental still blocks a new booking.
+-- Active and overdue rentals block new bookings; expired unpaid holds are cancelled before reuse.
 CREATE UNIQUE INDEX one_unfinished_rental_per_locker
     ON rentals (locker_id) WHERE status IN ('pending', 'active', 'overdue');
 CREATE INDEX rentals_user_id_idx ON rentals (user_id);

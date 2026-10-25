@@ -70,7 +70,15 @@ Open `/register` or select **Create account** on the locker list to register.
 Use `/login` to sign in. A session lasts 24 hours; **Sign out** revokes it.
 Sessions use an HttpOnly cookie, with Secure enabled on HTTPS. Session keys are
 stored as hashes in the database. Rental pages require sign-in; guests return to
-their selected locker after signing in. Creating and paying for rentals is not implemented yet.
+their selected locker after signing in.
+
+**Reserve locker** saves a `pending` rental for up to 15 minutes (or until the
+rental deadline, if sooner). The server checks consent and calculates the price
+and 18:00 Ireland end time. Repeating the same reservation returns the existing
+record. Expired pending holds no longer block availability and are marked
+`cancelled` when a new reservation is made. Active and overdue rentals still block
+the locker. Payment and physical access are not implemented yet; payment status
+must be reconciled before releasing holds once Stripe is added.
 
 `POST /api/login` accepts email and password; `GET /api/me` returns the signed-in
 user. `POST /api/logout` signs out. Login and logout requests require the header
