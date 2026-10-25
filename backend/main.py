@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, HTTPException, Request
@@ -21,8 +22,9 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="PayBox", docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan
 )
-app.mount("/static", StaticFiles(directory="static"), name="static")
-templates = Jinja2Templates(directory="templates")
+frontend_directory = Path(__file__).resolve().parent.parent / "frontend"
+app.mount("/static", StaticFiles(directory=frontend_directory / "static"), name="static")
+templates = Jinja2Templates(directory=frontend_directory / "templates")
 
 
 @app.exception_handler(SQLAlchemyError)
