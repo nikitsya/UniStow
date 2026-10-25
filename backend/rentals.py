@@ -30,13 +30,14 @@ def reserve_locker(db: Session, user_id: int, locker_id: int, days: int):
         raise HTTPException(status_code=409, detail="This locker is unavailable.")
 
     now = db.execute(text("SELECT clock_timestamp()")).scalar_one()
-    # There is no payment integration yet. Reconcile payments here when adding Stripe.
+    # Never release a checkout until its payment status has been reconciled.
     db.execute(text("""
                     UPDATE rentals
                     SET status = 'cancelled'
                     WHERE locker_id = :locker_id
                       AND status = 'pending'
                       AND reserved_until <= :now
+                      AND NOT EXISTS (SELECT 1 FROM payments WHERE payments.rental_id = rentals.id)
                     """), {"locker_id": locker_id, "now": now})
     existing = db.execute(text("""
                                SELECT id,

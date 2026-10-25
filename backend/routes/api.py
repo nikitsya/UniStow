@@ -5,12 +5,21 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from lockers import read_lockers
+from payments import create_checkout
 from rentals import reserve_locker
 from schemas import Login, Registration, RentalRequest
 from sessions import check_browser_request, current_user, end_session, start_session
 from users import authenticate_user, create_user
 
 router = APIRouter(prefix="/api")
+
+
+@router.post("/rentals/{rental_id}/checkout", dependencies=[Depends(check_browser_request)])
+def checkout(rental_id: int, request: Request, db: Annotated[Session, Depends(get_db)]):
+    user = current_user(db, request)
+    if user is None:
+        raise HTTPException(status_code=401, detail="Please sign in.")
+    return create_checkout(db, rental_id, user["id"])
 
 
 @router.post("/rentals", status_code=201, dependencies=[Depends(check_browser_request)])

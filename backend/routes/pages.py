@@ -4,10 +4,12 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from database import get_db
 from lockers import read_lockers
+from payments import owned_rental
 from sessions import current_user
 
 router = APIRouter()
@@ -17,9 +19,19 @@ templates = Jinja2Templates(directory=frontend_directory / "templates")
 
 @router.get("/")
 def home(request: Request, db: Annotated[Session, Depends(get_db)]):
+    user = current_user(db, request)
+    reservations = db.execute(text("""
+                                   SELECT id
+                                   FROM rentals
+                                   WHERE user_id = :user_id
+                                     AND status = 'pending'
+                                     AND (reserved_until > CURRENT_TIMESTAMP
+                                       OR EXISTS (SELECT 1 FROM payments WHERE payments.rental_id = rentals.id))
+                                   ORDER BY id DESC
+                                   """), {"user_id": user["id"]}).mappings().all() if user else []
     return templates.TemplateResponse(
         request, "home.html", {"title": "PayBox", "lockers": read_lockers(db),
-                               "user": current_user(db, request)}
+                               "user": user, "reservations": reservations}
     )
 
 
@@ -31,11 +43,22 @@ def registration(request: Request):
 
 
 @router.get("/login")
-def sign_in(request: Request, locker_id: int | None = None):
-    destination = f"/lockers/{locker_id}/rent" if locker_id is not None else "/"
+def sign_in(request: Request, locker_id: int | None = None, rental_id: int | None = None):
+    destination = (f"/rentals/{rental_id}" if rental_id is not None else
+                   f"/lockers/{locker_id}/rent" if locker_id is not None else "/")
     return templates.TemplateResponse(
         request, "login.html", {"title": "Sign in | PayBox", "destination": destination}
     )
+
+
+@router.get("/rentals/{rental_id}")
+def reservation(request: Request, rental_id: int, db: Annotated[Session, Depends(get_db)]):
+    user = current_user(db, request)
+    if user is None:
+        return RedirectResponse(f"/login?rental_id={rental_id}", status_code=303)
+    return templates.TemplateResponse(request, "reservation.html", {
+        "title": "Reservation | PayBox", "rental": owned_rental(db, rental_id, user["id"]),
+    })
 
 
 @router.get("/lockers/{locker_id}/rent")

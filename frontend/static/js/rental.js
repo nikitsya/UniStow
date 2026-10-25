@@ -70,7 +70,10 @@ if (form) {
             const deadline = new Intl.DateTimeFormat('en-IE', {
                 timeZone: 'Europe/Dublin', dateStyle: 'medium', timeStyle: 'short',
             });
-            confirmation.textContent = `Reservation #${rental.id} saved, awaiting payment. Held until ${deadline.format(new Date(rental.reserved_until))}. Rental end: ${deadline.format(new Date(rental.paid_until))}. No payment has been taken; checkout is not available yet.`;
+            confirmation.textContent = `Reservation #${rental.id} saved, awaiting payment. Start checkout before ${deadline.format(new Date(rental.reserved_until))}. Rental end: ${deadline.format(new Date(rental.paid_until))}.`;
+            const paymentLink = document.querySelector('#payment-link');
+            paymentLink.href = `/rentals/${rental.id}`;
+            paymentLink.hidden = false;
         } catch {
             confirmation.classList.add('error');
             confirmation.textContent = 'Could not confirm the reservation. Check your connection and retry with the same number of days.';

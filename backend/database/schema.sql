@@ -80,6 +80,16 @@ CREATE UNIQUE INDEX one_unfinished_rental_per_locker
     ON rentals (locker_id) WHERE status IN ('pending', 'active', 'overdue');
 CREATE INDEX rentals_user_id_idx ON rentals (user_id);
 
+-- Save the request before calling Stripe so retries cannot create a second checkout.
+CREATE TABLE payments
+(
+    rental_id           INTEGER PRIMARY KEY REFERENCES rentals (id) ON DELETE RESTRICT,
+    request_key         TEXT        NOT NULL UNIQUE,
+    checkout_params     JSONB       NOT NULL,
+    checkout_session_id TEXT UNIQUE,
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 -- An amount due is not proof that Stripe has collected it.
 CREATE TABLE overdue_charges
 (

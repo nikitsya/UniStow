@@ -7,6 +7,10 @@
     <p class="supporting">Daily rental prices shown below</p>
     {% if user %}
     <p class="supporting signed-in">Signed in as {{ user.email }}</p>
+    {% for reservation in reservations %}
+    <a class="account-link" href="{{ url_for('reservation', rental_id=reservation.id) }}">Reservation #{{ reservation.id
+        }}</a>
+    {% endfor %}
     <button class="back-button" id="logout-button" type="button">Sign out</button>
     <p class="confirmation error" id="logout-message" role="status"></p>
     <script defer src="{{ url_for('static', path='js/logout.js') }}"></script>

@@ -13,8 +13,10 @@ LOCKER_QUERY = """
                                                          WHERE rentals.locker_id = lockers.id
                                                            AND (rentals.status IN ('active', 'overdue')
                                                              OR (rentals.status = 'pending'
-                                                                 AND rentals.reserved_until >
-                                                                     CURRENT_TIMESTAMP))) AS is_available
+                                                                 AND (rentals.reserved_until > CURRENT_TIMESTAMP
+                                                                     OR EXISTS (SELECT 1
+                                                                                FROM payments
+                                                                                WHERE payments.rental_id = rentals.id))))) AS is_available
                FROM lockers \
                """
 

@@ -1,0 +1,18 @@
+{% extends "layout.html" %}
+{% block content %}
+<section class="rental-screen">
+    <a class="brand-link" href="{{ url_for('home') }}">PayBox</a>
+    <h1>Reservation #{{ rental.id }}</h1>
+    <p>Locker {{ rental.number }} · {{ rental.prepaid_days }} day(s)</p>
+    <p class="total">Total: €{{ '%.2f' | format(rental.total_price_cents / 100) }}</p>
+    <p class="supporting">Status: {{ rental.status }}</p>
+    {% if rental.status == 'pending' %}
+    <p class="operator-help">Stripe test checkout is ready. Automatic payment confirmation is not connected yet, so this reservation will remain pending after a test payment.</p>
+    <button class="confirm-button" id="pay-button" data-checkout-url="{{ url_for('checkout', rental_id=rental.id) }}"
+            data-login-url="{{ url_for('sign_in') }}?rental_id={{ rental.id }}" type="button">Pay €{{ '%.2f' | format(rental.total_price_cents / 100) }}</button>
+    <p class="confirmation" id="payment-message" role="status" aria-live="polite"></p>
+    <script defer src="{{ url_for('static', path='js/payment.js') }}"></script>
+    {% endif %}
+    <a class="back-button" href="{{ url_for('home') }}">Back to lockers</a>
+</section>
+{% endblock content %}

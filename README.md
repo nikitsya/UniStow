@@ -75,10 +75,9 @@ their selected locker after signing in.
 **Reserve locker** saves a `pending` rental for up to 15 minutes (or until the
 rental deadline, if sooner). The server checks consent and calculates the price
 and 18:00 Ireland end time. Repeating the same reservation returns the existing
-record. Expired pending holds no longer block availability and are marked
-`cancelled` when a new reservation is made. Active and overdue rentals still block
-the locker. Payment and physical access are not implemented yet; payment status
-must be reconciled before releasing holds once Stripe is added.
+record. Without a checkout attempt, expired holds are marked `cancelled` when a
+new reservation is made. A checkout attempt keeps the locker blocked until payment
+is reconciled. Active and overdue rentals also block it. Physical access is not implemented yet.
 
 `POST /api/login` accepts email and password; `GET /api/me` returns the signed-in
 user. `POST /api/logout` signs out. Login and logout requests require the header
@@ -91,7 +90,18 @@ Run the isolated registration tests from `backend/`:
 
 In the Stripe Dashboard, open a sandbox or test mode and find **API keys**.
 Copy the secret key beginning with `sk_test_` into `STRIPE_SECRET_KEY` in the
-root `.env` file. Keep the key out of Git and chat. Checkout is not connected yet.
+root `.env` file. Keep the key out of Git and chat. `APP_BASE_URL` defaults to
+`http://127.0.0.1:8000`; use this address when testing sign-in and checkout.
+
+Apply `003_add_payments.sql` once to existing databases. After reserving, select **Continue to payment**, then **Pay**.
+The server opens card-only test Checkout
+using Stripe API version `2025-06-30.basil`. It reuses the same saved request on retry.
+Stripe checkout lasts 31 minutes and cannot start within 31 minutes of the rental deadline.
+
+This step opens Checkout only. Webhooks and payment reconciliation are next:
+returning from Stripe does not activate a rental. After any checkout attempt,
+the locker stays blocked, even if Stripe expires the session, until reconciliation
+is implemented. Do not treat `pending` as proof of payment or grant physical access.
 
 ## Project files
 
