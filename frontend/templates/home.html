@@ -5,6 +5,7 @@
     <h1>PayBox</h1>
     <p class="subtitle">Select a locker to rent</p>
     <p class="supporting">Daily rental prices shown below</p>
+    <a class="account-link" href="{{ url_for('registration') }}">Create account</a>
 </header>
 <ul aria-label="Lockers" class="locker-list">
     {% for locker in lockers %}

@@ -66,7 +66,8 @@ The server will check payments and rental ownership before sending an unlock com
 `POST /api/register` accepts JSON with `email` and `password` (15–128 characters).
 It returns the user's `id` and normalised `email`: 201 on success, 409 for an existing
 email, or 422 for invalid input. Passwords are stored as Argon2 hashes.
-The registration form and sign-in are not implemented yet.
+Open `/register` or select **Create account** on the locker list to register.
+Sign-in is not implemented yet.
 
 Run the isolated registration tests from `backend/`:
 `uv run python -m unittest discover -s tests -v`.

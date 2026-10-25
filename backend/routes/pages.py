@@ -20,6 +20,13 @@ def home(request: Request, db: Annotated[Session, Depends(get_db)]):
     )
 
 
+@router.get("/register")
+def registration(request: Request):
+    return templates.TemplateResponse(
+        request, "register.html", {"title": "Create account | PayBox"}
+    )
+
+
 @router.get("/lockers/{locker_id}/rent")
 def rental(request: Request, locker_id: int, db: Annotated[Session, Depends(get_db)]):
     lockers = read_lockers(db, locker_id)

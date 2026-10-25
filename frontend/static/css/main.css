@@ -151,6 +151,21 @@ a.locker-card:active {
     color: var(--supporting);
 }
 
+.account-link {
+    display: inline-block;
+    margin-top: 16px;
+    padding: 12px 0;
+    text-underline-offset: 4px;
+}
+
+.registration-field {
+    margin-bottom: 16px;
+}
+
+.confirmation.error {
+    color: #ffb4ab;
+}
+
 .rental-screen h1 {
     font-size: 28px;
     margin-bottom: 24px;
