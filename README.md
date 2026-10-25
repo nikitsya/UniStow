@@ -87,6 +87,12 @@ user. `POST /api/logout` signs out. Login and logout requests require the header
 Run the isolated registration tests from `backend/`:
 `uv run python -m unittest discover -s tests -v`.
 
+## Stripe setup
+
+In the Stripe Dashboard, open a sandbox or test mode and find **API keys**.
+Copy the secret key beginning with `sk_test_` into `STRIPE_SECRET_KEY` in the
+root `.env` file. Keep the key out of Git and chat. Checkout is not connected yet.
+
 ## Project files
 
 - `backend/` - FastAPI server, database connection and SQL files.
