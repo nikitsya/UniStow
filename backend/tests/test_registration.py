@@ -18,12 +18,13 @@ class RegistrationTests(unittest.TestCase):
         )
         with self.engine.begin() as connection:
             connection.execute(text("""
-                CREATE TABLE users (
-                    id INTEGER PRIMARY KEY,
-                    email TEXT NOT NULL UNIQUE,
-                    password_hash TEXT NOT NULL
-                )
-            """))
+                                    CREATE TABLE users
+                                    (
+                                        id            INTEGER PRIMARY KEY,
+                                        email         TEXT NOT NULL UNIQUE,
+                                        password_hash TEXT NOT NULL
+                                    )
+                                    """))
 
         def test_db():
             with Session(self.engine) as db:
