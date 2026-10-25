@@ -1,0 +1,23 @@
+name: paybox
+
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: paybox
+      POSTGRES_USER: paybox
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -h 127.0.0.1 -U paybox -d paybox" ]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  postgres_data:

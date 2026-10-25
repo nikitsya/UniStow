@@ -13,15 +13,15 @@ CREATE TABLE users
 
 CREATE TABLE lockers
 (
-    id     INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    number INTEGER NOT NULL UNIQUE CHECK (number > 0),
-    size   TEXT    NOT NULL CHECK (size IN ('small', 'large')
-) ,
+    id                  INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    number              INTEGER NOT NULL UNIQUE CHECK (number > 0),
+    size                TEXT    NOT NULL CHECK (size IN ('small', 'large')
+        ),
     price_per_day_cents INTEGER NOT NULL CHECK (price_per_day_cents >= 0),
-    is_enabled BOOLEAN NOT NULL DEFAULT FALSE,
-    door_state TEXT NOT NULL DEFAULT 'unknown'
+    is_enabled          BOOLEAN NOT NULL DEFAULT FALSE,
+    door_state          TEXT    NOT NULL DEFAULT 'unknown'
         CHECK (door_state IN ('open', 'closed', 'unknown')),
-    last_seen_at TIMESTAMPTZ
+    last_seen_at        TIMESTAMPTZ
 );
 
 CREATE TABLE rentals
@@ -51,18 +51,20 @@ CREATE TABLE rentals
     CONSTRAINT calendar_day_end CHECK (
         paid_until = (
             ((starts_at AT TIME ZONE 'Europe/Dublin'):: date
-        + prepaid_days - 1
-        + CASE WHEN (starts_at AT TIME ZONE 'Europe/Dublin'):: time >= TIME '18:00'
-        THEN 1 ELSE 0 END
-        + TIME '18:00'
-)
-    AT TIME ZONE 'Europe/Dublin'
-)
-),
-CONSTRAINT completion_state CHECK (
-(status = 'completed' AND completed_at IS NOT NULL AND completed_at >= starts_at)
-OR (status <> 'completed' AND completed_at IS NULL)
-)
+                 + prepaid_days - 1
+                + CASE
+                      WHEN (starts_at AT TIME ZONE 'Europe/Dublin'):: time >= TIME '18:00'
+                          THEN 1
+                      ELSE 0 END
+                + TIME '18:00'
+                )
+                AT TIME ZONE 'Europe/Dublin'
+            )
+        ),
+    CONSTRAINT completion_state CHECK (
+        (status = 'completed' AND completed_at IS NOT NULL AND completed_at >= starts_at)
+            OR (status <> 'completed' AND completed_at IS NULL)
+        )
 );
 
 -- Expiry does not free the locker: an overdue rental still blocks a new booking.

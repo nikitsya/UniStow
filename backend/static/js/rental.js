@@ -9,7 +9,7 @@ if (form) {
     const confirmation = document.querySelector('#confirmation');
     const consent = document.querySelector('#overdue-consent');
     const priceCents = Number(form.dataset.priceCents);
-    const currency = new Intl.NumberFormat('en-IE', { style: 'currency', currency: 'EUR' });
+    const currency = new Intl.NumberFormat('en-IE', {style: 'currency', currency: 'EUR'});
 
     function updatePrice() {
         const days = Number(daysInput.value);

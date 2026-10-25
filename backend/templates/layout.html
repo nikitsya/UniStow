@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <meta content="#183B35" name="theme-color">
     <title>{{ title }}</title>
     <link href="{{ url_for('static', path='css/main.css') }}" rel="stylesheet">
@@ -11,6 +11,6 @@
 <body>
 <main class="app-shell">
     {% block content %}{% endblock content %}
-    </main>
+</main>
 </body>
 </html>

@@ -4,7 +4,7 @@
 <section class="rental-screen">
     <a class="brand-link" href="{{ url_for('home') }}">PayBox</a>
     <h1>{{ locker.name }}</h1>
-    <form id="rental-form" data-price-cents="{{ locker.price_per_day_cents }}" novalidate>
+    <form data-price-cents="{{ locker.price_per_day_cents }}" id="rental-form" novalidate>
         <div class="field">
             <label for="days">Number of days</label>
             <input aria-describedby="days-help" id="days" inputmode="numeric" max="4" min="1" name="days" required
@@ -14,15 +14,17 @@
         <p aria-live="polite" class="field-help" id="days-help">Rent for up to 4 calendar days. Your rental ends at
             18:00 on the final paid day.</p>
         <p>Price per day: €{{ '%.2f' | format(locker.price_per_day_cents / 100) }}</p>
-        <p class="total" aria-live="polite" aria-atomic="true">Total price: <output id="total" for="days">€0.00</output></p>
+        <p aria-atomic="true" aria-live="polite" class="total">Total price:
+            <output for="days" id="total">€0.00</output>
+        </p>
         <label class="consent" for="overdue-consent">
             <input id="overdue-consent" name="overdue_consent" required type="checkbox">
             <span>I agree to collect my belongings before 18:00 (Ireland time) on the final paid day. If I do not, I authorise an automatic charge of €1 to my payment method at that deadline and at 18:00 each following day until I collect my belongings and finish the rental.</span>
         </label>
         <p class="operator-help">If you do not agree, or cannot collect your belongings, please contact the locker
             operator before proceeding.</p>
-        <button id="confirm" class="confirm-button" type="submit" disabled>Confirm rental</button>
-        <p id="confirmation" class="confirmation" role="status" hidden></p>
+        <button class="confirm-button" disabled id="confirm" type="submit">Confirm rental</button>
+        <p class="confirmation" hidden id="confirmation" role="status"></p>
     </form>
     <a class="back-button" href="{{ url_for('home') }}">Back</a>
 </section>
