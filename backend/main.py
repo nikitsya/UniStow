@@ -1,16 +1,12 @@
 from contextlib import asynccontextmanager
-from pathlib import Path
-from typing import Annotated
 
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import Session
 
-from database import engine, get_db
-from lockers import read_lockers
+from database import engine
+from routes import frontend_directory, router, templates
 
 
 @asynccontextmanager
@@ -22,9 +18,8 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="PayBox", docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan
 )
-frontend_directory = Path(__file__).resolve().parent.parent / "frontend"
 app.mount("/static", StaticFiles(directory=frontend_directory / "static"), name="static")
-templates = Jinja2Templates(directory=frontend_directory / "templates")
+app.include_router(router)
 
 
 @app.exception_handler(SQLAlchemyError)
@@ -35,28 +30,3 @@ async def database_error(request: Request, exception: SQLAlchemyError):
     return templates.TemplateResponse(
         request, "error.html", {"title": "PayBox", "message": message}, status_code=503
     )
-
-
-@app.get("/")
-def home(request: Request, db: Annotated[Session, Depends(get_db)]):
-    return templates.TemplateResponse(
-        request, "home.html", {"title": "PayBox", "lockers": read_lockers(db)}
-    )
-
-
-@app.get("/lockers/{locker_id}/rent")
-def rental(request: Request, locker_id: int, db: Annotated[Session, Depends(get_db)]):
-    lockers = read_lockers(db, locker_id)
-    if not lockers:
-        raise HTTPException(status_code=404, detail="Locker not found")
-    locker = lockers[0]
-    if locker["status"] != "available":
-        raise HTTPException(status_code=409, detail="This locker is unavailable")
-    return templates.TemplateResponse(
-        request, "rental.html", {"title": f"{locker['name']} | PayBox", "locker": locker}
-    )
-
-
-@app.get("/api/lockers")
-def get_lockers(db: Annotated[Session, Depends(get_db)]):
-    return read_lockers(db)
