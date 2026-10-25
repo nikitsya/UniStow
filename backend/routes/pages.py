@@ -9,7 +9,7 @@ from database import get_db
 from lockers import read_lockers
 
 router = APIRouter()
-frontend_directory = Path(__file__).resolve().parent.parent / "frontend"
+frontend_directory = Path(__file__).resolve().parents[2] / "frontend"
 templates = Jinja2Templates(directory=frontend_directory / "templates")
 
 
@@ -31,8 +31,3 @@ def rental(request: Request, locker_id: int, db: Annotated[Session, Depends(get_
     return templates.TemplateResponse(
         request, "rental.html", {"title": f"{locker['name']} | PayBox", "locker": locker}
     )
-
-
-@router.get("/api/lockers")
-def get_lockers(db: Annotated[Session, Depends(get_db)]):
-    return read_lockers(db)
