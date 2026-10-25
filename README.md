@@ -60,6 +60,7 @@ The server will check payments and rental ownership before sending an unlock com
 
 ## Project files
 
+- [Backend](backend/README.md) - FastAPI server and local run instructions.
 - `android/` - Android prototype.
 - `docs/` - Implementation plan, presentation and design images.
 - [Implementation plan](docs/implementation-plan.md) - Next development steps.
