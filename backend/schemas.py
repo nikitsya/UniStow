@@ -9,3 +9,7 @@ class Registration(BaseModel):
     @classmethod
     def normalise_email(cls, value: str) -> str:
         return value.strip().lower()
+
+
+class Login(Registration):
+    password: str = Field(min_length=1, max_length=128, repr=False)

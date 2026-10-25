@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from lockers import read_lockers
+from sessions import current_user
 
 router = APIRouter()
 frontend_directory = Path(__file__).resolve().parents[2] / "frontend"
@@ -16,7 +17,8 @@ templates = Jinja2Templates(directory=frontend_directory / "templates")
 @router.get("/")
 def home(request: Request, db: Annotated[Session, Depends(get_db)]):
     return templates.TemplateResponse(
-        request, "home.html", {"title": "PayBox", "lockers": read_lockers(db)}
+        request, "home.html", {"title": "PayBox", "lockers": read_lockers(db),
+                               "user": current_user(db, request)}
     )
 
 
@@ -25,6 +27,11 @@ def registration(request: Request):
     return templates.TemplateResponse(
         request, "register.html", {"title": "Create account | PayBox"}
     )
+
+
+@router.get("/login")
+def sign_in(request: Request):
+    return templates.TemplateResponse(request, "login.html", {"title": "Sign in | PayBox"})
 
 
 @router.get("/lockers/{locker_id}/rent")

@@ -67,7 +67,13 @@ The server will check payments and rental ownership before sending an unlock com
 It returns the user's `id` and normalised `email`: 201 on success, 409 for an existing
 email, or 422 for invalid input. Passwords are stored as Argon2 hashes.
 Open `/register` or select **Create account** on the locker list to register.
-Sign-in is not implemented yet.
+Use `/login` to sign in. A session lasts 24 hours; **Sign out** revokes it.
+Sessions use an HttpOnly cookie, with Secure enabled on HTTPS. Session keys are
+stored as hashes in the database. Rentals are not linked to sign-in yet.
+
+`POST /api/login` accepts email and password; `GET /api/me` returns the signed-in
+user. `POST /api/logout` signs out. Login and logout requests require the header
+`X-PayBox-Request: 1`; the web forms send it automatically.
 
 Run the isolated registration tests from `backend/`:
 `uv run python -m unittest discover -s tests -v`.

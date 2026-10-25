@@ -11,6 +11,14 @@ CREATE TABLE users
     CONSTRAINT normalised_email CHECK (email = lower(btrim(email)) AND email <> '')
 );
 
+CREATE TABLE sessions
+(
+    token_hash TEXT PRIMARY KEY,
+    user_id    INTEGER     NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    expires_at TIMESTAMPTZ NOT NULL
+);
+CREATE INDEX sessions_user_id_idx ON sessions (user_id);
+
 CREATE TABLE lockers
 (
     id                  INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,

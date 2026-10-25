@@ -19,6 +19,7 @@
         <p class="confirmation" id="registration-message" role="status" aria-live="polite" aria-atomic="true"></p>
         <noscript><p class="confirmation">Please enable JavaScript to create an account.</p></noscript>
     </form>
+    <a class="back-button" href="{{ url_for('sign_in') }}">Sign in</a>
     <a class="back-button" href="{{ url_for('home') }}">Back to lockers</a>
 </section>
 <script defer src="{{ url_for('static', path='js/registration.js') }}"></script>

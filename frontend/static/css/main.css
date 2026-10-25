@@ -162,6 +162,23 @@ a.locker-card:active {
     margin-bottom: 16px;
 }
 
+.login-submit {
+    margin-top: 24px;
+}
+
+.account-nav {
+    display: flex;
+    gap: 24px;
+}
+
+.signed-in {
+    overflow-wrap: anywhere;
+}
+
+button.back-button {
+    color: inherit;
+}
+
 .confirmation.error {
     color: #ffb4ab;
 }

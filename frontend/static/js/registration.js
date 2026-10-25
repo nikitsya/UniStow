@@ -26,7 +26,7 @@ registrationForm.addEventListener('submit', async (event) => {
         if (response.status === 201) {
             created = true;
             registrationForm.reset();
-            registrationMessage.textContent = 'Your account has been created. Sign-in will be available soon.';
+            registrationMessage.textContent = 'Your account has been created. You can now sign in using the link below.';
         } else if (response.status === 409) {
             registrationMessage.textContent = 'This email is already registered. Please use another email.';
         } else if (response.status === 422) {

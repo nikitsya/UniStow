@@ -15,6 +15,14 @@ app.include_router(pages.router)
 app.include_router(api.router)
 
 
+@app.middleware("http")
+async def prevent_account_caching(request: Request, call_next):
+    response = await call_next(request)
+    if not request.url.path.startswith("/static/"):
+        response.headers["Cache-Control"] = "no-store"
+    return response
+
+
 @app.exception_handler(RequestValidationError)
 async def validation_error(request: Request, exception: RequestValidationError):
     errors = [

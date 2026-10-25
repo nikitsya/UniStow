@@ -9,3 +9,4 @@
 | 25 October 2026 | OpenAI Codex clarified the 1-4 day rental period and 18:00 Ireland deadline.                              |
 | 25 October 2026 | OpenAI Codex moved the web templates and static files into a separate frontend folder.                    |
 | 25 October 2026 | OpenAI Codex helped add and test email and password registration.                                         |
+| 25 October 2026 | OpenAI Codex helped add sign-in, sessions and sign-out.                                                   |

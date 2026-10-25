@@ -5,7 +5,17 @@
     <h1>PayBox</h1>
     <p class="subtitle">Select a locker to rent</p>
     <p class="supporting">Daily rental prices shown below</p>
-    <a class="account-link" href="{{ url_for('registration') }}">Create account</a>
+    {% if user %}
+    <p class="supporting signed-in">Signed in as {{ user.email }}</p>
+    <button class="back-button" id="logout-button" type="button">Sign out</button>
+    <p class="confirmation error" id="logout-message" role="status"></p>
+    <script defer src="{{ url_for('static', path='js/logout.js') }}"></script>
+    {% else %}
+    <nav aria-label="Account" class="account-nav">
+        <a class="account-link" href="{{ url_for('sign_in') }}">Sign in</a>
+        <a class="account-link" href="{{ url_for('registration') }}">Create account</a>
+    </nav>
+    {% endif %}
 </header>
 <ul aria-label="Lockers" class="locker-list">
     {% for locker in lockers %}

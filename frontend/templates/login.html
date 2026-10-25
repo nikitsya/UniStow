@@ -1,0 +1,24 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<section class="rental-screen">
+    <a class="brand-link" href="{{ url_for('home') }}">PayBox</a>
+    <h1>Sign in</h1>
+    <form id="login-form" action="{{ url_for('login') }}" method="post">
+        <div class="field registration-field">
+            <label for="email">Email</label>
+            <input id="email" name="email" type="email" autocomplete="email" required>
+        </div>
+        <div class="field">
+            <label for="password">Password</label>
+            <input id="password" name="password" type="password" autocomplete="current-password" maxlength="128" required>
+        </div>
+        <button class="confirm-button login-submit" id="login-button" type="submit">Sign in</button>
+        <p class="confirmation" id="login-message" role="status" aria-live="polite"></p>
+        <noscript><p class="confirmation">Please enable JavaScript to sign in.</p></noscript>
+    </form>
+    <a class="back-button" href="{{ url_for('registration') }}">Create account</a>
+    <a class="back-button" href="{{ url_for('home') }}">Back to lockers</a>
+</section>
+<script defer src="{{ url_for('static', path='js/login.js') }}"></script>
+{% endblock content %}
