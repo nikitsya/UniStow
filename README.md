@@ -64,4 +64,5 @@ The server will check payments and rental ownership before sending an unlock com
 - `android/` - Android prototype.
 - `docs/` - Implementation plan, presentation and design images.
 - [Implementation plan](docs/implementation-plan.md) - Next development steps.
+- [Database plan](docs/database.md) - Proposed tables, fields and relationships.
 - [AI assistance log](AI_Chat_Log.md) - Brief record of AI help.

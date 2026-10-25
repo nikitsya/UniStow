@@ -32,10 +32,12 @@ def home(request: Request):
 @app.get("/lockers/{locker_id}/rent")
 def rental(request: Request, locker_id: int):
     locker = next((item for item in demo_lockers if item["id"] == locker_id), None)
+
     if locker is None:
         raise HTTPException(status_code=404, detail="Locker not found")
     if locker["status"] != "available":
         raise HTTPException(status_code=409, detail="This locker is unavailable")
+
     return templates.TemplateResponse(
         request, "rental.html", {"title": f"{locker['name']} | PayBox", "locker": locker}
     )
