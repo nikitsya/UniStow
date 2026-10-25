@@ -4,7 +4,7 @@
 <header class="list-header">
     <h1>PayBox</h1>
     <p class="subtitle">Select a locker to rent</p>
-    <p class="supporting">Small €1 · Large €1.50 per day</p>
+    <p class="supporting">Daily rental prices shown below</p>
 </header>
 <ul aria-label="Lockers" class="locker-list">
     {% for locker in lockers %}
@@ -28,6 +28,8 @@
         </div>
         {% endif %}
     </li>
+    {% else %}
+    <li class="supporting">No lockers are listed yet.</li>
     {% endfor %}
 </ul>
 {% endblock content %}
