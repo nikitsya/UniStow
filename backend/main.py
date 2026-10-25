@@ -1,31 +1,32 @@
-from contextlib import asynccontextmanager
-
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.exc import SQLAlchemyError
 
-from database import engine
 from routes import api, pages
 
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    yield
-    engine.dispose()
-
-
 app = FastAPI(
-    title="PayBox", docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan
+    title="PayBox", docs_url=None, redoc_url=None, openapi_url=None
 )
 app.mount("/static", StaticFiles(directory=pages.frontend_directory / "static"), name="static")
+
 app.include_router(pages.router)
 app.include_router(api.router)
 
 
+@app.exception_handler(RequestValidationError)
+async def validation_error(exception: RequestValidationError):
+    errors = [
+        {"loc": error["loc"], "msg": error["msg"], "type": error["type"]}
+        for error in exception.errors()
+    ]
+    return JSONResponse(status_code=422, content={"detail": errors})
+
+
 @app.exception_handler(SQLAlchemyError)
-async def database_error(request: Request, exception: SQLAlchemyError):
-    message = "Locker information is temporarily unavailable. Please try again shortly."
+async def database_error(request: Request):
+    message = "The service is temporarily unavailable. Please try again shortly."
     if request.url.path.startswith("/api/"):
         return JSONResponse(status_code=503, content={"detail": message})
     return pages.templates.TemplateResponse(
