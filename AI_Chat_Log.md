@@ -11,3 +11,4 @@
 | 25 October 2026 | OpenAI Codex helped add and test email and password registration.                                         |
 | 25 October 2026 | OpenAI Codex helped add sign-in, sessions and sign-out.                                                   |
 | 25 October 2026 | OpenAI Codex restricted rental pages to signed-in users.                                                  |
+| 25 October 2026 | OpenAI Codex installed Stripe and verified the test connection.                                           |
