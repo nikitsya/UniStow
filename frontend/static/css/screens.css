@@ -47,6 +47,7 @@
 .state-overdue { background: #f0ddd4; color: #844332; }
 .rental-facts { margin: 0 0 24px; }
 .rental-facts > div { display: flex; justify-content: space-between; gap: 20px; padding: 14px 0; border-bottom: 1px solid #e3e5dc; font-size: 14px; line-height: 1.5; }
+.rental-facts > div:last-child { border-bottom: 0; }
 .rental-facts dt { color: #607065; flex-shrink: 0; }
 .rental-facts dd { margin: 0; text-align: right; overflow-wrap: anywhere; }
 .flow-page :focus-visible { outline-color: #8b6d37; }

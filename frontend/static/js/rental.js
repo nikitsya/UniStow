@@ -67,16 +67,15 @@ if (form) {
             daysInput.disabled = true;
             consent.disabled = true;
             total.textContent = currency.format(rental.total_price_cents / 100);
-            const deadline = new Intl.DateTimeFormat('en-IE', {
-                timeZone: 'Europe/Dublin', dateStyle: 'medium', timeStyle: 'short',
-            });
-            confirmation.textContent = `Reservation #${rental.id} saved, awaiting payment. Start checkout before ${deadline.format(new Date(rental.reserved_until))}. Rental end: ${deadline.format(new Date(rental.paid_until))}.`;
             const paymentLink = document.querySelector('#payment-link');
             paymentLink.href = `/rentals/${rental.id}`;
-            paymentLink.hidden = false;
+            window.location.assign(paymentLink.href);
         } catch {
             confirmation.classList.add('error');
-            confirmation.textContent = 'Could not confirm the reservation. Check your connection and retry with the same number of days.';
+            confirmation.textContent = reserved
+                ? 'Your reservation is saved. Continue to payment to view your rental.'
+                : 'Could not confirm the reservation. Check your connection and retry with the same number of days.';
+            if (reserved) document.querySelector('#payment-link').hidden = false;
         } finally {
             submitting = false;
             daysInput.disabled = reserved;

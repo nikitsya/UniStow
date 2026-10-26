@@ -18,19 +18,16 @@
             paid') }}
         </dd>
     </div>
-    <div>
-        <dt>Device</dt>
-        <dd>{{ 'Online' if device_online else 'Offline' }}</dd>
-    </div>
+    {% if rental.status != 'pending' %}
     <div>
         <dt>Door</dt>
         <dd>{{ rental.door_state | capitalize if device_online else 'Unknown' }}</dd>
     </div>
+    {% endif %}
 </dl>
 <p class="total"><span>Total</span><strong>€{{ '%.2f' | format(rental.total_price_cents / 100) }}</strong></p>
     {% if rental.status == 'pending' %}
-    <p class="operator-help">Pay securely with Stripe using a test card. Your rental starts after payment is
-        confirmed.</p>
+    <p class="operator-help">Your rental starts after payment is confirmed.</p>
     <button class="confirm-button" data-checkout-url="{{ url_for('checkout', rental_id=rental.id) }}"
             data-login-url="{{ url_for('sign_in') }}?rental_id={{ rental.id }}"
             data-reconcile-url="{{ url_for('reconcile', rental_id=rental.id) }}"
