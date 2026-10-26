@@ -123,18 +123,19 @@ CREATE TABLE overdue_charges
         )
 );
 
-CREATE TABLE locker_commands (
-    id TEXT PRIMARY KEY,
-    rental_id INTEGER NOT NULL REFERENCES rentals(id),
-    locker_id INTEGER NOT NULL REFERENCES lockers(id),
-    controller_id TEXT NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    expires_at TIMESTAMPTZ NOT NULL,
+CREATE TABLE locker_commands
+(
+    id            TEXT PRIMARY KEY,
+    rental_id     INTEGER     NOT NULL REFERENCES rentals (id),
+    locker_id     INTEGER     NOT NULL REFERENCES lockers (id),
+    controller_id TEXT        NOT NULL,
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    expires_at    TIMESTAMPTZ NOT NULL,
     dispatched_at TIMESTAMPTZ,
-    action       TEXT NOT NULL DEFAULT 'open' CHECK (action IN ('open', 'finish')),
-    completed_at TIMESTAMPTZ,
+    action        TEXT        NOT NULL DEFAULT 'open' CHECK (action IN ('open', 'finish')),
+    completed_at  TIMESTAMPTZ,
     CHECK (expires_at > created_at)
 );
-CREATE INDEX locker_commands_locker_created_idx ON locker_commands(locker_id, created_at);
+CREATE INDEX locker_commands_locker_created_idx ON locker_commands (locker_id, created_at);
 
 COMMIT;

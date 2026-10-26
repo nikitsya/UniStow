@@ -1,12 +1,12 @@
-import json
 from pathlib import Path
+
+import json
+from gpiozero import Button
+from gpiozero.pins.pigpio import PiGPIOFactory
 from time import sleep
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
-
-from gpiozero import Button
-from gpiozero.pins.pigpio import PiGPIOFactory
 
 
 class NoRedirects(HTTPRedirectHandler):

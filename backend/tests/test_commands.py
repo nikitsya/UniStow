@@ -26,18 +26,26 @@ class CommandTests(unittest.TestCase):
         self.connection.exec_driver_sql(f'SET LOCAL search_path TO {schema}')
         source = (Path(__file__).resolve().parents[1] / 'database/schema.sql').read_text()
         self.connection.exec_driver_sql(source.replace('BEGIN;', '').replace('COMMIT;', ''))
-        self.connection.execute(text("INSERT INTO users(email,password_hash) VALUES ('owner@example.com','test'),('other@example.com','test')"))
-        self.connection.execute(text("INSERT INTO lockers(number,size,price_per_day_cents,is_enabled) VALUES(4,'small',100,true),(5,'small',100,true)"))
+        self.connection.execute(text(
+            "INSERT INTO users(email,password_hash) VALUES ('owner@example.com','test'),('other@example.com','test')"))
+        self.connection.execute(text(
+            "INSERT INTO lockers(number,size,price_per_day_cents,is_enabled) VALUES(4,'small',100,true),(5,'small',100,true)"))
         with Session(bind=self.connection, join_transaction_mode='create_savepoint') as db:
             self.rental = reserve_locker(db, 1, 1, 2)
         self.rental_id = self.rental['id']
         self.connection.execute(text("UPDATE rentals SET status='active' WHERE id=:id"), {'id': self.rental_id})
-        self.connection.execute(text("INSERT INTO payments(rental_id,request_key,checkout_params,status) VALUES(:id,'fixture','{}','paid')"), {'id': self.rental_id})
+        self.connection.execute(text(
+            "INSERT INTO payments(rental_id,request_key,checkout_params,status) VALUES(:id,'fixture','{}','paid')"),
+            {'id': self.rental_id})
         for user in (1, 2):
-            self.connection.execute(text("INSERT INTO sessions(token_hash,user_id,expires_at) VALUES(:token,:user,CURRENT_TIMESTAMP+INTERVAL '1 hour')"), {'token': token_hash(f'session-{user}'), 'user': user})
+            self.connection.execute(text(
+                "INSERT INTO sessions(token_hash,user_id,expires_at) VALUES(:token,:user,CURRENT_TIMESTAMP+INTERVAL '1 hour')"),
+                {'token': token_hash(f'session-{user}'), 'user': user})
+
         def test_db():
             with Session(bind=self.connection, join_transaction_mode='create_savepoint') as db:
                 yield db
+
         app.dependency_overrides[get_db] = test_db
         self.client = TestClient(app)
         self.client.cookies.set('paybox_session', 'session-1')
@@ -56,7 +64,8 @@ class CommandTests(unittest.TestCase):
 
     def report(self, ready=True, door='closed', controller=None):
         return self.client.post('/api/device/heartbeat', headers=self.device_headers,
-            json={'door_state': door, 'ready': ready, 'controller_id': controller or self.controller})
+                                json={'door_state': door, 'ready': ready,
+                                      'controller_id': controller or self.controller})
 
     def open(self):
         return self.client.post(f'/api/rentals/{self.rental_id}/open', headers={'X-PayBox-Request': '1'})
@@ -84,7 +93,8 @@ class CommandTests(unittest.TestCase):
         self.assertEqual(self.open().status_code, 404)
         self.client.cookies.set('paybox_session', 'session-1')
         self.assertEqual(self.client.post(f'/api/rentals/{self.rental_id}/open').status_code, 403)
-        self.assertEqual(self.client.post('/api/device/commands/next', json={'controller_id': self.controller}).status_code, 401)
+        self.assertEqual(
+            self.client.post('/api/device/commands/next', json={'controller_id': self.controller}).status_code, 401)
 
     def test_unpaid_offline_open_and_legacy_report_cannot_unlock(self):
         self.connection.execute(text("UPDATE payments SET status='pending'"))
@@ -102,7 +112,8 @@ class CommandTests(unittest.TestCase):
 
     def test_expired_command_and_restarted_controller_do_not_open(self):
         self.assertEqual(self.open().status_code, 202)
-        self.connection.execute(text("UPDATE locker_commands SET created_at=created_at-INTERVAL '1 minute', expires_at=expires_at-INTERVAL '1 minute'"))
+        self.connection.execute(text(
+            "UPDATE locker_commands SET created_at=created_at-INTERVAL '1 minute', expires_at=expires_at-INTERVAL '1 minute'"))
         self.assertIsNone(self.take().json()['command'])
         self.assertEqual(self.open().status_code, 202)
         new_controller = str(uuid4())
@@ -120,9 +131,14 @@ class CommandTests(unittest.TestCase):
 
     def test_expired_paid_period_cannot_open(self):
         start = self.connection.execute(text('SELECT starts_at FROM rentals')).scalar_one() - timedelta(days=7)
-        self.connection.execute(text('''UPDATE rentals SET starts_at=:start, created_at=:start,
-            overdue_terms_accepted_at=:start, reserved_until=:reserved, paid_until=:end'''),
-            {'start': start, 'reserved': start + timedelta(minutes=15), 'end': rental_end(start, 2)})
+        self.connection.execute(text('''UPDATE rentals
+                                        SET starts_at=:start,
+                                            created_at=:start,
+                                            overdue_terms_accepted_at=:start,
+                                            reserved_until=:reserved,
+                                            paid_until=:end'''),
+                                {'start': start, 'reserved': start + timedelta(minutes=15),
+                                 'end': rental_end(start, 2)})
         self.assertEqual(self.open().status_code, 409)
 
     def test_button_shown_only_for_ready_paid_owner(self):

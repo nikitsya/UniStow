@@ -13,10 +13,16 @@ class DeviceTests(unittest.TestCase):
         test_registration.RegistrationTests.setUp(self)
         with self.engine.begin() as connection:
             connection.execute(text("""
-                CREATE TABLE lockers (number INTEGER PRIMARY KEY,
-                    door_state TEXT DEFAULT 'unknown', last_seen_at TIMESTAMP,
-                    is_enabled BOOLEAN DEFAULT FALSE, device_ready BOOLEAN DEFAULT FALSE, controller_id TEXT)
-            """))
+                                    CREATE TABLE lockers
+                                    (
+                                        number        INTEGER PRIMARY KEY,
+                                        door_state    TEXT    DEFAULT 'unknown',
+                                        last_seen_at  TIMESTAMP,
+                                        is_enabled    BOOLEAN DEFAULT FALSE,
+                                        device_ready  BOOLEAN DEFAULT FALSE,
+                                        controller_id TEXT
+                                    )
+                                    """))
             connection.execute(text('INSERT INTO lockers (number) VALUES (4), (5)'))
         key = patch.dict('os.environ', {'PAYBOX_DEVICE_KEY': 'test-device-key'})
         key.start()

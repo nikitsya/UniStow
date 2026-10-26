@@ -35,15 +35,16 @@ def retrieve_checkout(session_id: str):
 
 def apply_checkout(db: Session, checkout, event=None):
     payment = db.execute(text("""
-        SELECT payments.rental_id, rentals.locker_id FROM payments
-        JOIN rentals ON rentals.id = payments.rental_id
-        WHERE checkout_session_id = :session
-    """), {"session": checkout["id"]}).mappings().first()
+                              SELECT payments.rental_id, rentals.locker_id
+                              FROM payments
+                                       JOIN rentals ON rentals.id = payments.rental_id
+                              WHERE checkout_session_id = :session
+                              """), {"session": checkout["id"]}).mappings().first()
     if payment is None:
         # Stripe may notify us before the create-checkout response has been saved.
         reference = checkout.get("client_reference_id", "") or ""
         if reference.isdigit() and db.execute(text(
-            "SELECT rental_id FROM payments WHERE rental_id = :id AND checkout_session_id IS NULL"
+                "SELECT rental_id FROM payments WHERE rental_id = :id AND checkout_session_id IS NULL"
         ), {"id": int(reference)}).first():
             raise HTTPException(status_code=503, detail="Checkout is still being saved. Please retry.")
         return
@@ -59,9 +60,9 @@ def apply_checkout(db: Session, checkout, event=None):
 
     if event:
         inserted = db.execute(text("""
-            INSERT INTO payment_events (event_id, event_type, checkout_session_id)
-            VALUES (:id, :type, :session) ON CONFLICT (event_id) DO NOTHING RETURNING event_id
-        """), {"id": event["id"], "type": event["type"], "session": checkout["id"]}).first()
+                                   INSERT INTO payment_events (event_id, event_type, checkout_session_id)
+                                   VALUES (:id, :type, :session) ON CONFLICT (event_id) DO NOTHING RETURNING event_id
+                                   """), {"id": event["id"], "type": event["type"], "session": checkout["id"]}).first()
         if not inserted:
             db.commit()
             return
@@ -70,20 +71,28 @@ def apply_checkout(db: Session, checkout, event=None):
         if rental["status"] == "cancelled" or not checkout.get("payment_intent"):
             raise HTTPException(status_code=409, detail="This payment needs review before activation.")
         db.execute(text("""
-            UPDATE payments SET status = 'paid', payment_intent_id = :intent,
-                confirmed_at = COALESCE(confirmed_at, CURRENT_TIMESTAMP)
-            WHERE rental_id = :id
-        """), {"id": rental["id"], "intent": checkout["payment_intent"]})
+                        UPDATE payments
+                        SET status            = 'paid',
+                            payment_intent_id = :intent,
+                            confirmed_at      = COALESCE(confirmed_at, CURRENT_TIMESTAMP)
+                        WHERE rental_id = :id
+                        """), {"id": rental["id"], "intent": checkout["payment_intent"]})
         db.execute(text("""
-            UPDATE rentals SET status = CASE WHEN paid_until <= clock_timestamp()
-                THEN 'overdue' ELSE 'active' END
-            WHERE id = :id AND status = 'pending'
-        """), {"id": rental["id"]})
+                        UPDATE rentals
+                        SET status = CASE
+                                         WHEN paid_until <= clock_timestamp()
+                                             THEN 'overdue'
+                                         ELSE 'active' END
+                        WHERE id = :id
+                          AND status = 'pending'
+                        """), {"id": rental["id"]})
     elif checkout.get("status") == "expired" and checkout.get("payment_status") == "unpaid":
         expired = db.execute(text("""
-            UPDATE payments SET status = 'expired'
-            WHERE rental_id = :id AND status != 'paid' RETURNING rental_id
-        """), {"id": rental["id"]}).first()
+                                  UPDATE payments
+                                  SET status = 'expired'
+                                  WHERE rental_id = :id
+                                    AND status != 'paid' RETURNING rental_id
+                                  """), {"id": rental["id"]}).first()
         if expired:
             db.execute(text("UPDATE rentals SET status = 'cancelled' WHERE id = :id AND status = 'pending'"),
                        {"id": rental["id"]})

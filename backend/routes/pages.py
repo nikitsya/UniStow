@@ -28,7 +28,7 @@ def home(request: Request, db: Annotated[Session, Depends(get_db)]):
                                             JOIN lockers ON lockers.id = rentals.locker_id
                                    WHERE user_id = :user_id
                                      AND (status IN ('active', 'overdue') OR (status = 'pending'
-                                     AND (reserved_until > CURRENT_TIMESTAMP
+                                       AND (reserved_until > CURRENT_TIMESTAMP
                                            OR EXISTS (SELECT 1 FROM payments WHERE payments.rental_id = rentals.id))))
                                    ORDER BY rentals.id DESC
                                    """), {"user_id": user["id"]}).mappings().all() if user else []

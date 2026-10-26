@@ -2,7 +2,8 @@ import importlib.util
 import unittest
 from pathlib import Path
 
-spec = importlib.util.spec_from_file_location('run_locker', Path(__file__).resolve().parents[2] / 'hardware/run_locker.py')
+spec = importlib.util.spec_from_file_location('run_locker',
+                                              Path(__file__).resolve().parents[2] / 'hardware/run_locker.py')
 controller = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(controller)
 

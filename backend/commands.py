@@ -14,10 +14,16 @@ def request_open(db, rental_id, user_id, action="open"):
                         {'id': rental['locker_id']}).mappings().one()
     now = db.execute(text('SELECT clock_timestamp()')).scalar_one()
     valid = db.execute(text("""
-        SELECT 1 FROM rentals r JOIN payments p ON p.rental_id=r.id
-        WHERE r.id=:id AND r.user_id=:user AND r.status='active'
-          AND p.status='paid' AND r.starts_at<=:now AND r.paid_until>:now
-    """), {'id': rental_id, 'user': user_id, 'now': now}).scalar_one_or_none()
+                            SELECT 1
+                            FROM rentals r
+                                     JOIN payments p ON p.rental_id = r.id
+                            WHERE r.id = :id
+                              AND r.user_id = :user
+                              AND r.status = 'active'
+                              AND p.status = 'paid'
+                              AND r.starts_at <= :now
+                              AND r.paid_until > :now
+                            """), {'id': rental_id, 'user': user_id, 'now': now}).scalar_one_or_none()
     if not valid:
         raise HTTPException(409, 'Opening requires an active, paid rental within its paid period.')
     if locker['number'] != 4 or not locker['is_enabled']:
@@ -36,9 +42,9 @@ def request_open(db, rental_id, user_id, action="open"):
     db.execute(text('''
                     INSERT INTO locker_commands(id, rental_id, locker_id, controller_id, created_at, expires_at, action)
                     VALUES (:id, :rental, :locker, :controller, :now, :expires, :action)
-    '''), {'id': command_id, 'rental': rental_id, 'locker': locker['id'],
-           'controller': locker['controller_id'], 'now': now, 'action': action,
-          'expires': min(now + timedelta(seconds=10), rental['paid_until'])})
+                    '''), {'id': command_id, 'rental': rental_id, 'locker': locker['id'],
+                           'controller': locker['controller_id'], 'now': now, 'action': action,
+                           'expires': min(now + timedelta(seconds=10), rental['paid_until'])})
     db.commit()
     return {'status': 'queued', 'command_id': command_id}
 
@@ -55,12 +61,18 @@ def take_command(db, controller_id, supports_finish=False):
     command = db.execute(text('''
                               SELECT c.id, c.expires_at, c.action
                               FROM locker_commands c
-        JOIN rentals r ON r.id=c.rental_id JOIN payments p ON p.rental_id=r.id
-        WHERE c.locker_id=:locker AND c.controller_id=:controller
-          AND (c.action = 'open' OR :supports_finish)
-          AND c.dispatched_at IS NULL AND c.expires_at>:now
-          AND r.status='active' AND p.status='paid' AND r.starts_at<=:now AND r.paid_until>:now
-        ORDER BY c.created_at LIMIT 1
+                                       JOIN rentals r ON r.id = c.rental_id
+                                       JOIN payments p ON p.rental_id = r.id
+                              WHERE c.locker_id = :locker
+                                AND c.controller_id = :controller
+                                AND (c.action = 'open' OR :supports_finish)
+                                AND c.dispatched_at IS NULL
+                                AND c.expires_at > :now
+                                AND r.status = 'active'
+                                AND p.status = 'paid'
+                                AND r.starts_at <= :now
+                                AND r.paid_until > :now
+                              ORDER BY c.created_at LIMIT 1
                               '''), {'locker': locker['id'], 'controller': controller_id, 'now': now,
                                      'supports_finish': supports_finish}).mappings().first()
     if not command:

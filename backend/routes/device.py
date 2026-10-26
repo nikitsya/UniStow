@@ -41,13 +41,15 @@ def check_device_key(request: Request):
 def heartbeat(report: DoorReport, db: Annotated[Session, Depends(get_db)]):
     # This prototype key belongs only to the physical Locker 4.
     locker = db.execute(text("""
-        UPDATE lockers
-        SET door_state = :state, last_seen_at = CURRENT_TIMESTAMP,
-            device_ready = :ready, controller_id = :controller
-        WHERE number = 4
-        RETURNING number
-    """), {"state": report.door_state, "ready": report.ready,
-          "controller": str(report.controller_id) if report.controller_id else None}).scalar_one_or_none()
+                             UPDATE lockers
+                             SET door_state    = :state,
+                                 last_seen_at  = CURRENT_TIMESTAMP,
+                                 device_ready  = :ready,
+                                 controller_id = :controller
+                             WHERE number = 4 RETURNING number
+                             """), {"state": report.door_state, "ready": report.ready,
+                                    "controller": str(
+                                        report.controller_id) if report.controller_id else None}).scalar_one_or_none()
     if locker is None:
         raise HTTPException(404, "Locker 4 has not been configured.")
     db.commit()
