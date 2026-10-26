@@ -1,0 +1,60 @@
+.flow-page { background: #eae7e1; color: #183b35; --supporting: #607065; }
+.flow-page .app-shell { max-width: 760px; padding: 0 0 32px; min-height: 100svh; background: #faf8f3; }
+.screen-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; padding: 28px; background: var(--green); color: #fff; border-radius: 0 0 24px 24px; }
+.screen-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; font-size: 30px; font-weight: 650; letter-spacing: -1.2px; }
+.screen-symbol { display: grid; place-items: center; position: relative; width: 32px; height: 36px; border: 1.5px solid #aabfb7; border-radius: 8px; font-size: 20px; }
+.screen-symbol span { position: absolute; right: 4px; bottom: 6px; width: 2px; height: 5px; background: var(--sand); }
+.screen-home { display: grid; place-items: center; width: 44px; height: 44px; border: 1px solid #57726b; border-radius: 14px; transition: background 160ms; }
+.screen-home:hover { background: #ffffff14; }
+.screen-home svg { width: 24px; height: 24px; }
+.screen-eyebrow { grid-column: 1 / -1; margin: 4px 0 0 42px; color: #bacdc5; font-size: 9px; letter-spacing: 1.8px; line-height: 16px; }
+.screen-header h1 { grid-column: 1 / -1; margin-top: 28px; padding-top: 20px; border-top: 1px solid #ffffff20; font-size: 26px; font-weight: 500; letter-spacing: -.6px; }
+.flow-page .rental-screen { padding: 28px; }
+.flow-page .field { background: #fff; border: 1px solid #c9d1c5; border-radius: 12px; padding: 12px 16px; }
+.flow-page .field label { font-size: 12px; line-height: 1.5; margin-bottom: 6px; color: #607065; }
+.flow-page .field input { font-size: 16px; min-height: 30px; }
+.flow-page .field:focus-within { outline: 2px solid #9caf92; outline-offset: 2px; }
+.flow-page .registration-field { margin-bottom: 20px; }
+.flow-page .field-help { margin: 10px 0 22px; line-height: 1.6; }
+.flow-page .field-help.error, .flow-page .confirmation.error { color: #a12e25; }
+.flow-page .field:has([aria-invalid="true"]) { border-color: #b76154; outline: 1px solid #b76154; background: #fff7f4; }
+.flow-page .confirm-button { background: var(--green); color: white; border-radius: 14px; min-height: 50px; font-weight: 600; transition: background 160ms, transform 160ms; }
+.flow-page .confirm-button:hover:not(:disabled) { background: #2b5146; }
+.flow-page .confirm-button:active:not(:disabled) { transform: scale(.99); }
+.flow-page .confirm-button:disabled { background: #e0e5da; color: #687661; cursor: not-allowed; }
+.flow-page .back-button { color: var(--green); font-size: 14px; min-height: 48px; border-radius: 14px; }
+.flow-page .back-button:hover:not(:disabled) { background: #edece4; }
+.flow-page .back-button:disabled { color: #7b8276; cursor: not-allowed; }
+.flow-page #finish-rental-button { border: 1px solid #b9c6b0; background: #e6ecdf; }
+.flow-page .confirmation { font-size: 14px; color: #4b6351; line-height: 1.65; }
+.flow-page .confirmation:empty { display: none; }
+.flow-page .operator-help { font-size: 12px; line-height: 1.65; margin: 14px 0 22px; }
+.flow-page .consent { font-size: 12px; line-height: 1.7; color: #4d6052; gap: 12px; }
+.flow-page .consent input { accent-color: var(--green); margin-top: 3px; }
+.flow-page .total { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 12px; padding: 20px 0; margin: 4px 0 24px; border-top: 1px solid #d7dcd1; border-bottom: 1px solid #d7dcd1; font-size: 15px; }
+.flow-page .total output, .flow-page .total strong { font-size: 28px; font-weight: 600; letter-spacing: -.8px; }
+.booking-summary { display: flex; gap: 18px; align-items: center; padding-bottom: 26px; margin-bottom: 24px; border-bottom: 1px solid #d7dcd1; }
+.detail-label { display: block; color: #647366; font-size: 12px; line-height: 1.6; }
+.booking-summary h2 { font-size: 21px; margin: 4px 0; font-weight: 600; }
+.booking-summary p { font-size: 13px; color: #607065; }
+.summary-locker { display: flex; align-items: center; justify-content: center; position: relative; flex-shrink: 0; width: 58px; height: 80px; padding-top: 8px; border: 1px solid #9caf92; border-radius: 6px; box-shadow: inset 0 0 0 4px #ffffff30; background: #d7e3cb; color: #304936; font-size: 18px; }
+.summary-locker i { position: absolute; width: 24px; height: 6px; top: 12px; border-top: 1px solid #7c9270; border-bottom: 1px solid #7c9270; }
+.summary-locker::after { content: ""; position: absolute; right: 6px; top: 38px; width: 3px; height: 15px; border-radius: 2px; background: #7c9270; }
+.rental-overview { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.rental-state { font-size: 12px; padding: 7px 12px; border-radius: 20px; background: #e5e0d8; color: #5a5651; }
+.state-active, .state-completed { background: #d7e3cb; color: #304936; }
+.state-pending { background: #eee3cf; color: #67532f; }
+.state-overdue { background: #f0ddd4; color: #844332; }
+.rental-facts { margin: 0 0 24px; }
+.rental-facts > div { display: flex; justify-content: space-between; gap: 20px; padding: 14px 0; border-bottom: 1px solid #e3e5dc; font-size: 14px; line-height: 1.5; }
+.rental-facts dt { color: #607065; flex-shrink: 0; }
+.rental-facts dd { margin: 0; text-align: right; overflow-wrap: anywhere; }
+.flow-page :focus-visible { outline-color: #8b6d37; }
+.rentals-list { display: grid; gap: 12px; margin-bottom: 24px; }
+.rental-list-link { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 20px; border: 1px solid #c9d1c5; border-radius: 14px; background: #fff; text-decoration: none; }
+.rental-list-link:hover { background: #e6ecdf; }
+.rental-list-link strong { display: block; font-size: 18px; }
+.rental-list-link small { display: block; margin-top: 6px; color: #607065; line-height: 1.5; }
+@media (min-width: 600px) { .screen-header { padding: 32px 48px 28px; } .flow-page .rental-screen { padding: 32px 48px; max-width: 640px; margin: 0 auto; } }
+@media (max-width: 360px) { .screen-header, .flow-page .rental-screen { padding-left: 20px; padding-right: 20px; } .screen-header h1 { font-size: 23px; } .rental-facts > div { gap: 12px; font-size: 13px; } }
+@media (prefers-reduced-motion: reduce) { .flow-page * { animation: none; transition: none; } }

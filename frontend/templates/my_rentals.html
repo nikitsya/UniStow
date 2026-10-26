@@ -1,0 +1,20 @@
+{% extends "screen.html" %}
+{% block screen_title %}My rentals{% endblock %}
+{% block screen_content %}
+{% if user and reservations %}
+<div class="rentals-list">
+    {% for reservation in reservations %}
+    <a class="rental-list-link" href="{{ url_for('reservation', rental_id=reservation.id) }}">
+        <span><strong>Locker {{ reservation.number }}</strong><small>View rental and access your locker</small></span>
+        <span aria-hidden="true">↗</span>
+    </a>
+    {% endfor %}
+</div>
+{% elif user %}
+<p class="confirmation">No current rentals. Choose an available locker to get started.</p>
+{% else %}
+<p class="confirmation">Sign in to view and manage your rentals.</p>
+<a class="confirm-button" href="{{ url_for('sign_in') }}">Sign in</a>
+{% endif %}
+<a class="back-button" href="{{ url_for('home') }}">Back to lockers</a>
+{% endblock %}

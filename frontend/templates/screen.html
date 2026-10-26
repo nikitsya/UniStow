@@ -1,0 +1,16 @@
+{% extends "layout.html" %}
+{% block body_class %}flow-page{% endblock %}
+{% block extra_head %}
+<link href="{{ url_for('static', path='css/screens.css') }}?v=2" rel="stylesheet">
+{% endblock %}
+{% block content %}
+<header class="screen-header">
+    <a class="screen-brand" href="{{ url_for('home') }}"><span class="screen-symbol" aria-hidden="true">P<span></span></span>PayBox</a>
+    <a class="screen-home" href="{{ url_for('home') }}" aria-label="Back to lockers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="m14 6-6 6 6 6M8 12h12"/></svg></a>
+    <p class="screen-eyebrow">CAMPUS STORAGE</p>
+    <h1>{% block screen_title %}{% endblock %}</h1>
+</header>
+<section class="rental-screen">
+    {% block screen_content %}{% endblock %}
+</section>
+{% endblock %}
