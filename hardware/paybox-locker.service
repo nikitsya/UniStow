@@ -1,0 +1,16 @@
+[Unit]
+Description=PayBox locker controller
+Wants=pigpiod.service network-online.target
+After=pigpiod.service network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=nikitsya
+WorkingDirectory=/home/nikitsya/Desktop
+ExecStart=/usr/bin/python3 -u /home/nikitsya/Desktop/run_locker.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

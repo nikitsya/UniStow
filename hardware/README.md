@@ -47,8 +47,8 @@ The controller uses the tested 1500 us closed and 2250 us open pulses.
 Local closing continues if the Mac connection drops. Opening requests expire after
 10 seconds and are dispatched only once; refresh before requesting another opening.
 Opening is limited to the paid rental period. Overdue access needs operator assistance.
-Only pigpiod starts automatically; run this script
-manually. The sensor reports the door position, not confirmation that the latch is locked.
+For automatic controller startup, follow the section below.
+The sensor reports the door position, not confirmation that the latch is locked.
 
 ## Start pigpiod automatically
 
@@ -81,7 +81,7 @@ Expected: `active` and `Connected: True`. If it fails:
 journalctl -u pigpiod -b --no-pager -n 30
 ```
 
-Only pigpiod starts automatically; run `test_locker.py` separately in Thonny.
+This service starts pigpiod only. The controller has its own service below.
 The service accepts local socket connections only and disables the FIFO interface.
 See the [pigpiod options](https://github.com/joan2937/pigpio/blob/master/pigpiod.1).
 
@@ -99,3 +99,33 @@ Locker 4 becomes available. **Open locker** alone does not finish the rental.
 If the network drops, keep the script running: it retries the acknowledgement.
 If the script or Pi stops before acknowledgement, the rental stays occupied and
 needs checking by the operator. Overdue access still requires operator assistance.
+
+## Start the controller automatically
+
+This service uses the Pi user `nikitsya` and expects `run_locker.py` and
+`device_config.json` in `/home/nikitsya/Desktop`. Check both files exist first.
+Stop all GPIO scripts in Thonny and close the door before starting the service.
+Copy `paybox-locker.service` to the Pi Desktop, then run in the Pi terminal:
+
+```bash
+sudo install -m 644 ~/Desktop/paybox-locker.service /etc/systemd/system/paybox-locker.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now paybox-locker.service
+systemctl is-active paybox-locker.service
+```
+
+Expected: `active`. Check messages with:
+
+```bash
+journalctl -u paybox-locker.service -b --no-pager -n 20
+```
+
+After reboot, check the service again and test PayBox. The Mac backend must still
+be running. The controller retries network connections and systemd restarts it if
+it exits. Starting it prepares the closed latch; it does not request an opening.
+
+Do not run a second controller or GPIO test in Thonny while the service is active.
+Before a manual test, use `sudo systemctl stop paybox-locker.service`.
+After stopping the test, use `sudo systemctl start paybox-locker.service`.
+After updating the script, use `sudo systemctl restart paybox-locker.service`.
+To remove automatic startup, use `sudo systemctl disable --now paybox-locker.service`.
