@@ -2,9 +2,11 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy.orm import Session
+from starlette.concurrency import run_in_threadpool
 
 from database import get_db
 from lockers import read_lockers
+from payment_confirmation import process_event, reconcile_rental, verify_event
 from payments import create_checkout
 from rentals import reserve_locker
 from schemas import Login, Registration, RentalRequest
@@ -12,6 +14,22 @@ from sessions import check_browser_request, current_user, end_session, start_ses
 from users import authenticate_user, create_user
 
 router = APIRouter(prefix="/api")
+
+
+@router.post("/stripe/webhook")
+async def stripe_webhook(request: Request, db: Annotated[Session, Depends(get_db)]):
+    event = verify_event(await request.body(), request.headers.get("stripe-signature", ""))
+    await run_in_threadpool(process_event, db, event)
+    return {"received": True}
+
+
+@router.post("/rentals/{rental_id}/reconcile", dependencies=[Depends(check_browser_request)])
+def reconcile(rental_id: int, request: Request, db: Annotated[Session, Depends(get_db)]):
+    user = current_user(db, request)
+    if user is None:
+        raise HTTPException(status_code=401, detail="Please sign in.")
+    rental = reconcile_rental(db, rental_id, user["id"])
+    return {"status": rental["status"]}
 
 
 @router.post("/rentals/{rental_id}/checkout", dependencies=[Depends(check_browser_request)])

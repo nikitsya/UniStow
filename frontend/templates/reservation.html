@@ -7,11 +7,19 @@
     <p class="total">Total: €{{ '%.2f' | format(rental.total_price_cents / 100) }}</p>
     <p class="supporting">Status: {{ rental.status }}</p>
     {% if rental.status == 'pending' %}
-    <p class="operator-help">Stripe test checkout is ready. Automatic payment confirmation is not connected yet, so this reservation will remain pending after a test payment.</p>
+    <p class="operator-help">Pay securely with Stripe using a test card. Your rental starts after payment is
+        confirmed.</p>
     <button class="confirm-button" id="pay-button" data-checkout-url="{{ url_for('checkout', rental_id=rental.id) }}"
+            data-reconcile-url="{{ url_for('reconcile', rental_id=rental.id) }}"
             data-login-url="{{ url_for('sign_in') }}?rental_id={{ rental.id }}" type="button">Pay €{{ '%.2f' | format(rental.total_price_cents / 100) }}</button>
     <p class="confirmation" id="payment-message" role="status" aria-live="polite"></p>
-    <script defer src="{{ url_for('static', path='js/payment.js') }}"></script>
+    <script defer src="{{ url_for('static', path='js/payment.js') }}?v=confirmation-1"></script>
+    {% elif rental.status == 'active' %}
+    <p class="confirmation">Payment confirmed. Your rental is active.</p>
+    {% elif rental.status == 'cancelled' %}
+    <p class="confirmation">This reservation has expired. You can choose an available locker again.</p>
+    {% elif rental.status == 'overdue' %}
+    <p class="confirmation">Your paid rental period has ended. Please contact the locker operator.</p>
     {% endif %}
     <a class="back-button" href="{{ url_for('home') }}">Back to lockers</a>
 </section>

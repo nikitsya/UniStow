@@ -74,8 +74,8 @@ Additional rental fields:
 - If the user disagrees or needs help collecting belongings, direct them to the operator.
   Operator contact details still need to be supplied; contacting them alone does not waive a fee.
 - Consent records and payment status must be verified by the backend, not trusted from browser values.
-- Automatic Stripe collection, payment-method setup, webhook verification and a daily billing task are future work.
-  Reservations now save consent. Test Checkout can open, but payment confirmation is not connected yet.
+- Automatic overdue collection, payment-method setup and a daily billing task are future work.
+  Reservations save consent; verified Stripe payments now activate rentals.
 
 ## Rules for the SQL schema
 
@@ -90,20 +90,19 @@ Additional rental fields:
 ## Payments
 
 `payments` stores one checkout request per rental: a retry key, fixed request parameters,
-the Stripe session ID and creation time. It contains no card details. A saved checkout
+the Stripe session ID, status, PaymentIntent ID and confirmation time. It contains no card details. A saved checkout
 attempt prevents the rental from being released until its payment is reconciled.
+
+`payment_events` records processed Stripe event IDs to prevent duplicate handling.
 
 ## Later tables
 
-| Table             | What it will store                                                                |
-|-------------------|-----------------------------------------------------------------------------------|
-| `payment_events`  | Unique Stripe event ID and processing status to handle repeated webhooks          |
-| `device_commands` | Unique command ID, rental ID, action, expiry and acknowledgement status           |
-| `device_events`   | Locker ID, event type, observation time and reported state                        |
+| Table             | What it will store                                                      |
+|-------------------|-------------------------------------------------------------------------|
+| `device_commands` | Unique command ID, rental ID, action, expiry and acknowledgement status |
+| `device_events`   | Locker ID, event type, observation time and reported state              |
 
 ## Data migrations
-
-For existing databases, also run `003_add_payments.sql` once to add checkout storage.
 
 After creating the tables, apply `001_add_lockers.sql` from the project folder:
 

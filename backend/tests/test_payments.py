@@ -4,8 +4,8 @@ from unittest.mock import patch
 
 from fastapi import HTTPException
 
-from payments import checkout_parameters, stripe_client
 import test_login
+from payments import checkout_parameters, stripe_client
 
 
 class PaymentSettingsTests(unittest.TestCase):

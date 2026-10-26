@@ -21,10 +21,12 @@ def stripe_client():
 
 def owned_rental(db: Session, rental_id: int, user_id: int):
     rental = db.execute(text("""
-        SELECT rentals.*, lockers.number FROM rentals
-        JOIN lockers ON lockers.id = rentals.locker_id
-        WHERE rentals.id = :id AND rentals.user_id = :user_id
-    """), {"id": rental_id, "user_id": user_id}).mappings().first()
+                             SELECT rentals.*, lockers.number
+                             FROM rentals
+                                      JOIN lockers ON lockers.id = rentals.locker_id
+                             WHERE rentals.id = :id
+                               AND rentals.user_id = :user_id
+                             """), {"id": rental_id, "user_id": user_id}).mappings().first()
     if rental is None:
         raise HTTPException(status_code=404, detail="Reservation not found.")
     return dict(rental)
@@ -65,9 +67,10 @@ def create_checkout(db: Session, rental_id: int, user_id: int):
         base_url = os.environ.get("APP_BASE_URL", "http://127.0.0.1:8000").rstrip("/")
         params = checkout_parameters(rental, base_url, now)
         payment = db.execute(text("""
-            INSERT INTO payments (rental_id, request_key, checkout_params)
-            VALUES (:id, :key, CAST(:params AS jsonb)) RETURNING *
-        """), {"id": rental_id, "key": str(uuid4()), "params": json.dumps(params)}).mappings().one()
+                                  INSERT INTO payments (rental_id, request_key, checkout_params)
+                                  VALUES (:id, :key, CAST(:params AS jsonb)) RETURNING *
+                                  """),
+                             {"id": rental_id, "key": str(uuid4()), "params": json.dumps(params)}).mappings().one()
     payment = dict(payment)
     # Keep the durable request even if Stripe times out or the browser disconnects.
     db.commit()
@@ -88,5 +91,6 @@ def create_checkout(db: Session, rental_id: int, user_id: int):
     if checkout.livemode:
         raise HTTPException(status_code=503, detail="Only test payments are supported.")
     if checkout.status != "open" or not checkout.url:
-        raise HTTPException(status_code=409, detail="Checkout is closed. Payment confirmation is the next project step.")
+        raise HTTPException(status_code=409,
+                            detail="Checkout is closed. Refresh this page to check its payment status.")
     return {"url": checkout.url}

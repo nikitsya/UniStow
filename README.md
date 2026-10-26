@@ -93,15 +93,15 @@ Copy the secret key beginning with `sk_test_` into `STRIPE_SECRET_KEY` in the
 root `.env` file. Keep the key out of Git and chat. `APP_BASE_URL` defaults to
 `http://127.0.0.1:8000`; use this address when testing sign-in and checkout.
 
-Apply `003_add_payments.sql` once to existing databases. After reserving, select **Continue to payment**, then **Pay**.
-The server opens card-only test Checkout
-using Stripe API version `2025-06-30.basil`. It reuses the same saved request on retry.
-Stripe checkout lasts 31 minutes and cannot start within 31 minutes of the rental deadline.
+```sh
+uv run python listen_stripe.py
+```
 
-This step opens Checkout only. Webhooks and payment reconciliation are next:
-returning from Stripe does not activate a rental. After any checkout attempt,
-the locker stays blocked, even if Stripe expires the session, until reconciliation
-is implemented. Do not treat `pending` as proof of payment or grant physical access.
+It saves `STRIPE_WEBHOOK_SECRET` in `.env` without displaying it. Restart the backend
+once it reports ready, and keep the listener running while testing. The reservation
+page also checks Stripe directly on refresh, so a missed local event can be recovered.
+Test card: `4242 4242 4242 4242`, a future expiry date and any three-digit CVC.
+Automatic overdue collection and physical unlocking are still future work.
 
 ## Project files
 

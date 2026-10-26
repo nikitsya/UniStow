@@ -87,7 +87,18 @@ CREATE TABLE payments
     request_key         TEXT        NOT NULL UNIQUE,
     checkout_params     JSONB       NOT NULL,
     checkout_session_id TEXT UNIQUE,
+    status            TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'expired')),
+    payment_intent_id TEXT UNIQUE,
+    confirmed_at      TIMESTAMPTZ,
     created_at          TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE payment_events
+(
+    event_id            TEXT PRIMARY KEY,
+    event_type          TEXT        NOT NULL,
+    checkout_session_id TEXT        NOT NULL,
+    processed_at        TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- An amount due is not proof that Stripe has collected it.
