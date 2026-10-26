@@ -1,10 +1,10 @@
 import os
-from pathlib import Path
 import secrets
 import unittest
-from uuid import uuid4
-from unittest.mock import patch
 from datetime import timedelta
+from pathlib import Path
+from unittest.mock import patch
+from uuid import uuid4
 
 from fastapi.testclient import TestClient
 from sqlalchemy import text
@@ -132,3 +132,58 @@ class CommandTests(unittest.TestCase):
         self.assertNotIn('disabled>Open locker', response.text)
         self.report(ready=False)
         self.assertIn('disabled>Open locker', self.client.get(f'/rentals/{self.rental_id}').text)
+
+    def finish(self, confirmed=True):
+        headers = {'X-PayBox-Request': '1'}
+        if confirmed:
+            headers['X-PayBox-Collect-All'] = 'yes'
+        return self.client.post(f'/api/rentals/{self.rental_id}/finish', headers=headers)
+
+    def acknowledge(self, command_id, controller=None):
+        return self.client.post(f'/api/device/commands/{command_id}/completed',
+                                headers=self.device_headers, json={'controller_id': controller or self.controller})
+
+    def test_finish_requires_confirmation_owner_and_paid_access(self):
+        self.assertEqual(self.finish(False).status_code, 422)
+        self.client.cookies.clear()
+        self.assertEqual(self.finish().status_code, 401)
+        self.client.cookies.set('paybox_session', 'session-2')
+        self.assertEqual(self.finish().status_code, 404)
+        self.client.cookies.set('paybox_session', 'session-1')
+        self.connection.execute(text("UPDATE payments SET status='pending'"))
+        self.assertEqual(self.finish().status_code, 409)
+
+    def test_collection_needs_dispatch_and_matching_controller(self):
+        response = self.finish()
+        self.assertEqual(response.status_code, 202, response.text)
+        command_id = response.json()['command_id']
+        self.assertEqual(self.acknowledge(command_id).status_code, 409)
+        # Old controllers must never execute a collection as an ordinary opening.
+        self.assertIsNone(self.take().json()['command'])
+        result = self.client.post('/api/device/commands/next', headers=self.device_headers,
+                                  json={'controller_id': self.controller, 'supports_finish': True}).json()['command']
+        self.assertEqual(result['action'], 'finish')
+        self.report(ready=False, door='open')
+        self.report(ready=False, door='closed')
+        self.assertEqual(self.connection.execute(text('SELECT status FROM rentals')).scalar_one(), 'active')
+        self.assertEqual(self.acknowledge(command_id, str(uuid4())).status_code, 409)
+        self.assertEqual(self.client.post(f'/api/device/commands/{command_id}/completed',
+                                          json={'controller_id': self.controller}).status_code, 401)
+        self.assertEqual(self.acknowledge(command_id).status_code, 200)
+        completed = self.connection.execute(text('SELECT completed_at FROM rentals')).scalar_one()
+        self.assertIsNotNone(completed)
+        self.assertEqual(self.acknowledge(command_id).status_code, 200)
+        self.assertEqual(self.connection.execute(text('SELECT completed_at FROM rentals')).scalar_one(), completed)
+        with Session(bind=self.connection, join_transaction_mode='create_savepoint') as db:
+            from lockers import read_lockers
+            self.assertEqual(read_lockers(db, 1)[0]['status'], 'available')
+        self.assertEqual(self.open().status_code, 409)
+        page = self.client.get(f'/rentals/{self.rental_id}').text
+        self.assertIn('Rental completed.', page)
+        self.assertNotIn('id="finish-rental-button"', page)
+
+    def test_ordinary_open_cannot_complete_rental(self):
+        command_id = self.open().json()['command_id']
+        self.take()
+        self.assertEqual(self.acknowledge(command_id).status_code, 409)
+        self.assertEqual(self.connection.execute(text('SELECT status FROM rentals')).scalar_one(), 'active')

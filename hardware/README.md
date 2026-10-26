@@ -47,7 +47,7 @@ The controller uses the tested 1500 us closed and 2250 us open pulses.
 Local closing continues if the Mac connection drops. Opening requests expire after
 10 seconds and are dispatched only once; refresh before requesting another opening.
 Opening is limited to the paid rental period. Overdue access needs operator assistance.
-This step does not end the rental. Only pigpiod starts automatically; run this script
+Only pigpiod starts automatically; run this script
 manually. The sensor reports the door position, not confirmation that the latch is locked.
 
 ## Start pigpiod automatically
@@ -84,3 +84,18 @@ journalctl -u pigpiod -b --no-pager -n 30
 Only pigpiod starts automatically; run `test_locker.py` separately in Thonny.
 The service accepts local socket connections only and disables the FIFO interface.
 See the [pigpiod options](https://github.com/joan2937/pigpio/blob/master/pigpiod.1).
+
+## Finish a rental
+
+Apply `backend/database/migrations/003_finish_rental.sql` using the same migration
+command above with the new filename, then restart the backend. Replace the Pi's
+`run_locker.py` with the updated file and restart it; keep `device_config.json`.
+
+Choose **Finish rental** in My rental and confirm that you will collect everything.
+Open the door, remove your belongings and close it. The Pi commands the latch closed
+and sends a completion acknowledgement. Refresh My rental to see `completed`;
+Locker 4 becomes available. **Open locker** alone does not finish the rental.
+
+If the network drops, keep the script running: it retries the acknowledgement.
+If the script or Pi stops before acknowledgement, the rental stays occupied and
+needs checking by the operator. Overdue access still requires operator assistance.

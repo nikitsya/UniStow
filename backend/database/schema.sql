@@ -131,6 +131,8 @@ CREATE TABLE locker_commands (
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     expires_at TIMESTAMPTZ NOT NULL,
     dispatched_at TIMESTAMPTZ,
+    action       TEXT NOT NULL DEFAULT 'open' CHECK (action IN ('open', 'finish')),
+    completed_at TIMESTAMPTZ,
     CHECK (expires_at > created_at)
 );
 CREATE INDEX locker_commands_locker_created_idx ON locker_commands(locker_id, created_at);

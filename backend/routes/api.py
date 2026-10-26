@@ -4,8 +4,8 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy.orm import Session
 from starlette.concurrency import run_in_threadpool
 
-from database import get_db
 from commands import request_open
+from database import get_db
 from lockers import read_lockers
 from payment_confirmation import process_event, reconcile_rental, verify_event
 from payments import create_checkout
@@ -92,3 +92,13 @@ def open_locker(rental_id: int, request: Request, db: Annotated[Session, Depends
     if user is None:
         raise HTTPException(401, "Please sign in.")
     return request_open(db, rental_id, user["id"])
+
+
+@router.post("/rentals/{rental_id}/finish", status_code=202, dependencies=[Depends(check_browser_request)])
+def finish_rental(rental_id: int, request: Request, db: Annotated[Session, Depends(get_db)]):
+    user = current_user(db, request)
+    if user is None:
+        raise HTTPException(401, "Please sign in.")
+    if request.headers.get("X-PayBox-Collect-All") != "yes":
+        raise HTTPException(422, "Confirm that you will collect all your belongings.")
+    return request_open(db, rental_id, user["id"], action="finish")

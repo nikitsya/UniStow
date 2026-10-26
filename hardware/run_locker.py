@@ -1,6 +1,7 @@
 """Run the paid-rental controller on the Raspberry Pi, replacing report_door.py."""
-import json
 from pathlib import Path
+
+import json
 from queue import Empty, Queue
 from threading import Event, Lock, Thread
 from time import monotonic, sleep
@@ -56,10 +57,11 @@ def load_config():
     return server, key
 
 
-def communicate(server, key, shared, lock, commands, stop):
+def communicate(server, key, shared, lock, commands, collections, finishing, stop):
     opener = build_opener(NoRedirects())
     controller_id = str(uuid4())
     previous = None
+    pending_collection = None
 
     def post(path, data):
         request = Request(server + path, data=json.dumps(data).encode(), method='POST',
@@ -72,20 +74,31 @@ def communicate(server, key, shared, lock, commands, stop):
             report = dict(shared)
         report['controller_id'] = controller_id
         try:
+            if pending_collection is None:
+                try:
+                    pending_collection = collections.get_nowait()
+                except Empty:
+                    pass
+            if pending_collection is not None:
+                post(f'/api/device/commands/{pending_collection}/completed',
+                     {'controller_id': controller_id})
+                pending_collection = None
+                finishing.clear()
+                print('Rental completed. Refresh My rental.', flush=True)
             post('/api/device/heartbeat', report)
             message = f"Connected to PayBox. Door: {report['door_state']}."
             if report['ready']:
                 started = monotonic()
-                result = post('/api/device/commands/next', {'controller_id': controller_id})
+                result = post('/api/device/commands/next', {'controller_id': controller_id, 'supports_finish': True})
                 command = result.get('command')
-                if command and command.get('action') == 'open':
+                if command and command.get('action') in ('open', 'finish'):
                     ttl = float(command['valid_for_seconds'])
                     # Start timing before the request, so network delays shorten validity.
                     deadline = started + min(10, max(0, ttl))
                     if monotonic() < deadline and not stop.is_set():
                         with lock:
                             shared['ready'] = False
-                        commands.put((command['id'], deadline))
+                        commands.put((command['id'], deadline, command['action']))
         except HTTPError as error:
             message = f'PayBox returned HTTP {error.code}. Check the server and device key.'
         except (URLError, TimeoutError, OSError, ValueError, KeyError, TypeError):
@@ -109,6 +122,8 @@ def main():
     lock = Lock()
     shared = {'door_state': 'closed', 'ready': False}
     commands = Queue()
+    collections = Queue()
+    finishing = Event()
     cycle = LockerCycle()
     worker = None
     factory = PiGPIOFactory(host='localhost')
@@ -120,19 +135,23 @@ def main():
             sleep(0.2)
             shared['door_state'] = 'closed' if door.is_pressed else 'open'
             worker = Thread(target=communicate,
-                            args=(server, key, shared, lock, commands, stop), daemon=True)
+                            args=(server, key, shared, lock, commands, collections, finishing, stop), daemon=True)
             worker.start()
             print('Controller started. Close the door to prepare the latch.')
             last_command = None
+            collection_command = None
             while True:
                 now = monotonic()
                 closed = door.is_pressed
                 requested = False
                 try:
-                    command_id, deadline = commands.get_nowait()
+                    command_id, deadline, command_action = commands.get_nowait()
                     if command_id != last_command:
                         last_command = command_id
-                        requested = now < deadline and cycle.phase == 'idle' and closed
+                        requested = now < deadline and cycle.phase == 'idle' and closed and not finishing.is_set()
+                        if requested and command_action == 'finish':
+                            collection_command = command_id
+                            finishing.set()
                 except Empty:
                     pass
                 action = cycle.tick(closed, now, requested)
@@ -142,9 +161,12 @@ def main():
                 elif action == 'close':
                     servo.min()
                     print('Closing commanded (1500 us).', flush=True)
+                    if collection_command is not None:
+                        collections.put(collection_command)
+                        collection_command = None
                 with lock:
                     shared['door_state'] = 'closed' if closed else 'open'
-                    shared['ready'] = cycle.phase == 'idle' and closed
+                    shared['ready'] = cycle.phase == 'idle' and closed and not finishing.is_set()
                 sleep(0.05)
     except KeyboardInterrupt:
         print('Controller stopped. No additional latch movement commanded.')

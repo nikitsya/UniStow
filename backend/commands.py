@@ -5,7 +5,7 @@ from fastapi import HTTPException
 from sqlalchemy import text
 
 
-def request_open(db, rental_id, user_id):
+def request_open(db, rental_id, user_id, action="open"):
     rental = db.execute(text('SELECT * FROM rentals WHERE id=:id AND user_id=:user'),
                         {'id': rental_id, 'user': user_id}).mappings().first()
     if rental is None:
@@ -34,16 +34,16 @@ def request_open(db, rental_id, user_id):
         raise HTTPException(409, 'An opening request was already sent. Wait before trying again.')
     command_id = str(uuid4())
     db.execute(text('''
-        INSERT INTO locker_commands(id,rental_id,locker_id,controller_id,created_at,expires_at)
-        VALUES(:id,:rental,:locker,:controller,:now,:expires)
+                    INSERT INTO locker_commands(id, rental_id, locker_id, controller_id, created_at, expires_at, action)
+                    VALUES (:id, :rental, :locker, :controller, :now, :expires, :action)
     '''), {'id': command_id, 'rental': rental_id, 'locker': locker['id'],
-          'controller': locker['controller_id'], 'now': now,
+           'controller': locker['controller_id'], 'now': now, 'action': action,
           'expires': min(now + timedelta(seconds=10), rental['paid_until'])})
     db.commit()
     return {'status': 'queued', 'command_id': command_id}
 
 
-def take_command(db, controller_id):
+def take_command(db, controller_id, supports_finish=False):
     locker = db.execute(text('SELECT * FROM lockers WHERE number=4 FOR UPDATE')).mappings().first()
     now = db.execute(text('SELECT clock_timestamp()')).scalar_one()
     if (not locker or not locker['is_enabled'] or not locker['device_ready']
@@ -53,13 +53,16 @@ def take_command(db, controller_id):
         db.commit()
         return {'command': None}
     command = db.execute(text('''
-        SELECT c.id, c.expires_at FROM locker_commands c
+                              SELECT c.id, c.expires_at, c.action
+                              FROM locker_commands c
         JOIN rentals r ON r.id=c.rental_id JOIN payments p ON p.rental_id=r.id
         WHERE c.locker_id=:locker AND c.controller_id=:controller
+          AND (c.action = 'open' OR :supports_finish)
           AND c.dispatched_at IS NULL AND c.expires_at>:now
           AND r.status='active' AND p.status='paid' AND r.starts_at<=:now AND r.paid_until>:now
         ORDER BY c.created_at LIMIT 1
-    '''), {'locker': locker['id'], 'controller': controller_id, 'now': now}).mappings().first()
+                              '''), {'locker': locker['id'], 'controller': controller_id, 'now': now,
+                                     'supports_finish': supports_finish}).mappings().first()
     if not command:
         db.commit()
         return {'command': None}
@@ -68,5 +71,33 @@ def take_command(db, controller_id):
                {'id': command['id'], 'now': now})
     db.execute(text('UPDATE lockers SET device_ready=FALSE WHERE id=:id'), {'id': locker['id']})
     db.commit()
-    return {'command': {'id': command['id'], 'action': 'open',
+    return {'command': {'id': command['id'], 'action': command['action'],
                         'valid_for_seconds': max(0, (command['expires_at'] - now).total_seconds())}}
+
+
+def complete_collection(db, command_id, controller_id):
+    # Match the acknowledgement to the dispatched collection, never just a closed door.
+    db.execute(text('SELECT id FROM lockers WHERE number=4 FOR UPDATE')).first()
+    command = db.execute(text("""
+                              SELECT *
+                              FROM locker_commands
+                              WHERE id = :id
+                                AND controller_id = :controller
+                                AND action ='finish'
+                                AND dispatched_at IS NOT NULL FOR
+                              UPDATE
+                              """), {'id': command_id, 'controller': controller_id}).mappings().first()
+    if command is None:
+        raise HTTPException(409, 'No matching collection command.')
+    if command['completed_at'] is None:
+        db.execute(text("""
+                        UPDATE rentals
+                        SET status='completed',
+                            completed_at=clock_timestamp()
+                        WHERE id = :id
+                          AND status IN ('active', 'overdue')
+                        """), {'id': command['rental_id']})
+        db.execute(text('UPDATE locker_commands SET completed_at=clock_timestamp() WHERE id=:id'),
+                   {'id': command_id})
+    db.commit()
+    return {'status': 'completed'}

@@ -8,9 +8,8 @@ from pydantic import BaseModel, model_validator
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from commands import take_command, complete_collection
 from database import get_db
-from commands import take_command
-
 
 router = APIRouter(prefix="/api/device")
 
@@ -57,8 +56,19 @@ def heartbeat(report: DoorReport, db: Annotated[Session, Depends(get_db)]):
 
 class CommandPoll(BaseModel):
     controller_id: UUID
+    supports_finish: bool = False
 
 
 @router.post("/commands/next", dependencies=[Depends(check_device_key)])
 def next_command(report: CommandPoll, db: Annotated[Session, Depends(get_db)]):
-    return take_command(db, str(report.controller_id))
+    return take_command(db, str(report.controller_id), report.supports_finish)
+
+
+class CollectionReport(BaseModel):
+    controller_id: UUID
+
+
+@router.post("/commands/{command_id}/completed", dependencies=[Depends(check_device_key)])
+def collection_completed(command_id: UUID, report: CollectionReport,
+                         db: Annotated[Session, Depends(get_db)]):
+    return complete_collection(db, str(command_id), str(report.controller_id))
