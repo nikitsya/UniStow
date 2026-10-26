@@ -33,10 +33,9 @@
             data-url="{{ url_for('open_locker', rental_id=rental.id) }}"
             {% if not can_open %}disabled{% endif %}>Open locker</button>
     <p class="confirmation" id="open-locker-message" role="status" aria-live="polite">{% if not can_open %}The locker is not ready. Check the controller and rental period, then refresh.{% endif %}</p>
-    <button %} %}disabled{% can_open
-            class="back-button"
-            data-url="{{ url_for('finish_rental', rental_id=rental.id) }}" endif id="finish-rental-button" if not type="button" {%>Finish rental
-    </button>
+    <button class="back-button" id="finish-rental-button" type="button"
+            data-url="{{ url_for('finish_rental', rental_id=rental.id) }}"
+            {% if not can_open %}disabled{% endif %}>Finish rental</button>
     <script defer src="{{ url_for('static', path='js/open_locker.js') }}?v=2"></script>
     {% endif %}
     <a class="back-button" href="{{ url_for('home') }}">Back to lockers</a>
