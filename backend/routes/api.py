@@ -4,15 +4,15 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy.orm import Session
 from starlette.concurrency import run_in_threadpool
 
-from commands import request_open
+from auth.sessions import check_browser_request, current_user, end_session, start_session
+from auth.users import authenticate_user, create_user
 from database import get_db
-from lockers import read_lockers
-from payment_confirmation import process_event, reconcile_rental, verify_event
-from payments import create_checkout
-from rentals import reserve_locker
 from schemas import Login, Registration, RentalRequest
-from sessions import check_browser_request, current_user, end_session, start_session
-from users import authenticate_user, create_user
+from services.commands import request_open
+from services.lockers import read_lockers
+from services.payment_confirmation import process_event, reconcile_rental, verify_event
+from services.payments import create_checkout
+from services.rentals import reserve_locker
 
 router = APIRouter(prefix="/api")
 

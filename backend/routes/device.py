@@ -8,8 +8,8 @@ from pydantic import BaseModel, model_validator
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from commands import take_command, complete_collection
 from database import get_db
+from services.commands import take_command, complete_collection
 
 router = APIRouter(prefix="/api/device")
 

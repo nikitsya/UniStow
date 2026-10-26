@@ -5,8 +5,8 @@ from unittest.mock import patch
 from pydantic import ValidationError
 
 import test_login
-from rentals import rental_end
 from schemas import RentalRequest
+from services.rentals import rental_end
 
 
 class RentalDatesTests(unittest.TestCase):

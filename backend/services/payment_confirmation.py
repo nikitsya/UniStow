@@ -5,7 +5,7 @@ from fastapi import HTTPException
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from payments import owned_rental, stripe_client
+from services.payments import owned_rental, stripe_client
 
 CHECKOUT_EVENTS = {
     "checkout.session.completed", "checkout.session.expired",

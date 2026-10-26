@@ -10,10 +10,10 @@ from fastapi.testclient import TestClient
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from auth.sessions import token_hash
 from database import engine, get_db
 from main import app
-from rentals import reserve_locker, rental_end
-from sessions import token_hash
+from services.rentals import reserve_locker, rental_end
 
 
 @unittest.skipUnless(os.environ.get('PAYBOX_TEST_POSTGRES') == '1', 'Requires PostgreSQL; isolated schema rolled back')

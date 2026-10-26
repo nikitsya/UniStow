@@ -105,7 +105,11 @@ Automatic overdue collection and physical unlocking are still future work.
 
 ## Project files
 
-- `backend/` - FastAPI server, database connection and SQL files.
+- `backend/main.py` - FastAPI application setup.
+- `backend/auth/` - Accounts and sessions.
+- `backend/services/` - Locker, rental and payment logic.
+- `backend/routes/` - Page, API and device routes.
+- `backend/database.py` and `backend/database/` - Database connection, SQL and migrations.
 - `frontend/` - HTML templates, CSS and JavaScript, served by FastAPI.
 - `android/` - Android prototype.
 - `docs/` - Implementation plan, presentation and design images.

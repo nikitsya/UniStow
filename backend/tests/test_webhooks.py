@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 
 from database import engine, get_db
 from main import app
-from rentals import reserve_locker
+from services.rentals import reserve_locker
 
 SECRET = 'whsec_test_only_not_a_real_secret'
 
@@ -80,7 +80,8 @@ class WebhookDatabaseTests(unittest.TestCase):
         payload = json.dumps({'object': 'event', 'id': self.session_id + suffix,
                               'livemode': False, 'type': event_type,
                               'data': {'object': {'id': self.session_id}}}).encode()
-        with patch.dict(os.environ, {'STRIPE_WEBHOOK_SECRET': SECRET}), patch('payment_confirmation.retrieve_checkout',
+        with patch.dict(os.environ, {'STRIPE_WEBHOOK_SECRET': SECRET}), patch(
+                'services.payment_confirmation.retrieve_checkout',
                                                                               return_value=self.checkout):
             return self.client.post('/api/stripe/webhook', content=payload,
                                     headers={'stripe-signature': signed(payload)})

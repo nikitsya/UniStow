@@ -9,10 +9,10 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from auth.sessions import current_user
 from database import get_db
-from lockers import read_lockers
-from payments import owned_rental
-from sessions import current_user
+from services.lockers import read_lockers
+from services.payments import owned_rental
 
 router = APIRouter()
 frontend_directory = Path(__file__).resolve().parents[2] / "frontend"

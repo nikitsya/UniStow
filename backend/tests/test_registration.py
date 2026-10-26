@@ -5,9 +5,9 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
+from auth.users import password_hasher
 from database import get_db
 from main import app
-from users import password_hasher
 
 
 class RegistrationTests(unittest.TestCase):
