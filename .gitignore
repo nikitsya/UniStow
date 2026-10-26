@@ -8,3 +8,4 @@ __pycache__/
 .env
 *.egg-info/
 backend/requests.http
+hardware/device_config.json

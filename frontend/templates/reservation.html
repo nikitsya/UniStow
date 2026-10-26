@@ -7,6 +7,8 @@
     <p class="supporting">Rental ends: {{ ends_at }}</p>
     <p class="total">Total: €{{ '%.2f' | format(rental.total_price_cents / 100) }}</p>
     <p class="supporting">Status: {{ rental.status }}</p>
+    <p class="supporting">Device: {{ 'Online' if device_online else 'Offline' }} · Door: {{ rental.door_state |
+        capitalize if device_online else 'Unknown' }}</p>
     <p class="supporting">Payment: {{ {'paid': 'Paid', 'expired': 'Expired', 'pending': 'Awaiting
         payment'}.get(rental.payment_status, 'Not paid') }}</p>
     {% if rental.status == 'pending' %}

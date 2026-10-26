@@ -1,5 +1,34 @@
 # Raspberry Pi hardware
 
+## Report the door state to PayBox
+
+This first connection step reports the sensor only; it does not unlock the locker.
+No database migration is required.
+
+1. Connect the Mac and Pi to the same trusted local network. Stop the existing backend,
+   then run from `backend` on the Mac:
+
+   ```bash
+   uv run uvicorn main:app --host 0.0.0.0 --port 8000
+   ```
+
+2. Find the Mac's local IP in System Settings > Wi-Fi > Details > TCP/IP.
+   On the Pi, open `http://MAC_LOCAL_IP:8000` to check connectivity.
+   `localhost` on the Pi refers to the Pi, not the Mac. Keep `APP_BASE_URL` unchanged.
+3. Copy `report_door.py` and `device_config.example.json` to the same folder on the Pi.
+   Rename the JSON file to `device_config.json`. Set `server_url` to the Mac's address
+   and `device_key` to `PAYBOX_DEVICE_KEY` from the Mac project's `.env`.
+   Copy only that key, not database or Stripe secrets. Do not commit the JSON file.
+4. Stop other GPIO tests, then run `report_door.py` in Thonny. Expect
+   `Connected to PayBox. Door: closed.` Open and close the door, then refresh
+   My rental in PayBox to see the latest state.
+
+Reports arrive every two seconds. After 15 seconds without a report, refreshing
+My rental shows `Offline` and `Unknown`. Door closed does not prove the latch is locked.
+HTTP is for this trusted local prototype only; use HTTPS on untrusted networks.
+Do not forward port 8000 on the router or expose pigpiod to the network.
+Stop the reporting script before running the locker test.
+
 ## Start pigpiod automatically
 
 The service expects pigpiod at `/usr/local/bin/pigpiod` and its library installed.

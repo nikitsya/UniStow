@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Annotated
 from zoneinfo import ZoneInfo
@@ -60,9 +61,14 @@ def reservation(request: Request, rental_id: int, db: Annotated[Session, Depends
         return RedirectResponse(f"/login?rental_id={rental_id}", status_code=303)
     rental = owned_rental(db, rental_id, user["id"])
     ends_at = rental["paid_until"].astimezone(ZoneInfo("Europe/Dublin"))
+    last_seen = rental.get("last_seen_at")
+    device_online = last_seen is not None and 0 <= (
+            datetime.now(timezone.utc) - last_seen
+    ).total_seconds() < 15
     return templates.TemplateResponse(request, "reservation.html", {
         "title": "My rental | PayBox", "rental": rental,
         "ends_at": ends_at.strftime("%d %B %Y at %H:%M"),
+        "device_online": device_online,
     })
 
 

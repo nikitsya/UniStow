@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.exc import SQLAlchemyError
 
-from routes import api, pages
+from routes import api, device, pages
 
 app = FastAPI(
     title="PayBox", docs_url=None, redoc_url=None, openapi_url=None
@@ -13,6 +13,7 @@ app.mount("/static", StaticFiles(directory=pages.frontend_directory / "static"),
 
 app.include_router(pages.router)
 app.include_router(api.router)
+app.include_router(device.router)
 
 
 @app.middleware("http")

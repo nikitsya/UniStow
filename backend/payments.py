@@ -21,7 +21,11 @@ def stripe_client():
 
 def owned_rental(db: Session, rental_id: int, user_id: int):
     rental = db.execute(text("""
-                             SELECT rentals.*, lockers.number, payments.status AS payment_status
+                             SELECT rentals.*,
+                                    lockers.number,
+                                    lockers.door_state,
+                                    lockers.last_seen_at,
+                                    payments.status AS payment_status
                              FROM rentals
                                       JOIN lockers ON lockers.id = rentals.locker_id
                                       LEFT JOIN payments ON payments.rental_id = rentals.id
