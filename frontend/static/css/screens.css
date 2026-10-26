@@ -58,3 +58,11 @@
 @media (min-width: 600px) { .screen-header { padding: 32px 48px 28px; } .flow-page .rental-screen { padding: 32px 48px; max-width: 640px; margin: 0 auto; } }
 @media (max-width: 360px) { .screen-header, .flow-page .rental-screen { padding-left: 20px; padding-right: 20px; } .screen-header h1 { font-size: 23px; } .rental-facts > div { gap: 12px; font-size: 13px; } }
 @media (prefers-reduced-motion: reduce) { .flow-page * { animation: none; transition: none; } }
+
+.finish-dialog { width: min(440px, calc(100% - 32px)); max-height: calc(100svh - 48px); margin: auto; padding: 28px; border: 1px solid #d7dcd1; border-radius: 24px; background: #faf8f3; color: #183b35; box-shadow: 0 24px 80px #102b3140; }
+.finish-dialog::backdrop { background: #102b3166; backdrop-filter: blur(3px); }
+.finish-dialog h2 { margin: 0 0 14px; font-size: 24px; font-weight: 600; letter-spacing: -.5px; }
+.finish-dialog p { margin: 0; color: #607065; font-size: 14px; line-height: 1.7; }
+.finish-dialog-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 26px; }
+.finish-dialog-actions button { flex: 1 1 140px; width: auto; margin: 0; }
+.finish-dialog-actions .back-button { border: 1px solid #b9c6b0; }

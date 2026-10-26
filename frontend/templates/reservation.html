@@ -69,7 +69,15 @@
             id="finish-rental-button" type="button">Finish rental
     </button>
     {% endif %}
-    <script defer src="{{ url_for('static', path='js/open_locker.js') }}?v=2"></script>
+    <dialog class="finish-dialog" id="finish-dialog" aria-labelledby="finish-dialog-title" aria-describedby="finish-dialog-description">
+        <h2 id="finish-dialog-title">Finish your rental?</h2>
+        <p id="finish-dialog-description">Collect all your belongings, then close the door. Your rental ends after the door has opened and closed.</p>
+        <div class="finish-dialog-actions">
+            <button class="back-button" id="cancel-finish" type="button" autofocus>Cancel</button>
+            <button class="confirm-button" id="confirm-finish" type="button">Finish rental</button>
+        </div>
+    </dialog>
+    <script defer src="{{ url_for('static', path='js/open_locker.js') }}?v=3"></script>
     {% endif %}
     <a class="back-button" href="{{ url_for('home') }}">Back to lockers</a>
 {% endblock screen_content %}

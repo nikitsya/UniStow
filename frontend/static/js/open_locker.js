@@ -4,7 +4,6 @@ const openMessage = document.querySelector('#open-locker-message');
 
 async function sendCommand(button, finish) {
     if (button.disabled) return;
-    if (finish && !window.confirm('Finish your rental? Collect all your belongings, then close the door. Your rental ends after the door has opened and closed.')) return;
     openButton.disabled = true;
     finishButton.disabled = true;
     openMessage.textContent = 'Sending opening request…';
@@ -26,4 +25,19 @@ async function sendCommand(button, finish) {
 }
 
 openButton.addEventListener('click', () => sendCommand(openButton, false));
-finishButton.addEventListener('click', () => sendCommand(finishButton, true));
+const finishDialog = document.querySelector('#finish-dialog');
+const cancelFinish = document.querySelector('#cancel-finish');
+const confirmFinish = document.querySelector('#confirm-finish');
+finishButton.addEventListener('click', () => {
+    if (!finishButton.disabled) finishDialog.showModal();
+});
+cancelFinish.addEventListener('click', () => finishDialog.close());
+confirmFinish.addEventListener('click', () => {
+    finishDialog.close();
+    sendCommand(finishButton, true);
+});
+finishDialog.addEventListener('click', (event) => {
+    const bounds = finishDialog.getBoundingClientRect();
+    if (event.target === finishDialog && (event.clientX < bounds.left || event.clientX > bounds.right
+        || event.clientY < bounds.top || event.clientY > bounds.bottom)) finishDialog.close();
+});
