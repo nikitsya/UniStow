@@ -89,9 +89,9 @@ CREATE TABLE payments
     request_key         TEXT        NOT NULL UNIQUE,
     checkout_params     JSONB       NOT NULL,
     checkout_session_id TEXT UNIQUE,
-    status            TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'expired')),
-    payment_intent_id TEXT UNIQUE,
-    confirmed_at      TIMESTAMPTZ,
+    status              TEXT        NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'expired')),
+    payment_intent_id   TEXT UNIQUE,
+    confirmed_at        TIMESTAMPTZ,
     created_at          TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 

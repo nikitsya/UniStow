@@ -6,21 +6,27 @@ filters.addEventListener('click', (event) => {
     const button = event.target.closest('button[data-filter]');
     if (!button) return;
     filters.querySelectorAll('button').forEach(item => item.setAttribute('aria-pressed', String(item === button)));
-    lockers.forEach(locker => { locker.hidden = button.dataset.filter === 'available' && locker.dataset.status !== 'available'; });
+    lockers.forEach(locker => {
+        locker.hidden = button.dataset.filter === 'available' && locker.dataset.status !== 'available';
+    });
     emptyMessage.hidden = button.dataset.filter !== 'available' || lockers.some(locker => !locker.hidden);
 });
 const navLinks = [...document.querySelectorAll('.home-bottom-nav a')];
 const sections = navLinks.map(link => document.querySelector(link.getAttribute('href')));
+
 function updateNavigation() {
     const atBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4;
     let current = sections[0];
-    sections.forEach(section => { if (section.getBoundingClientRect().top <= window.innerHeight * 0.4) current = section; });
+    sections.forEach(section => {
+        if (section.getBoundingClientRect().top <= window.innerHeight * 0.4) current = section;
+    });
     if (atBottom) current = sections[sections.length - 1];
     navLinks.forEach(link => {
         if (link.hash === `#${current.id}`) link.setAttribute('aria-current', 'location');
         else link.removeAttribute('aria-current');
     });
 }
+
 window.addEventListener('scroll', updateNavigation, {passive: true});
 updateNavigation();
 

@@ -7,66 +7,99 @@
 {% block content %}
 {% set available = lockers | selectattr('status', 'equalto', 'available') | list %}
 <header class="home-header">
-    <a class="home-brand" href="{{ url_for('home') }}" aria-label="PayBox home"><span class="brand-symbol" aria-hidden="true">P<span></span></span>PayBox</a>
+    <a aria-label="PayBox home" class="home-brand" href="{{ url_for('home') }}"><span aria-hidden="true"
+                                                                                      class="brand-symbol">P<span></span></span>PayBox</a>
     <details class="account-menu" id="account">
-    <summary class="header-account" aria-label="Your account">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 21v-3a7 7 0 0 1 14 0v3"/></svg>
-    </summary>
-<div class="account-dropdown" aria-labelledby="account-heading">
-    <div class="section-heading"><h2 id="account-heading">Account</h2></div>
-    {% if user %}
-    <p class="account-email">{{ user.email }}</p><button class="home-text-link" id="logout-button" type="button">Sign out <span aria-hidden="true">→</span></button>
-    <p class="home-error" id="logout-message" role="status"></p>
-    <script defer src="{{ url_for('static', path='js/logout.js') }}"></script>
-    {% else %}
-    <p class="section-note">Create an account to rent a locker.</p>
-    <div class="home-account-actions"><a class="home-primary" href="{{ url_for('registration') }}">Create account</a><a class="home-text-link" href="{{ url_for('sign_in') }}">Sign in →</a></div>
-    {% endif %}
-</div>
+        <summary aria-label="Your account" class="header-account">
+            <svg aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24">
+                <circle cx="12" cy="8" r="3.5"/>
+                <path d="M5 21v-3a7 7 0 0 1 14 0v3"/>
+            </svg>
+        </summary>
+        <div aria-labelledby="account-heading" class="account-dropdown">
+            <div class="section-heading"><h2 id="account-heading">Account</h2></div>
+            {% if user %}
+            <p class="account-email">{{ user.email }}</p>
+            <button class="home-text-link" id="logout-button" type="button">Sign out <span aria-hidden="true">→</span>
+            </button>
+            <p class="home-error" id="logout-message" role="status"></p>
+            <script defer src="{{ url_for('static', path='js/logout.js') }}"></script>
+            {% else %}
+            <p class="section-note">Create an account to rent a locker.</p>
+            <div class="home-account-actions"><a class="home-primary" href="{{ url_for('registration') }}">Create
+                account</a><a class="home-text-link" href="{{ url_for('sign_in') }}">Sign in →</a></div>
+            {% endif %}
+        </div>
     </details>
     <div class="home-intro"><p class="eyebrow">CAMPUS STORAGE</p></div>
     <p class="rental-guidance">Rent for 1–4 calendar days. Your rental ends at 18:00.</p>
 </header>
 <div class="home-content">
-<section id="lockers" class="home-section" aria-label="Lockers">
-    <div class="locker-filters" role="group" aria-label="Filter lockers" hidden>
-        <button type="button" data-filter="all" aria-pressed="true">All lockers <span>{{ lockers | length }}</span></button>
-        <button type="button" data-filter="available" aria-pressed="false">Available <span>{{ available | length }}</span></button>
-    </div>
-    <ul class="home-locker-grid" aria-label="Lockers">
-    {% for locker in lockers %}
-        <li data-status="{{ locker.status }}">
-        {% if locker.status == 'available' %}
-            <a class="home-locker is-available" href="{{ url_for('rental', locker_id=locker.id) }}" aria-label="Rent {{ locker.name }}, {{ locker.size }}, €{{ '%.2f' | format(locker.price_per_day_cents / 100) }} per day">
-        {% else %}
-            <div class="home-locker" aria-disabled="true">
-        {% endif %}
-                <span class="door-vents" aria-hidden="true"></span><span class="door-handle" aria-hidden="true"></span>
-                <div class="locker-label"><h3>{{ locker.name }}</h3><span>{{ locker.size }}</span></div>
-                <p class="home-price">€{{ '%.2f' | format(locker.price_per_day_cents / 100) }}<span> / day</span></p>
-                <span class="home-status">{% if locker.status == 'available' %}<span class="small-dot"></span>Available <span aria-hidden="true">↗</span>{% else %}Unavailable{% endif %}</span>
-        {% if locker.status == 'available' %}</a>{% else %}</div>{% endif %}
-        </li>
-    {% else %}
-        <li class="grid-empty">No lockers are listed yet.</li>
-    {% endfor %}
-    </ul>
-    <p class="filter-empty" role="status" hidden>No lockers are available right now.</p>
+    <section aria-label="Lockers" class="home-section" id="lockers">
+        <div aria-label="Filter lockers" class="locker-filters" hidden role="group">
+            <button aria-pressed="true" data-filter="all" type="button">All lockers <span>{{ lockers | length }}</span>
+            </button>
+            <button aria-pressed="false" data-filter="available" type="button">Available
+                <span>{{ available | length }}</span></button>
+        </div>
+        <ul aria-label="Lockers" class="home-locker-grid">
+            {% for locker in lockers %}
+            <li data-status="{{ locker.status }}">
+                {% if locker.status == 'available' %}
+                <a aria-label="Rent {{ locker.name }}, {{ locker.size }}, €{{ '%.2f' | format(locker.price_per_day_cents / 100) }} per day" class="home-locker is-available"
+                   href="{{ url_for('rental', locker_id=locker.id) }}">
+                    {% else %}
+                    <div aria-disabled="true" class="home-locker">
+                        {% endif %}
+                        <span aria-hidden="true" class="door-vents"></span><span aria-hidden="true"
+                                                                                 class="door-handle"></span>
+                        <div class="locker-label"><h3>{{ locker.name }}</h3><span>{{ locker.size }}</span></div>
+                        <p class="home-price">€{{ '%.2f' | format(locker.price_per_day_cents / 100)
+                            }}<span> / day</span></p>
+                        <span class="home-status">{% if locker.status == 'available' %}<span class="small-dot"></span>Available <span
+                                aria-hidden="true">↗</span>{% else %}Unavailable{% endif %}</span>
+                        {% if locker.status == 'available' %}
+                </a>{% else %}
+</div>{% endif %}
+</li>
+{% else %}
+<li class="grid-empty">No lockers are listed yet.</li>
+{% endfor %}
+</ul>
+<p class="filter-empty" hidden role="status">No lockers are available right now.</p>
 </section>
-<section id="my-rentals" class="home-section" aria-labelledby="rentals-heading">
+<section aria-labelledby="rentals-heading" class="home-section" id="my-rentals">
     <div class="section-heading"><h2 id="rentals-heading">My rentals</h2></div>
     {% if user and reservations %}
     {% for reservation in reservations %}
-    <a class="rental-row" href="{{ url_for('reservation', rental_id=reservation.id) }}"><span><strong>Locker {{ reservation.number }}</strong><small>View rental and access your locker</small></span><span aria-hidden="true">↗</span></a>
+    <a class="rental-row" href="{{ url_for('reservation', rental_id=reservation.id) }}"><span><strong>Locker {{ reservation.number }}</strong><small>View rental and access your locker</small></span><span
+            aria-hidden="true">↗</span></a>
     {% endfor %}
     {% elif user %}<p class="section-note">No current rentals. Choose an available locker to get started.</p>
-    {% else %}<p class="section-note">Sign in to view and manage your rentals.</p><a class="home-text-link" href="{{ url_for('sign_in') }}">Sign in <span aria-hidden="true">→</span></a>{% endif %}
+    {% else %}<p class="section-note">Sign in to view and manage your rentals.</p><a class="home-text-link"
+                                                                                     href="{{ url_for('sign_in') }}">Sign
+    in <span aria-hidden="true">→</span></a>{% endif %}
 </section>
 
 </div>
-<nav class="home-bottom-nav" aria-label="Main navigation">
-    <a href="#lockers" aria-current="location"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M12 3v18M7 7h2m6 0h2M9 12v3m6-3v3"/></svg><span>Lockers</span></a>
-    <a href="#my-rentals"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V2h6v2M9 10h6m-6 4h6"/></svg><span>My rentals</span></a>
-    <button type="button" id="account-nav-button" aria-controls="account" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="3.5"/><path d="M5 21v-3a7 7 0 0 1 14 0v3"/></svg><span>Account</span></button>
+<nav aria-label="Main navigation" class="home-bottom-nav">
+    <a aria-current="location" href="#lockers">
+        <svg aria-hidden="true" viewBox="0 0 24 24">
+            <rect height="18" rx="2" width="16" x="4" y="3"/>
+            <path d="M12 3v18M7 7h2m6 0h2M9 12v3m6-3v3"/>
+        </svg>
+        <span>Lockers</span></a>
+    <a href="#my-rentals">
+        <svg aria-hidden="true" viewBox="0 0 24 24">
+            <rect height="17" rx="2" width="14" x="5" y="4"/>
+            <path d="M9 4V2h6v2M9 10h6m-6 4h6"/>
+        </svg>
+        <span>My rentals</span></a>
+    <button aria-controls="account" aria-expanded="false" id="account-nav-button" type="button">
+        <svg aria-hidden="true" viewBox="0 0 24 24">
+            <circle cx="12" cy="7" r="3.5"/>
+            <path d="M5 21v-3a7 7 0 0 1 14 0v3"/>
+        </svg>
+        <span>Account</span></button>
 </nav>
 {% endblock %}
