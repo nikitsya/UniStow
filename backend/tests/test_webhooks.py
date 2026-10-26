@@ -82,7 +82,7 @@ class WebhookDatabaseTests(unittest.TestCase):
                               'data': {'object': {'id': self.session_id}}}).encode()
         with patch.dict(os.environ, {'STRIPE_WEBHOOK_SECRET': SECRET}), patch(
                 'services.payment_confirmation.retrieve_checkout',
-                                                                              return_value=self.checkout):
+                return_value=self.checkout):
             return self.client.post('/api/stripe/webhook', content=payload,
                                     headers={'stripe-signature': signed(payload)})
 

@@ -23,8 +23,7 @@ def create_user(db: Session, email: str, password: str):
     user = db.execute(
         text("""
              INSERT INTO users (email, password_hash)
-             VALUES (:email, :password_hash)
-             ON CONFLICT (email) DO NOTHING
+             VALUES (:email, :password_hash) ON CONFLICT (email) DO NOTHING
              RETURNING id, email
              """),
         {"email": email, "password_hash": password_hasher.hash(password)},
