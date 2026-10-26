@@ -69,6 +69,11 @@ def reservation(request: Request, rental_id: int, db: Annotated[Session, Depends
         "title": "My rental | PayBox", "rental": rental,
         "ends_at": ends_at.strftime("%d %B %Y at %H:%M"),
         "device_online": device_online,
+        "can_open": (rental["number"] == 4 and rental["status"] == "active"
+                     and rental.get("payment_status") == "paid"
+                     and rental["paid_until"] > datetime.now(timezone.utc)
+                     and device_online and rental.get("device_ready", False)
+                     and rental.get("door_state") == "closed"),
     })
 
 

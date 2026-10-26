@@ -14,4 +14,4 @@
 | 25 October 2026 | OpenAI Codex helped with Stripe integration.                                                              |
 | 26 October 2026 | OpenAI Codex helped add the My rental view.                                                               |
 | 26 October 2026 | OpenAI Codex helped with hardware tests and pigpiod startup configuration.                                |
-| 26 October 2026 | OpenAI Codex helped connect Raspberry Pi door reporting to PayBox.                                        |
+| 26 October 2026 | OpenAI Codex helped connect Raspberry Pi door reporting and locker opening to PayBox.                     |

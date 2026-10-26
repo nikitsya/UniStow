@@ -29,6 +29,8 @@ CREATE TABLE lockers
     is_enabled          BOOLEAN NOT NULL DEFAULT FALSE,
     door_state          TEXT    NOT NULL DEFAULT 'unknown'
         CHECK (door_state IN ('open', 'closed', 'unknown')),
+    device_ready        BOOLEAN NOT NULL DEFAULT FALSE,
+    controller_id       TEXT,
     last_seen_at        TIMESTAMPTZ
 );
 
@@ -120,5 +122,17 @@ CREATE TABLE overdue_charges
             OR (status <> 'paid' AND paid_at IS NULL)
         )
 );
+
+CREATE TABLE locker_commands (
+    id TEXT PRIMARY KEY,
+    rental_id INTEGER NOT NULL REFERENCES rentals(id),
+    locker_id INTEGER NOT NULL REFERENCES lockers(id),
+    controller_id TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    expires_at TIMESTAMPTZ NOT NULL,
+    dispatched_at TIMESTAMPTZ,
+    CHECK (expires_at > created_at)
+);
+CREATE INDEX locker_commands_locker_created_idx ON locker_commands(locker_id, created_at);
 
 COMMIT;

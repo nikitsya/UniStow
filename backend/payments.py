@@ -25,6 +25,7 @@ def owned_rental(db: Session, rental_id: int, user_id: int):
                                     lockers.number,
                                     lockers.door_state,
                                     lockers.last_seen_at,
+                                    lockers.device_ready,
                                     payments.status AS payment_status
                              FROM rentals
                                       JOIN lockers ON lockers.id = rentals.locker_id

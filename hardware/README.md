@@ -29,6 +29,27 @@ HTTP is for this trusted local prototype only; use HTTPS on untrusted networks.
 Do not forward port 8000 on the router or expose pigpiod to the network.
 Stop the reporting script before running the locker test.
 
+## Open a paid locker
+
+1. On the Mac, apply the migration from the project root, then restart the backend:
+
+   ```bash
+   docker compose exec -T db psql -U paybox -d paybox -v ON_ERROR_STOP=1 < backend/database/migrations/002_locker_commands.sql
+   ```
+
+2. Stop `report_door.py` and any hardware tests on the Pi. Copy `run_locker.py`
+   beside the existing `device_config.json`, then run it in Thonny with the door closed.
+3. Sign in to PayBox as the owner of an active, paid rental. Refresh My rental
+   and press **Open locker**. Open the door after the latch moves, then close it.
+   After one second continuously closed, the controller commands the latch closed.
+
+The controller uses the tested 1500 us closed and 2250 us open pulses.
+Local closing continues if the Mac connection drops. Opening requests expire after
+10 seconds and are dispatched only once; refresh before requesting another opening.
+Opening is limited to the paid rental period. Overdue access needs operator assistance.
+This step does not end the rental. Only pigpiod starts automatically; run this script
+manually. The sensor reports the door position, not confirmation that the latch is locked.
+
 ## Start pigpiod automatically
 
 The service expects pigpiod at `/usr/local/bin/pigpiod` and its library installed.

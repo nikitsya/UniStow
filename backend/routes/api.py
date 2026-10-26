@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from starlette.concurrency import run_in_threadpool
 
 from database import get_db
+from commands import request_open
 from lockers import read_lockers
 from payment_confirmation import process_event, reconcile_rental, verify_event
 from payments import create_checkout
@@ -83,3 +84,11 @@ def me(request: Request, db: Annotated[Session, Depends(get_db)]):
 @router.post("/logout", status_code=204, dependencies=[Depends(check_browser_request)])
 def logout(request: Request, response: Response, db: Annotated[Session, Depends(get_db)]):
     end_session(db, request, response)
+
+
+@router.post("/rentals/{rental_id}/open", status_code=202, dependencies=[Depends(check_browser_request)])
+def open_locker(rental_id: int, request: Request, db: Annotated[Session, Depends(get_db)]):
+    user = current_user(db, request)
+    if user is None:
+        raise HTTPException(401, "Please sign in.")
+    return request_open(db, rental_id, user["id"])

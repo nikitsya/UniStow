@@ -15,7 +15,7 @@ class DeviceTests(unittest.TestCase):
             connection.execute(text("""
                 CREATE TABLE lockers (number INTEGER PRIMARY KEY,
                     door_state TEXT DEFAULT 'unknown', last_seen_at TIMESTAMP,
-                    is_enabled BOOLEAN DEFAULT FALSE)
+                    is_enabled BOOLEAN DEFAULT FALSE, device_ready BOOLEAN DEFAULT FALSE, controller_id TEXT)
             """))
             connection.execute(text('INSERT INTO lockers (number) VALUES (4), (5)'))
         key = patch.dict('os.environ', {'PAYBOX_DEVICE_KEY': 'test-device-key'})

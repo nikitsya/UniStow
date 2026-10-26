@@ -26,6 +26,13 @@
     {% elif rental.status == 'overdue' %}
     <p class="confirmation">Your paid rental period has ended. Please contact the locker operator.</p>
     {% endif %}
+    {% if rental.status == 'active' and rental.payment_status == 'paid' and rental.number == 4 %}
+    <button class="confirm-button" id="open-locker-button" type="button"
+            data-url="{{ url_for('open_locker', rental_id=rental.id) }}"
+            {% if not can_open %}disabled{% endif %}>Open locker</button>
+    <p class="confirmation" id="open-locker-message" role="status" aria-live="polite">{% if not can_open %}The locker is not ready. Check the controller and rental period, then refresh.{% endif %}</p>
+    <script defer src="{{ url_for('static', path='js/open_locker.js') }}?v=1"></script>
+    {% endif %}
     <a class="back-button" href="{{ url_for('home') }}">Back to lockers</a>
 </section>
 {% endblock content %}
