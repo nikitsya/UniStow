@@ -44,6 +44,14 @@ Stop the reporting script before running the locker test.
    After one second continuously closed, the controller commands the latch closed.
 
 The controller uses the tested 1500 us closed and 2250 us open pulses.
+After closing, it checks the door for another two seconds before acknowledging collection.
+If the door opens during this check in an authorised cycle, it releases the latch
+and waits for closure again, with at most three automatic retries. It then stops
+for assistance without completing the rental. An unexpected open door outside
+that cycle does not automatically unlock the latch.
+For an active paid rental, **Open locker** lets the owner retract the latch
+while the door is open and the controller is ready. **Finish rental** still requires
+a closed door. Replace the Pi's `run_locker.py` and restart `paybox-locker` to use this behaviour.
 Local closing continues if the Mac connection drops. Opening requests expire after
 10 seconds and are dispatched only once; refresh before requesting another opening.
 Opening is limited to the paid rental period. Overdue access needs operator assistance.

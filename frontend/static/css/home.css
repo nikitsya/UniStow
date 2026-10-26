@@ -60,7 +60,7 @@
     width: 44px;
     height: 44px;
     border: 1px solid #57726b;
-    border-radius: 14px;
+    border-radius: 50%;
     background: #ffffff08;
     transition: background 160ms, border-color 160ms;
 }

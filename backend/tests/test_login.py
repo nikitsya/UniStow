@@ -94,7 +94,8 @@ class LoginTests(unittest.TestCase):
         self.assertEqual(response.headers['location'], '/login?locker_id=4')
         self.assertIn('data-destination="/lockers/4/rent"', self.client.get(response.headers['location']).text)
         self.login()
-        locker = {'id': 4, 'name': 'Locker 4', 'status': 'available', 'price_per_day_cents': 100}
+        locker = {'id': 4, 'number': 4, 'size': 'Small', 'name': 'Locker 4', 'status': 'available',
+                  'price_per_day_cents': 100}
         with patch('routes.pages.read_lockers', return_value=[locker]):
             self.assertEqual(self.client.get(path).status_code, 200)
         with self.engine.begin() as connection:

@@ -15,12 +15,35 @@ class LockerCycle:
     def __init__(self):
         self.phase = 'starting'
         self.closed_since = None
+        self.retries = 0
+        self.authorised = False
+
+    def ready(self, closed):
+        return self.phase == 'idle' or (not closed and self.phase in ('starting', 'await_close', 'blocked'))
 
     def tick(self, closed, now, open_requested=False):
-        if self.phase == 'idle' and open_requested and closed:
-            self.phase = 'await_open'
+        if open_requested and self.ready(closed):
+            self.phase = 'await_open' if closed else 'await_close'
             self.closed_since = None
+            self.retries = 0
+            self.authorised = True
             return 'open'
+        if self.phase == 'confirm_close':
+            if not closed:
+                self.closed_since = None
+                if self.authorised and self.retries < 3:
+                    self.retries += 1
+                    self.phase = 'await_close'
+                    return 'open'
+                self.phase = 'blocked'
+            elif now - self.closed_since >= 2:
+                self.phase = 'idle'
+                self.closed_since = None
+                self.authorised = False
+                return 'secured'
+            return None
+        if self.phase == 'blocked':
+            return None
         if self.phase == 'await_open':
             if not closed:
                 self.phase = 'await_close'
@@ -34,8 +57,8 @@ class LockerCycle:
             if self.closed_since is None:
                 self.closed_since = now
             elif now - self.closed_since >= 1:
-                self.phase = 'idle'
-                self.closed_since = None
+                self.phase = 'confirm_close'
+                self.closed_since = now
                 return 'close'
         return None
 
@@ -148,7 +171,8 @@ def main():
                     command_id, deadline, command_action = commands.get_nowait()
                     if command_id != last_command:
                         last_command = command_id
-                        requested = now < deadline and cycle.phase == 'idle' and closed and not finishing.is_set()
+                        requested = now < deadline and cycle.ready(closed) and not finishing.is_set()
+                        requested = requested and (command_action != 'finish' or closed)
                         if requested and command_action == 'finish':
                             collection_command = command_id
                             finishing.set()
@@ -161,12 +185,13 @@ def main():
                 elif action == 'close':
                     servo.min()
                     print('Closing commanded (1500 us).', flush=True)
+                elif action == 'secured':
                     if collection_command is not None:
                         collections.put(collection_command)
                         collection_command = None
                 with lock:
                     shared['door_state'] = 'closed' if closed else 'open'
-                    shared['ready'] = cycle.phase == 'idle' and closed and not finishing.is_set()
+                    shared['ready'] = cycle.ready(closed) and not finishing.is_set()
                 sleep(0.05)
     except KeyboardInterrupt:
         print('Controller stopped. No additional latch movement commanded.')

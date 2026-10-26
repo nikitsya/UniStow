@@ -1,9 +1,7 @@
-{% extends "layout.html" %}
+{% extends "screen.html" %}
+{% block screen_title %}Sign in{% endblock %}
 
-{% block content %}
-<section class="rental-screen">
-    <a class="brand-link" href="{{ url_for('home') }}">PayBox</a>
-    <h1>Sign in</h1>
+{% block screen_content %}
     <form action="{{ url_for('login') }}" data-destination="{{ destination }}" id="login-form" method="post">
         <div class="field registration-field">
             <label for="email">Email</label>
@@ -20,6 +18,5 @@
     </form>
     <a class="back-button" href="{{ url_for('registration') }}">Create account</a>
     <a class="back-button" href="{{ url_for('home') }}">Back to lockers</a>
-</section>
 <script defer src="{{ url_for('static', path='js/login.js') }}"></script>
-{% endblock content %}
+{% endblock screen_content %}

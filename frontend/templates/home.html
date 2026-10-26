@@ -1,8 +1,8 @@
 {% extends "layout.html" %}
 {% block body_class %}home-page{% endblock %}
 {% block extra_head %}
-<link href="{{ url_for('static', path='css/home.css') }}?v=8" rel="stylesheet">
-<script defer src="{{ url_for('static', path='js/home.js') }}?v=2"></script>
+<link href="{{ url_for('static', path='css/home.css') }}?v=9" rel="stylesheet">
+<script defer src="{{ url_for('static', path='js/home.js') }}?v=3"></script>
 {% endblock %}
 {% block content %}
 {% set available = lockers | selectattr('status', 'equalto', 'available') | list %}
@@ -69,18 +69,7 @@
 </ul>
 <p class="filter-empty" hidden role="status">No lockers are available right now.</p>
 </section>
-<section aria-labelledby="rentals-heading" class="home-section" id="my-rentals">
-    <div class="section-heading"><h2 id="rentals-heading">My rentals</h2></div>
-    {% if user and reservations %}
-    {% for reservation in reservations %}
-    <a class="rental-row" href="{{ url_for('reservation', rental_id=reservation.id) }}"><span><strong>Locker {{ reservation.number }}</strong><small>View rental and access your locker</small></span><span
-            aria-hidden="true">↗</span></a>
-    {% endfor %}
-    {% elif user %}<p class="section-note">No current rentals. Choose an available locker to get started.</p>
-    {% else %}<p class="section-note">Sign in to view and manage your rentals.</p><a class="home-text-link"
-                                                                                     href="{{ url_for('sign_in') }}">Sign
-    in <span aria-hidden="true">→</span></a>{% endif %}
-</section>
+
 
 </div>
 <nav aria-label="Main navigation" class="home-bottom-nav">
@@ -90,17 +79,12 @@
             <path d="M12 3v18M7 7h2m6 0h2M9 12v3m6-3v3"/>
         </svg>
         <span>Lockers</span></a>
-    <a href="#my-rentals">
+    <a href="{{ url_for('my_rentals') }}">
         <svg aria-hidden="true" viewBox="0 0 24 24">
             <rect height="17" rx="2" width="14" x="5" y="4"/>
             <path d="M9 4V2h6v2M9 10h6m-6 4h6"/>
         </svg>
         <span>My rentals</span></a>
-    <button aria-controls="account" aria-expanded="false" id="account-nav-button" type="button">
-        <svg aria-hidden="true" viewBox="0 0 24 24">
-            <circle cx="12" cy="7" r="3.5"/>
-            <path d="M5 21v-3a7 7 0 0 1 14 0v3"/>
-        </svg>
-        <span>Account</span></button>
+
 </nav>
 {% endblock %}

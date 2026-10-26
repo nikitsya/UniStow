@@ -16,4 +16,3 @@
 | 26 October 2026 | OpenAI Codex helped with hardware tests and automatic startup of pigpiod and the locker controller.       |
 | 26 October 2026 | OpenAI Codex helped connect Raspberry Pi door reporting and locker opening to PayBox.                     |
 | 26 October 2026 | OpenAI Codex helped add rental completion after collecting belongings.                                    |
-| 26 October 2026 | OpenAI Codex helped redesign the home page for mobile use.                                                |

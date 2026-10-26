@@ -22,6 +22,14 @@ templates = Jinja2Templates(directory=frontend_directory / "templates")
 @router.get("/")
 def home(request: Request, db: Annotated[Session, Depends(get_db)]):
     user = current_user(db, request)
+    return templates.TemplateResponse(
+        request, "home.html", {"title": "PayBox", "lockers": read_lockers(db), "user": user}
+    )
+
+
+@router.get("/rentals")
+def my_rentals(request: Request, db: Annotated[Session, Depends(get_db)]):
+    user = current_user(db, request)
     reservations = db.execute(text("""
                                    SELECT rentals.id, lockers.number
                                    FROM rentals
@@ -33,8 +41,8 @@ def home(request: Request, db: Annotated[Session, Depends(get_db)]):
                                    ORDER BY rentals.id DESC
                                    """), {"user_id": user["id"]}).mappings().all() if user else []
     return templates.TemplateResponse(
-        request, "home.html", {"title": "PayBox", "lockers": read_lockers(db),
-                               "user": user, "reservations": reservations}
+        request, "my_rentals.html", {"title": "My rentals | PayBox", "user": user,
+                                     "reservations": reservations}
     )
 
 
@@ -73,7 +81,7 @@ def reservation(request: Request, rental_id: int, db: Annotated[Session, Depends
                      and rental.get("payment_status") == "paid"
                      and rental["paid_until"] > datetime.now(timezone.utc)
                      and device_online and rental.get("device_ready", False)
-                     and rental.get("door_state") == "closed"),
+                     and rental.get("door_state") in ("open", "closed")),
     })
 
 

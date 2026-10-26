@@ -1,9 +1,8 @@
-{% extends "layout.html" %}
+{% extends "screen.html" %}
+{% block screen_title %}{{ locker.name }}{% endblock %}
 
-{% block content %}
-<section class="rental-screen">
-    <a class="brand-link" href="{{ url_for('home') }}">PayBox</a>
-    <h1>{{ locker.name }}</h1>
+{% block screen_content %}
+    <div class="booking-summary"><span class="summary-locker" aria-hidden="true"><i></i>{{ '%02d' | format(locker.number) }}</span><div><span class="detail-label">Your locker</span><h2>{{ locker.name }}</h2><p>{{ locker.size }} · €{{ '%.2f' | format(locker.price_per_day_cents / 100) }} per day</p></div></div>
     <form action="{{ url_for('create_rental') }}" data-locker-id="{{ locker.id }}"
           data-price-cents="{{ locker.price_per_day_cents }}" id="rental-form" method="post" novalidate>
         <div class="field">
@@ -14,7 +13,6 @@
         </div>
         <p aria-live="polite" class="field-help" id="days-help">Rent for up to 4 calendar days. Your rental ends at
             18:00 on the final paid day.</p>
-        <p>Price per day: €{{ '%.2f' | format(locker.price_per_day_cents / 100) }}</p>
         <p aria-atomic="true" aria-live="polite" class="total">Total price:
             <output for="days" id="total">€0.00</output>
         </p>
@@ -24,11 +22,10 @@
         </label>
         <p class="operator-help">If you do not agree, or cannot collect your belongings, please contact the locker
             operator before proceeding.</p>
-        <p class="operator-help">Reserve for up to 15 minutes. No payment is taken at this step.</p>
+        <p class="operator-help">Reserve for up to 15 minutes.</p>
         <button class="confirm-button" disabled id="confirm" type="submit">Reserve locker</button>
         <p class="confirmation" hidden id="confirmation" role="status"></p>
         <a class="back-button" hidden id="payment-link">Continue to payment</a>
     </form>
     <a class="back-button" href="{{ url_for('home') }}">Back</a>
-</section>
-{% endblock content %}
+{% endblock screen_content %}

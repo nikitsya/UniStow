@@ -1,9 +1,7 @@
-{% extends "layout.html" %}
+{% extends "screen.html" %}
+{% block screen_title %}Service unavailable{% endblock %}
 
-{% block content %}
-<section class="rental-screen">
-    <h1>PayBox</h1>
+{% block screen_content %}
     <p class="supporting" role="alert">{{ message }}</p>
     <a class="back-button" href="{{ url_for('home') }}">Try again</a>
-</section>
-{% endblock content %}
+{% endblock screen_content %}

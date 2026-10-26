@@ -13,6 +13,7 @@ class LockerCycleTests(unittest.TestCase):
         cycle = controller.LockerCycle()
         self.assertIsNone(cycle.tick(True, 0))
         self.assertEqual(cycle.tick(True, 1), 'close')
+        self.assertEqual(cycle.tick(True, 3), 'secured')
         return cycle
 
     def test_waits_for_open_then_continuously_closed_door(self):
@@ -26,19 +27,48 @@ class LockerCycleTests(unittest.TestCase):
         self.assertIsNone(cycle.tick(True, 24))
         self.assertIsNone(cycle.tick(True, 24.9))
         self.assertEqual(cycle.tick(True, 25), 'close')
-        self.assertEqual(cycle.phase, 'idle')
+        self.assertEqual(cycle.phase, 'confirm_close')
+        self.assertEqual(cycle.tick(True, 27), 'secured')
 
     def test_startup_open_door_does_not_move_latch(self):
         cycle = controller.LockerCycle()
         for now in range(10):
-            self.assertIsNone(cycle.tick(False, now, True))
+            self.assertIsNone(cycle.tick(False, now))
         self.assertIsNone(cycle.tick(True, 10))
         self.assertEqual(cycle.tick(True, 11), 'close')
 
-    def test_cannot_unlock_while_door_is_open(self):
+    def test_owner_can_release_latch_with_open_door(self):
         cycle = self.ready()
-        self.assertIsNone(cycle.tick(False, 2, True))
+        self.assertEqual(cycle.tick(False, 4, True), 'open')
         self.assertEqual(cycle.phase, 'await_close')
+
+    def test_early_closing_releases_and_waits_again(self):
+        cycle = self.ready()
+        cycle.tick(True, 4, True)
+        cycle.tick(False, 5)
+        cycle.tick(True, 6)
+        self.assertEqual(cycle.tick(True, 7), 'close')
+        self.assertEqual(cycle.tick(False, 7.5), 'open')
+        self.assertEqual(cycle.phase, 'await_close')
+        cycle.tick(True, 8)
+        self.assertEqual(cycle.tick(True, 9), 'close')
+        self.assertIsNone(cycle.tick(True, 10))
+        self.assertEqual(cycle.tick(True, 11), 'secured')
+        self.assertIsNone(cycle.tick(False, 12))
+
+    def test_recovery_retries_are_bounded(self):
+        cycle = self.ready()
+        cycle.tick(True, 4, True)
+        cycle.tick(False, 5)
+        for attempt in range(4):
+            now = 6 + attempt * 3
+            cycle.tick(True, now)
+            self.assertEqual(cycle.tick(True, now + 1), 'close')
+            result = cycle.tick(False, now + 1.5)
+            self.assertEqual(result, 'open' if attempt < 3 else None)
+        self.assertEqual(cycle.phase, 'blocked')
+        self.assertIsNone(cycle.tick(True, 30))
+        self.assertEqual(cycle.tick(False, 31, True), 'open')
 
 
 class CollectionDeliveryTests(unittest.TestCase):

@@ -54,8 +54,8 @@ class CheckoutAccessTests(unittest.TestCase):
         with patch('routes.pages.owned_rental', return_value=rental):
             response = self.client.get('/rentals/7?returned=1')
         self.assertEqual(response.status_code, 200)
-        self.assertIn('Status: pending', response.text)
-        self.assertIn('Payment: Not paid', response.text)
+        self.assertRegex(response.text, r'class="rental-state state-pending">Pending</span>')
+        self.assertRegex(response.text, r'<dt>Payment</dt>\s*<dd>Not paid</dd>')
 
     def test_my_rental_shows_local_deadline_and_payment(self):
         self.login()
@@ -68,5 +68,5 @@ class CheckoutAccessTests(unittest.TestCase):
                 self.assertEqual(response.status_code, 200)
                 self.assertIn('My rental · Locker 4', response.text)
                 self.assertIn(f'26 {month_name} 2026 at 18:00', response.text)
-                self.assertIn('Payment: Paid', response.text)
+                self.assertRegex(response.text, r'<dt>Payment</dt>\s*<dd>Paid</dd>')
                 self.assertNotIn('id="pay-button"', response.text)

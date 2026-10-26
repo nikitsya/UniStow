@@ -1,16 +1,33 @@
-{% extends "layout.html" %}
-{% block content %}
-<section class="rental-screen">
-    <a class="brand-link" href="{{ url_for('home') }}">PayBox</a>
-    <h1>My rental · Locker {{ rental.number }}</h1>
-    <p>Reservation #{{ rental.id }} · {{ rental.prepaid_days }} day{{ 's' if rental.prepaid_days != 1 else '' }}</p>
-    <p class="supporting">Rental ends: {{ ends_at }}</p>
-    <p class="total">Total: €{{ '%.2f' | format(rental.total_price_cents / 100) }}</p>
-    <p class="supporting">Status: {{ rental.status }}</p>
-    <p class="supporting">Device: {{ 'Online' if device_online else 'Offline' }} · Door: {{ rental.door_state |
-        capitalize if device_online else 'Unknown' }}</p>
-    <p class="supporting">Payment: {{ {'paid': 'Paid', 'expired': 'Expired', 'pending': 'Awaiting
-        payment'}.get(rental.payment_status, 'Not paid') }}</p>
+{% extends "screen.html" %}
+{% block screen_title %}My rental · Locker {{ rental.number }}{% endblock %}
+{% block screen_content %}
+<div class="rental-overview"><span class="detail-label">Reservation #{{ rental.id }}</span><span
+        class="rental-state state-{{ rental.status }}">{{ rental.status | capitalize }}</span></div>
+<dl class="rental-facts">
+    <div>
+        <dt>Rental period</dt>
+        <dd>{{ rental.prepaid_days }} day{{ 's' if rental.prepaid_days != 1 else '' }}</dd>
+    </div>
+    <div>
+        <dt>Rental ends</dt>
+        <dd>{{ ends_at }}</dd>
+    </div>
+    <div>
+        <dt>Payment</dt>
+        <dd>{{ {'paid': 'Paid', 'expired': 'Expired', 'pending': 'Awaiting payment'}.get(rental.payment_status, 'Not
+            paid') }}
+        </dd>
+    </div>
+    <div>
+        <dt>Device</dt>
+        <dd>{{ 'Online' if device_online else 'Offline' }}</dd>
+    </div>
+    <div>
+        <dt>Door</dt>
+        <dd>{{ rental.door_state | capitalize if device_online else 'Unknown' }}</dd>
+    </div>
+</dl>
+<p class="total"><span>Total</span><strong>€{{ '%.2f' | format(rental.total_price_cents / 100) }}</strong></p>
     {% if rental.status == 'pending' %}
     <p class="operator-help">Pay securely with Stripe using a test card. Your rental starts after payment is
         confirmed.</p>
@@ -43,7 +60,7 @@
     {% endif %}
     <p aria-live="polite" class="confirmation" id="open-locker-message" role="status">{% if not can_open %}The locker is
         not ready. Check the controller and rental period, then refresh.{% endif %}</p>
-    {% if can_open %}
+{% if can_open and rental.door_state == "closed" %}
     <button class="back-button" data-url="{{ url_for('finish_rental', rental_id=rental.id) }}" id="finish-rental-button"
             type="button">Finish rental
     </button>
@@ -55,5 +72,4 @@
     <script defer src="{{ url_for('static', path='js/open_locker.js') }}?v=2"></script>
     {% endif %}
     <a class="back-button" href="{{ url_for('home') }}">Back to lockers</a>
-</section>
-{% endblock content %}
+{% endblock screen_content %}

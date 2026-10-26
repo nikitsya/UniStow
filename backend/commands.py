@@ -32,7 +32,7 @@ def request_open(db, rental_id, user_id, action="open"):
             or locker['last_seen_at'] is None
             or not 0 <= (now - locker['last_seen_at']).total_seconds() < 15):
         raise HTTPException(409, 'The locker controller is offline or busy. Refresh and try again.')
-    if locker['door_state'] != 'closed':
+    if locker['door_state'] not in ('open', 'closed') or (action == 'finish' and locker['door_state'] != 'closed'):
         raise HTTPException(409, 'The door is already open or its state is unknown.')
     recent = db.execute(text('SELECT 1 FROM locker_commands WHERE locker_id=:id AND expires_at>:now LIMIT 1'),
                         {'id': locker['id'], 'now': now}).first()
@@ -53,7 +53,7 @@ def take_command(db, controller_id, supports_finish=False):
     locker = db.execute(text('SELECT * FROM lockers WHERE number=4 FOR UPDATE')).mappings().first()
     now = db.execute(text('SELECT clock_timestamp()')).scalar_one()
     if (not locker or not locker['is_enabled'] or not locker['device_ready']
-            or locker['controller_id'] != controller_id or locker['door_state'] != 'closed'
+            or locker['controller_id'] != controller_id or locker['door_state'] not in ('open', 'closed')
             or locker['last_seen_at'] is None
             or not 0 <= (now - locker['last_seen_at']).total_seconds() < 15):
         db.commit()
@@ -65,7 +65,7 @@ def take_command(db, controller_id, supports_finish=False):
                                        JOIN payments p ON p.rental_id = r.id
                               WHERE c.locker_id = :locker
                                 AND c.controller_id = :controller
-                                AND (c.action = 'open' OR :supports_finish)
+                                AND (c.action = 'open' OR (:supports_finish AND :door_closed))
                                 AND c.dispatched_at IS NULL
                                 AND c.expires_at > :now
                                 AND r.status = 'active'
@@ -74,7 +74,8 @@ def take_command(db, controller_id, supports_finish=False):
                                 AND r.paid_until > :now
                               ORDER BY c.created_at LIMIT 1
                               '''), {'locker': locker['id'], 'controller': controller_id, 'now': now,
-                                     'supports_finish': supports_finish}).mappings().first()
+                                     'supports_finish': supports_finish,
+                                     'door_closed': locker['door_state'] == 'closed'}).mappings().first()
     if not command:
         db.commit()
         return {'command': None}

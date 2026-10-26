@@ -86,6 +86,16 @@ class CommandTests(unittest.TestCase):
         self.report()
         self.assertIsNone(self.take().json()['command'])
 
+    def test_open_door_allows_release_but_not_finish(self):
+        self.report(door='open')
+        page = self.client.get(f'/rentals/{self.rental_id}')
+        self.assertIn('Open locker', page.text)
+        self.assertRegex(page.text, r'<button(?=[^>]*id="open-locker-button")(?![^>]*\bdisabled\b)[^>]*>')
+        self.assertRegex(page.text, r'<button(?=[^>]*id="finish-rental-button")(?=[^>]*\bdisabled\b)[^>]*>')
+        self.assertEqual(self.finish().status_code, 409)
+        self.assertEqual(self.open().status_code, 202)
+        self.assertEqual(self.take().json()['command']['action'], 'open')
+
     def test_authentication_ownership_and_browser_header(self):
         self.client.cookies.clear()
         self.assertEqual(self.open().status_code, 401)
@@ -100,8 +110,6 @@ class CommandTests(unittest.TestCase):
         self.connection.execute(text("UPDATE payments SET status='pending'"))
         self.assertEqual(self.open().status_code, 409)
         self.connection.execute(text("UPDATE payments SET status='paid'"))
-        self.report(door='open')
-        self.assertEqual(self.open().status_code, 409)
         self.report(ready=False)
         self.assertEqual(self.open().status_code, 409)
         self.report()
@@ -145,9 +153,10 @@ class CommandTests(unittest.TestCase):
         response = self.client.get(f'/rentals/{self.rental_id}')
         self.assertEqual(response.status_code, 200)
         self.assertIn('id="open-locker-button"', response.text)
-        self.assertNotIn('disabled>Open locker', response.text)
+        self.assertRegex(response.text, r'<button(?=[^>]*id="open-locker-button")(?![^>]*\bdisabled\b)[^>]*>')
         self.report(ready=False)
-        self.assertIn('disabled>Open locker', self.client.get(f'/rentals/{self.rental_id}').text)
+        self.assertRegex(self.client.get(f'/rentals/{self.rental_id}').text,
+                         r'<button(?=[^>]*id="open-locker-button")(?=[^>]*\bdisabled\b)[^>]*>')
 
     def finish(self, confirmed=True):
         headers = {'X-PayBox-Request': '1'}
