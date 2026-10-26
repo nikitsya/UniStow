@@ -81,7 +81,7 @@ class CommandTests(unittest.TestCase):
         for status in ('completed', 'cancelled'):
             self.connection.execute(text(
                 "UPDATE rentals SET status=:status, completed_at=CASE WHEN :status='completed' THEN clock_timestamp() ELSE NULL END"),
-                                    {'status': status})
+                {'status': status})
             self.assertNotIn('Continue rental', self.client.get('/').text)
         self.connection.execute(text('DELETE FROM payments'))
         self.connection.execute(text(
