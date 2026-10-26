@@ -49,8 +49,24 @@ class CheckoutAccessTests(unittest.TestCase):
 
     def test_return_url_does_not_confirm_payment(self):
         self.login()
-        rental = {'id': 7, 'number': 4, 'prepaid_days': 2, 'total_price_cents': 200, 'status': 'pending'}
+        rental = {'id': 7, 'number': 4, 'prepaid_days': 2, 'total_price_cents': 200, 'status': 'pending',
+                  'paid_until': datetime(2026, 10, 26, 18, tzinfo=timezone.utc), 'payment_status': None}
         with patch('routes.pages.owned_rental', return_value=rental):
             response = self.client.get('/rentals/7?returned=1')
         self.assertEqual(response.status_code, 200)
         self.assertIn('Status: pending', response.text)
+        self.assertIn('Payment: Not paid', response.text)
+
+    def test_my_rental_shows_local_deadline_and_payment(self):
+        self.login()
+        for month, utc_hour, month_name in [(7, 17, 'July'), (12, 18, 'December')]:
+            rental = {'id': 7, 'number': 4, 'prepaid_days': 2, 'total_price_cents': 200,
+                      'status': 'active', 'payment_status': 'paid',
+                      'paid_until': datetime(2026, month, 26, utc_hour, tzinfo=timezone.utc)}
+            with self.subTest(month=month), patch('routes.pages.owned_rental', return_value=rental):
+                response = self.client.get('/rentals/7')
+                self.assertEqual(response.status_code, 200)
+                self.assertIn('My rental · Locker 4', response.text)
+                self.assertIn(f'26 {month_name} 2026 at 18:00', response.text)
+                self.assertIn('Payment: Paid', response.text)
+                self.assertNotIn('id="pay-button"', response.text)

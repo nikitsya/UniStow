@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import Annotated
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
@@ -21,13 +22,14 @@ templates = Jinja2Templates(directory=frontend_directory / "templates")
 def home(request: Request, db: Annotated[Session, Depends(get_db)]):
     user = current_user(db, request)
     reservations = db.execute(text("""
-                                   SELECT id
+                                   SELECT rentals.id, lockers.number
                                    FROM rentals
+                                            JOIN lockers ON lockers.id = rentals.locker_id
                                    WHERE user_id = :user_id
                                      AND (status IN ('active', 'overdue') OR (status = 'pending'
                                      AND (reserved_until > CURRENT_TIMESTAMP
                                            OR EXISTS (SELECT 1 FROM payments WHERE payments.rental_id = rentals.id))))
-                                   ORDER BY id DESC
+                                   ORDER BY rentals.id DESC
                                    """), {"user_id": user["id"]}).mappings().all() if user else []
     return templates.TemplateResponse(
         request, "home.html", {"title": "PayBox", "lockers": read_lockers(db),
@@ -56,8 +58,11 @@ def reservation(request: Request, rental_id: int, db: Annotated[Session, Depends
     user = current_user(db, request)
     if user is None:
         return RedirectResponse(f"/login?rental_id={rental_id}", status_code=303)
+    rental = owned_rental(db, rental_id, user["id"])
+    ends_at = rental["paid_until"].astimezone(ZoneInfo("Europe/Dublin"))
     return templates.TemplateResponse(request, "reservation.html", {
-        "title": "Reservation | PayBox", "rental": owned_rental(db, rental_id, user["id"]),
+        "title": "My rental | PayBox", "rental": rental,
+        "ends_at": ends_at.strftime("%d %B %Y at %H:%M"),
     })
 
 

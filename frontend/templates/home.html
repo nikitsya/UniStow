@@ -8,8 +8,8 @@
     {% if user %}
     <p class="supporting signed-in">Signed in as {{ user.email }}</p>
     {% for reservation in reservations %}
-    <a class="account-link" href="{{ url_for('reservation', rental_id=reservation.id) }}">Reservation #{{ reservation.id
-        }}</a>
+    <a class="account-link" href="{{ url_for('reservation', rental_id=reservation.id) }}">My rental · Locker {{
+        reservation.number }}</a>
     {% endfor %}
     <button class="back-button" id="logout-button" type="button">Sign out</button>
     <p class="confirmation error" id="logout-message" role="status"></p>
