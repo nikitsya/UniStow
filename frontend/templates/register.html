@@ -2,22 +2,22 @@
 {% block screen_title %}Create account{% endblock %}
 
 {% block screen_content %}
-    <form action="{{ url_for('register') }}" id="registration-form" method="post">
-        <div class="field registration-field">
-            <label for="email">Email</label>
-            <input autocomplete="email" id="email" name="email" required type="email">
-        </div>
-        <div class="field">
-            <label for="password">Password</label>
-            <input aria-describedby="password-help" autocomplete="new-password" id="password" maxlength="128"
-                   minlength="15" name="password" required type="password">
-        </div>
-        <p class="field-help" id="password-help">Use 15–128 characters.</p>
-        <button class="confirm-button" id="register-button" type="submit">Create account</button>
-        <p aria-atomic="true" aria-live="polite" class="confirmation" id="registration-message" role="status"></p>
-        <noscript><p class="confirmation">Please enable JavaScript to create an account.</p></noscript>
-    </form>
-    <a class="back-button" href="{{ url_for('sign_in') }}">Sign in</a>
-    <a class="back-button" href="{{ url_for('home') }}">Back to lockers</a>
+<form action="{{ url_for('register') }}" id="registration-form" method="post">
+    <div class="field registration-field">
+        <label for="email">Email</label>
+        <input autocomplete="email" id="email" name="email" required type="email">
+    </div>
+    <div class="field">
+        <label for="password">Password</label>
+        <input aria-describedby="password-help" autocomplete="new-password" id="password" maxlength="128"
+               minlength="15" name="password" required type="password">
+    </div>
+    <p class="field-help" id="password-help">Use 15–128 characters.</p>
+    <button class="confirm-button" id="register-button" type="submit">Create account</button>
+    <p aria-atomic="true" aria-live="polite" class="confirmation" id="registration-message" role="status"></p>
+    <noscript><p class="confirmation">Please enable JavaScript to create an account.</p></noscript>
+</form>
+<a class="back-button" href="{{ url_for('sign_in') }}">Sign in</a>
+<a class="back-button" href="{{ url_for('home') }}">Back to lockers</a>
 <script defer src="{{ url_for('static', path='js/registration.js') }}"></script>
 {% endblock screen_content %}

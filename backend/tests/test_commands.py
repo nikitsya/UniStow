@@ -79,10 +79,13 @@ class CommandTests(unittest.TestCase):
             self.assertNotIn('Continue rental', self.client.get('/').text)
         self.client.cookies.set('paybox_session', 'session-1')
         for status in ('completed', 'cancelled'):
-            self.connection.execute(text("UPDATE rentals SET status=:status, completed_at=CASE WHEN :status='completed' THEN clock_timestamp() ELSE NULL END"), {'status': status})
+            self.connection.execute(text(
+                "UPDATE rentals SET status=:status, completed_at=CASE WHEN :status='completed' THEN clock_timestamp() ELSE NULL END"),
+                                    {'status': status})
             self.assertNotIn('Continue rental', self.client.get('/').text)
         self.connection.execute(text('DELETE FROM payments'))
-        self.connection.execute(text("UPDATE rentals SET status='pending', created_at=CURRENT_TIMESTAMP-INTERVAL '20 minutes', overdue_terms_accepted_at=CURRENT_TIMESTAMP-INTERVAL '20 minutes', reserved_until=CURRENT_TIMESTAMP-INTERVAL '1 minute'"))
+        self.connection.execute(text(
+            "UPDATE rentals SET status='pending', created_at=CURRENT_TIMESTAMP-INTERVAL '20 minutes', overdue_terms_accepted_at=CURRENT_TIMESTAMP-INTERVAL '20 minutes', reserved_until=CURRENT_TIMESTAMP-INTERVAL '1 minute'"))
         self.assertNotIn('Continue rental', self.client.get('/').text)
         self.client.cookies.clear()
         self.assertNotIn('Continue rental', self.client.get('/').text)

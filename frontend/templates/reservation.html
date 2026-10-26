@@ -7,85 +7,90 @@
 <script defer src="{{ url_for('static', path='js/live.js') }}?v=1"></script>
 {% endblock %}
 {% block screen_content %}
-<div id="live-rental" data-status="{{ rental.status }}">
-<div class="rental-overview"><span class="detail-label">Reservation #{{ rental.id }}</span><span
-        class="rental-state state-{{ rental.status }}">{{ rental.status | capitalize }}</span></div>
-<dl class="rental-facts">
-    <div>
-        <dt>Rental period</dt>
-        <dd>{{ rental.prepaid_days }} day{{ 's' if rental.prepaid_days != 1 else '' }}</dd>
-    </div>
-    <div>
-        <dt>Rental ends</dt>
-        <dd>{{ ends_at }}</dd>
-    </div>
-    <div>
-        <dt>Payment</dt>
-        <dd>{{ {'paid': 'Paid', 'expired': 'Expired', 'pending': 'Awaiting payment'}.get(rental.payment_status, 'Not
-            paid') }}
-        </dd>
-    </div>
-    {% if rental.status != 'pending' %}
-    <div>
-        <dt>Door</dt>
-        <dd>{{ rental.door_state | capitalize if device_online else 'Unknown' }}</dd>
-    </div>
-    {% endif %}
-</dl>
-<p class="total"><span>Total</span><strong>€{{ '%.2f' | format(rental.total_price_cents / 100) }}</strong></p>
-<div id="rental-actions">
-    {% if rental.status == 'pending' %}
-    <p class="operator-help">Your rental starts after payment is confirmed.</p>
-    <button class="confirm-button" data-checkout-url="{{ url_for('checkout', rental_id=rental.id) }}"
-            data-login-url="{{ url_for('sign_in') }}?rental_id={{ rental.id }}"
-            data-reconcile-url="{{ url_for('reconcile', rental_id=rental.id) }}"
-            id="pay-button" type="button">Pay €{{ '%.2f' |
-        format(rental.total_price_cents / 100) }}
-    </button>
-    <p aria-live="polite" class="confirmation" id="payment-message" role="status"></p>
-
-    {% elif rental.status == 'active' %}
-    <p class="confirmation">Payment confirmed. Your rental is active.</p>
-    {% elif rental.status == 'completed' %}
-    <p class="confirmation">Rental completed. Thank you for collecting your belongings.</p>
-    {% elif rental.status == 'cancelled' %}
-    <p class="confirmation">This reservation has expired. You can choose an available locker again.</p>
-    {% elif rental.status == 'overdue' %}
-    <p class="confirmation">Your paid rental period has ended. Please contact the locker operator.</p>
-    {% endif %}
-    {% if rental.status == 'active' and rental.payment_status == 'paid' and rental.number == 4 %}
-    {% if can_open %}
-    <button class="confirm-button" data-url="{{ url_for('open_locker', rental_id=rental.id) }}" id="open-locker-button"
-            type="button">Open locker
-    </button>
-    {% else %}
-    <button class="confirm-button" data-url="{{ url_for('open_locker', rental_id=rental.id) }}" disabled
-            id="open-locker-button" type="button">Open locker
-    </button>
-    {% endif %}
-    <p aria-live="polite" class="confirmation" id="open-locker-message" role="status">{% if not can_open %}The locker is
-        not ready. Check the controller and rental period, please wait.{% endif %}</p>
-{% if can_open and rental.door_state == "closed" %}
-    <button class="back-button" data-url="{{ url_for('finish_rental', rental_id=rental.id) }}" id="finish-rental-button"
-            type="button">Finish rental
-    </button>
-    {% else %}
-    <button class="back-button" data-url="{{ url_for('finish_rental', rental_id=rental.id) }}" disabled
-            id="finish-rental-button" type="button">Finish rental
-    </button>
-    {% endif %}
-    <dialog class="finish-dialog" id="finish-dialog" aria-labelledby="finish-dialog-title" aria-describedby="finish-dialog-description">
-        <h2 id="finish-dialog-title">Finish your rental?</h2>
-        <p id="finish-dialog-description">Collect all your belongings, then close the door. Your rental ends after the door has opened and closed.</p>
-        <div class="finish-dialog-actions">
-            <button class="back-button" id="cancel-finish" type="button" autofocus>Cancel</button>
-            <button class="confirm-button" id="confirm-finish" type="button">Finish rental</button>
+<div data-status="{{ rental.status }}" id="live-rental">
+    <div class="rental-overview"><span class="detail-label">Reservation #{{ rental.id }}</span><span
+            class="rental-state state-{{ rental.status }}">{{ rental.status | capitalize }}</span></div>
+    <dl class="rental-facts">
+        <div>
+            <dt>Rental period</dt>
+            <dd>{{ rental.prepaid_days }} day{{ 's' if rental.prepaid_days != 1 else '' }}</dd>
         </div>
-    </dialog>
+        <div>
+            <dt>Rental ends</dt>
+            <dd>{{ ends_at }}</dd>
+        </div>
+        <div>
+            <dt>Payment</dt>
+            <dd>{{ {'paid': 'Paid', 'expired': 'Expired', 'pending': 'Awaiting payment'}.get(rental.payment_status, 'Not
+                paid') }}
+            </dd>
+        </div>
+        {% if rental.status != 'pending' %}
+        <div>
+            <dt>Door</dt>
+            <dd>{{ rental.door_state | capitalize if device_online else 'Unknown' }}</dd>
+        </div>
+        {% endif %}
+    </dl>
+    <p class="total"><span>Total</span><strong>€{{ '%.2f' | format(rental.total_price_cents / 100) }}</strong></p>
+    <div id="rental-actions">
+        {% if rental.status == 'pending' %}
+        <p class="operator-help">Your rental starts after payment is confirmed.</p>
+        <button class="confirm-button" data-checkout-url="{{ url_for('checkout', rental_id=rental.id) }}"
+                data-login-url="{{ url_for('sign_in') }}?rental_id={{ rental.id }}"
+                data-reconcile-url="{{ url_for('reconcile', rental_id=rental.id) }}"
+                id="pay-button" type="button">Pay €{{ '%.2f' |
+            format(rental.total_price_cents / 100) }}
+        </button>
+        <p aria-live="polite" class="confirmation" id="payment-message" role="status"></p>
 
-    {% endif %}
+        {% elif rental.status == 'active' %}
+        <p class="confirmation">Payment confirmed. Your rental is active.</p>
+        {% elif rental.status == 'completed' %}
+        <p class="confirmation">Rental completed. Thank you for collecting your belongings.</p>
+        {% elif rental.status == 'cancelled' %}
+        <p class="confirmation">This reservation has expired. You can choose an available locker again.</p>
+        {% elif rental.status == 'overdue' %}
+        <p class="confirmation">Your paid rental period has ended. Please contact the locker operator.</p>
+        {% endif %}
+        {% if rental.status == 'active' and rental.payment_status == 'paid' and rental.number == 4 %}
+        {% if can_open %}
+        <button class="confirm-button" data-url="{{ url_for('open_locker', rental_id=rental.id) }}"
+                id="open-locker-button"
+                type="button">Open locker
+        </button>
+        {% else %}
+        <button class="confirm-button" data-url="{{ url_for('open_locker', rental_id=rental.id) }}" disabled
+                id="open-locker-button" type="button">Open locker
+        </button>
+        {% endif %}
+        <p aria-live="polite" class="confirmation" id="open-locker-message" role="status">{% if not can_open %}The
+            locker is
+            not ready. Check the controller and rental period, please wait.{% endif %}</p>
+        {% if can_open and rental.door_state == "closed" %}
+        <button class="back-button" data-url="{{ url_for('finish_rental', rental_id=rental.id) }}"
+                id="finish-rental-button"
+                type="button">Finish rental
+        </button>
+        {% else %}
+        <button class="back-button" data-url="{{ url_for('finish_rental', rental_id=rental.id) }}" disabled
+                id="finish-rental-button" type="button">Finish rental
+        </button>
+        {% endif %}
+        <dialog aria-describedby="finish-dialog-description" aria-labelledby="finish-dialog-title" class="finish-dialog"
+                id="finish-dialog">
+            <h2 id="finish-dialog-title">Finish your rental?</h2>
+            <p id="finish-dialog-description">Collect all your belongings, then close the door. Your rental ends after
+                the door has opened and closed.</p>
+            <div class="finish-dialog-actions">
+                <button autofocus class="back-button" id="cancel-finish" type="button">Cancel</button>
+                <button class="confirm-button" id="confirm-finish" type="button">Finish rental</button>
+            </div>
+        </dialog>
+
+        {% endif %}
+    </div>
+    <p class="confirmation" hidden id="live-message" role="status"></p>
 </div>
-<p id="live-message" class="confirmation" role="status" hidden></p>
-</div>
-    <a class="back-button" href="{{ url_for('home') }}">Back to lockers</a>
+<a class="back-button" href="{{ url_for('home') }}">Back to lockers</a>
 {% endblock screen_content %}

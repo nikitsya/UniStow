@@ -595,5 +595,11 @@ a.home-locker:active {
     border-color: #b6a685;
     color: #594d35;
 }
-.home-locker.is-owned::before { border-color: #b6a685; }
-.is-owned .home-status { border-color: #b6a685; }
+
+.home-locker.is-owned::before {
+    border-color: #b6a685;
+}
+
+.is-owned .home-status {
+    border-color: #b6a685;
+}

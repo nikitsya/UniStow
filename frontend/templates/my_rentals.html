@@ -6,22 +6,22 @@
 {% endblock %}
 {% block screen_content %}
 <div id="live-rentals-list">
-{% if user and reservations %}
-<div class="rentals-list">
-    {% for reservation in reservations %}
-    <a class="rental-list-link" href="{{ url_for('reservation', rental_id=reservation.id) }}">
-        <span><strong>Locker {{ reservation.number }}</strong><small>View rental and access your locker</small></span>
-        <span aria-hidden="true">↗</span>
-    </a>
-    {% endfor %}
+    {% if user and reservations %}
+    <div class="rentals-list">
+        {% for reservation in reservations %}
+        <a class="rental-list-link" href="{{ url_for('reservation', rental_id=reservation.id) }}">
+            <span><strong>Locker {{ reservation.number }}</strong><small>View rental and access your locker</small></span>
+            <span aria-hidden="true">↗</span>
+        </a>
+        {% endfor %}
+    </div>
+    {% elif user %}
+    <p class="confirmation">No current rentals. Choose an available locker to get started.</p>
+    {% else %}
+    <p class="confirmation">Sign in to view and manage your rentals.</p>
+    <a class="confirm-button" href="{{ url_for('sign_in') }}">Sign in</a>
+    {% endif %}
 </div>
-{% elif user %}
-<p class="confirmation">No current rentals. Choose an available locker to get started.</p>
-{% else %}
-<p class="confirmation">Sign in to view and manage your rentals.</p>
-<a class="confirm-button" href="{{ url_for('sign_in') }}">Sign in</a>
-{% endif %}
-</div>
-<p id="live-message" class="confirmation" role="status" hidden></p>
+<p class="confirmation" hidden id="live-message" role="status"></p>
 <a class="back-button" href="{{ url_for('home') }}">Back to lockers</a>
 {% endblock %}

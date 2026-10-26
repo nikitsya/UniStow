@@ -99,6 +99,7 @@
             timer = setTimeout(refresh, 3000);
         }
     }
+
     document.addEventListener('visibilitychange', refresh);
     document.addEventListener('rental-updated', refresh);
     window.addEventListener('online', refresh);

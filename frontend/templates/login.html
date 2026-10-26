@@ -2,21 +2,21 @@
 {% block screen_title %}Sign in{% endblock %}
 
 {% block screen_content %}
-    <form action="{{ url_for('login') }}" data-destination="{{ destination }}" id="login-form" method="post">
-        <div class="field registration-field">
-            <label for="email">Email</label>
-            <input autocomplete="email" id="email" name="email" required type="email">
-        </div>
-        <div class="field">
-            <label for="password">Password</label>
-            <input autocomplete="current-password" id="password" maxlength="128" name="password" required
-                   type="password">
-        </div>
-        <button class="confirm-button login-submit" id="login-button" type="submit">Sign in</button>
-        <p aria-live="polite" class="confirmation" id="login-message" role="status"></p>
-        <noscript><p class="confirmation">Please enable JavaScript to sign in.</p></noscript>
-    </form>
-    <a class="back-button" href="{{ url_for('registration') }}">Create account</a>
-    <a class="back-button" href="{{ url_for('home') }}">Back to lockers</a>
+<form action="{{ url_for('login') }}" data-destination="{{ destination }}" id="login-form" method="post">
+    <div class="field registration-field">
+        <label for="email">Email</label>
+        <input autocomplete="email" id="email" name="email" required type="email">
+    </div>
+    <div class="field">
+        <label for="password">Password</label>
+        <input autocomplete="current-password" id="password" maxlength="128" name="password" required
+               type="password">
+    </div>
+    <button class="confirm-button login-submit" id="login-button" type="submit">Sign in</button>
+    <p aria-live="polite" class="confirmation" id="login-message" role="status"></p>
+    <noscript><p class="confirmation">Please enable JavaScript to sign in.</p></noscript>
+</form>
+<a class="back-button" href="{{ url_for('registration') }}">Create account</a>
+<a class="back-button" href="{{ url_for('home') }}">Back to lockers</a>
 <script defer src="{{ url_for('static', path='js/login.js') }}"></script>
 {% endblock screen_content %}

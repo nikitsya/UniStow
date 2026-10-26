@@ -2,29 +2,33 @@
 {% block screen_title %}{{ locker.name }}{% endblock %}
 
 {% block screen_content %}
-    <div class="booking-summary"><span class="summary-locker" aria-hidden="true"><i></i>{{ '%02d' | format(locker.number) }}</span><div><span class="detail-label">Your locker</span><h2>{{ locker.name }}</h2><p>{{ locker.size }} · €{{ '%.2f' | format(locker.price_per_day_cents / 100) }} per day</p></div></div>
-    <form action="{{ url_for('create_rental') }}" data-locker-id="{{ locker.id }}"
-          data-price-cents="{{ locker.price_per_day_cents }}" id="rental-form" method="post" novalidate>
-        <div class="field">
-            <label for="days">Number of days</label>
-            <input aria-describedby="days-help" id="days" inputmode="numeric" max="4" min="1" name="days" required
-                   step="1" type="number"
-                   value="1">
-        </div>
-        <p aria-live="polite" class="field-help" id="days-help">Rent for up to 4 calendar days.</p>
-        <p aria-atomic="true" aria-live="polite" class="total">Total price:
-            <output for="days" id="total">€0.00</output>
-        </p>
-        <label class="consent" for="overdue-consent">
-            <input id="overdue-consent" name="overdue_consent" required type="checkbox">
-            <span>I agree to collect my belongings before 18:00 (Ireland time) on the final paid day. If I do not, I authorise an automatic charge of €1 to my payment method at that deadline and at 18:00 each following day until I collect my belongings and finish the rental.</span>
-        </label>
-        <p class="operator-help">If you do not agree, or cannot collect your belongings, please contact the locker
-            operator before proceeding.</p>
-        <p class="operator-help">Reserve for up to 15 minutes.</p>
-        <button class="confirm-button" disabled id="confirm" type="submit">Reserve locker</button>
-        <p class="confirmation" hidden id="confirmation" role="status"></p>
-        <a class="back-button" hidden id="payment-link">Continue to payment</a>
-    </form>
-    <a class="back-button" href="{{ url_for('home') }}">Back</a>
+<div class="booking-summary"><span aria-hidden="true" class="summary-locker"><i></i>{{ '%02d' | format(locker.number) }}</span>
+    <div><span class="detail-label">Your locker</span>
+        <h2>{{ locker.name }}</h2>
+        <p>{{ locker.size }} · €{{ '%.2f' | format(locker.price_per_day_cents / 100) }} per day</p></div>
+</div>
+<form action="{{ url_for('create_rental') }}" data-locker-id="{{ locker.id }}"
+      data-price-cents="{{ locker.price_per_day_cents }}" id="rental-form" method="post" novalidate>
+    <div class="field">
+        <label for="days">Number of days</label>
+        <input aria-describedby="days-help" id="days" inputmode="numeric" max="4" min="1" name="days" required
+               step="1" type="number"
+               value="1">
+    </div>
+    <p aria-live="polite" class="field-help" id="days-help">Rent for up to 4 calendar days.</p>
+    <p aria-atomic="true" aria-live="polite" class="total">Total price:
+        <output for="days" id="total">€0.00</output>
+    </p>
+    <label class="consent" for="overdue-consent">
+        <input id="overdue-consent" name="overdue_consent" required type="checkbox">
+        <span>I agree to collect my belongings before 18:00 (Ireland time) on the final paid day. If I do not, I authorise an automatic charge of €1 to my payment method at that deadline and at 18:00 each following day until I collect my belongings and finish the rental.</span>
+    </label>
+    <p class="operator-help">If you do not agree, or cannot collect your belongings, please contact the locker
+        operator before proceeding.</p>
+    <p class="operator-help">Reserve for up to 15 minutes.</p>
+    <button class="confirm-button" disabled id="confirm" type="submit">Reserve locker</button>
+    <p class="confirmation" hidden id="confirmation" role="status"></p>
+    <a class="back-button" hidden id="payment-link">Continue to payment</a>
+</form>
+<a class="back-button" href="{{ url_for('home') }}">Back</a>
 {% endblock screen_content %}

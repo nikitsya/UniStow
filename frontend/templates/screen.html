@@ -5,8 +5,13 @@
 {% endblock %}
 {% block content %}
 <header class="screen-header">
-    <a class="screen-brand" href="{{ url_for('home') }}"><span class="screen-symbol" aria-hidden="true">P<span></span></span>PayBox</a>
-    <a class="screen-home" href="{{ url_for('home') }}" aria-label="Back to lockers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="m14 6-6 6 6 6M8 12h12"/></svg></a>
+    <a class="screen-brand" href="{{ url_for('home') }}"><span aria-hidden="true"
+                                                               class="screen-symbol">P<span></span></span>PayBox</a>
+    <a aria-label="Back to lockers" class="screen-home" href="{{ url_for('home') }}">
+        <svg aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24">
+            <path d="m14 6-6 6 6 6M8 12h12"/>
+        </svg>
+    </a>
     <p class="screen-eyebrow">CAMPUS STORAGE</p>
     <h1>{% block screen_title %}{% endblock %}</h1>
 </header>
