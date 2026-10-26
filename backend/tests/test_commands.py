@@ -67,6 +67,26 @@ class CommandTests(unittest.TestCase):
                                 json={'door_state': door, 'ready': ready,
                                       'controller_id': controller or self.controller})
 
+    def test_home_continues_only_the_owners_current_rental(self):
+        for status in ('pending', 'active', 'overdue'):
+            self.connection.execute(text('UPDATE rentals SET status=:status'), {'status': status})
+            self.client.cookies.set('paybox_session', 'session-1')
+            page = self.client.get('/')
+            self.assertEqual(page.status_code, 200)
+            self.assertIn('Continue rental for Locker 4', page.text)
+            self.assertIn(f'/rentals/{self.rental_id}', page.text)
+            self.client.cookies.set('paybox_session', 'session-2')
+            self.assertNotIn('Continue rental', self.client.get('/').text)
+        self.client.cookies.set('paybox_session', 'session-1')
+        for status in ('completed', 'cancelled'):
+            self.connection.execute(text("UPDATE rentals SET status=:status, completed_at=CASE WHEN :status='completed' THEN clock_timestamp() ELSE NULL END"), {'status': status})
+            self.assertNotIn('Continue rental', self.client.get('/').text)
+        self.connection.execute(text('DELETE FROM payments'))
+        self.connection.execute(text("UPDATE rentals SET status='pending', created_at=CURRENT_TIMESTAMP-INTERVAL '20 minutes', overdue_terms_accepted_at=CURRENT_TIMESTAMP-INTERVAL '20 minutes', reserved_until=CURRENT_TIMESTAMP-INTERVAL '1 minute'"))
+        self.assertNotIn('Continue rental', self.client.get('/').text)
+        self.client.cookies.clear()
+        self.assertNotIn('Continue rental', self.client.get('/').text)
+
     def open(self):
         return self.client.post(f'/api/rentals/{self.rental_id}/open', headers={'X-PayBox-Request': '1'})
 

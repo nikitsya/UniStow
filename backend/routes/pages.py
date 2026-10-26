@@ -19,19 +19,9 @@ frontend_directory = Path(__file__).resolve().parents[2] / "frontend"
 templates = Jinja2Templates(directory=frontend_directory / "templates")
 
 
-@router.get("/")
-def home(request: Request, db: Annotated[Session, Depends(get_db)]):
-    user = current_user(db, request)
-    return templates.TemplateResponse(
-        request, "home.html", {"title": "PayBox", "lockers": read_lockers(db), "user": user}
-    )
-
-
-@router.get("/rentals")
-def my_rentals(request: Request, db: Annotated[Session, Depends(get_db)]):
-    user = current_user(db, request)
-    reservations = db.execute(text("""
-                                   SELECT rentals.id, lockers.number
+def current_rentals(db, user):
+    return db.execute(text("""
+                                   SELECT rentals.id, rentals.locker_id, rentals.status, lockers.number
                                    FROM rentals
                                             JOIN lockers ON lockers.id = rentals.locker_id
                                    WHERE user_id = :user_id
@@ -40,6 +30,21 @@ def my_rentals(request: Request, db: Annotated[Session, Depends(get_db)]):
                                            OR EXISTS (SELECT 1 FROM payments WHERE payments.rental_id = rentals.id))))
                                    ORDER BY rentals.id DESC
                                    """), {"user_id": user["id"]}).mappings().all() if user else []
+
+
+@router.get("/")
+def home(request: Request, db: Annotated[Session, Depends(get_db)]):
+    user = current_user(db, request)
+    return templates.TemplateResponse(
+        request, "home.html", {"title": "PayBox", "lockers": read_lockers(db), "user": user,
+                               "own_rentals": {r["locker_id"]: r for r in current_rentals(db, user)}}
+    )
+
+
+@router.get("/rentals")
+def my_rentals(request: Request, db: Annotated[Session, Depends(get_db)]):
+    user = current_user(db, request)
+    reservations = current_rentals(db, user)
     return templates.TemplateResponse(
         request, "my_rentals.html", {"title": "My rentals | PayBox", "user": user,
                                      "reservations": reservations}

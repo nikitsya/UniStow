@@ -1,7 +1,7 @@
 {% extends "layout.html" %}
 {% block body_class %}home-page{% endblock %}
 {% block extra_head %}
-<link href="{{ url_for('static', path='css/home.css') }}?v=9" rel="stylesheet">
+<link href="{{ url_for('static', path='css/home.css') }}?v=10" rel="stylesheet">
 <script defer src="{{ url_for('static', path='js/home.js') }}?v=4"></script>
 <script defer src="{{ url_for('static', path='js/live.js') }}?v=1"></script>
 {% endblock %}
@@ -45,8 +45,12 @@
         </div>
         <ul aria-label="Lockers" class="home-locker-grid">
             {% for locker in lockers %}
+            {% set own_rental = own_rentals.get(locker.id) if own_rentals is defined else none %}
             <li data-status="{{ locker.status }}">
-                {% if locker.status == 'available' %}
+                {% if own_rental %}
+                <a aria-label="Continue rental for {{ locker.name }}" class="home-locker is-owned"
+                   href="{{ url_for('reservation', rental_id=own_rental.id) }}">
+                {% elif locker.status == 'available' %}
                 <a aria-label="Rent {{ locker.name }}, {{ locker.size }}, €{{ '%.2f' | format(locker.price_per_day_cents / 100) }} per day"
                    class="home-locker is-available"
                    href="{{ url_for('rental', locker_id=locker.id) }}">
@@ -58,9 +62,9 @@
                         <div class="locker-label"><h3>{{ locker.name }}</h3><span>{{ locker.size }}</span></div>
                         <p class="home-price">€{{ '%.2f' | format(locker.price_per_day_cents / 100)
                             }}<span> / day</span></p>
-                        <span class="home-status">{% if locker.status == 'available' %}<span class="small-dot"></span>Available <span
+                        <span class="home-status">{% if own_rental %}Continue rental <span aria-hidden="true">↗</span>{% elif locker.status == 'available' %}<span class="small-dot"></span>Available <span
                                 aria-hidden="true">↗</span>{% else %}Unavailable{% endif %}</span>
-                        {% if locker.status == 'available' %}
+                        {% if own_rental or locker.status == 'available' %}
                 </a>{% else %}
 </div>{% endif %}
 </li>
