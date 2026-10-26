@@ -21,6 +21,7 @@ class PaymentSettingsTests(unittest.TestCase):
         rental = {'id': 7, 'number': 4, 'prepaid_days': 2,
                   'total_price_cents': 200, 'paid_until': now + timedelta(days=1)}
         params = checkout_parameters(rental, 'http://127.0.0.1:8000', now)
+        self.assertEqual(params['branding_settings']['display_name'], 'PayBox')
         self.assertEqual(params['line_items'][0]['price_data']['unit_amount'], 200)
         self.assertEqual(params['line_items'][0]['price_data']['currency'], 'eur')
         self.assertEqual(params['payment_method_types'], ['card'])
@@ -55,7 +56,7 @@ class CheckoutAccessTests(unittest.TestCase):
             response = self.client.get('/rentals/7?returned=1')
         self.assertEqual(response.status_code, 200)
         self.assertRegex(response.text, r'class="rental-state state-pending">Pending</span>')
-        self.assertRegex(response.text, r'<dt>Payment</dt>\s*<dd>Not paid</dd>')
+        self.assertRegex(response.text, r'<dt>Payment</dt>\s*<dd>\s*Not\s+paid\s*</dd>')
 
     def test_my_rental_shows_local_deadline_and_payment(self):
         self.login()
@@ -68,5 +69,5 @@ class CheckoutAccessTests(unittest.TestCase):
                 self.assertEqual(response.status_code, 200)
                 self.assertIn('My rental · Locker 4', response.text)
                 self.assertIn(f'26 {month_name} 2026 at 18:00', response.text)
-                self.assertRegex(response.text, r'<dt>Payment</dt>\s*<dd>Paid</dd>')
+                self.assertRegex(response.text, r'<dt>Payment</dt>\s*<dd>\s*Paid\s*</dd>')
                 self.assertNotIn('id="pay-button"', response.text)

@@ -1,11 +1,17 @@
+window.initialiseLockerActions = function () {
 const openButton = document.querySelector('#open-locker-button');
 const finishButton = document.querySelector('#finish-rental-button');
+if (!openButton || openButton.dataset.bound) return;
+openButton.dataset.bound = 'true';
 const openMessage = document.querySelector('#open-locker-message');
 
 async function sendCommand(button, finish) {
     if (button.disabled) return;
+    window.lockerBusy = true;
+    window.lockerCooldown = Date.now() + 12000;
     openButton.disabled = true;
     finishButton.disabled = true;
+    openMessage.dataset.commandMessage = 'true';
     openMessage.textContent = 'Sending opening request…';
     try {
         const headers = {'X-PayBox-Request': '1'};
@@ -16,11 +22,13 @@ async function sendCommand(button, finish) {
         const result = await response.json();
         openMessage.textContent = response.ok
             ? (finish
-                ? 'Collection requested. When the latch moves, open the door, collect everything and close it. Refresh to check completion.'
-                : 'Opening requested. Open the door when the latch moves, then close it to relock. Refresh to check the door.')
-            : (typeof result.detail === 'string' ? result.detail : 'Request failed. Refresh to try again.');
+                ? 'Collection requested. When the latch moves, open the door, collect everything and close it. The status will update automatically.'
+                : 'Opening requested. Open the door when the latch moves, then close it to relock. The door status will update automatically.')
+            : (typeof result.detail === 'string' ? result.detail : 'Request failed. Please try again shortly.');
     } catch {
-        openMessage.textContent = 'Delivery is uncertain. Check the locker, wait 10 seconds, then refresh. No automatic retry was sent.';
+        openMessage.textContent = 'Delivery is uncertain. Check the locker, wait a few seconds before trying again. No automatic retry was sent.';
+    } finally {
+        window.lockerBusy = false;
     }
 }
 
@@ -41,3 +49,6 @@ finishDialog.addEventListener('click', (event) => {
     if (event.target === finishDialog && (event.clientX < bounds.left || event.clientX > bounds.right
         || event.clientY < bounds.top || event.clientY > bounds.bottom)) finishDialog.close();
 });
+
+};
+window.initialiseLockerActions();

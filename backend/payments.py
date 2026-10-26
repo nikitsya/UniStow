@@ -45,6 +45,7 @@ def checkout_parameters(rental, base_url: str, now):
         raise HTTPException(status_code=409, detail="Too close to the rental deadline to start checkout.")
     return {
         "mode": "payment", "payment_method_types": ["card"],
+        "branding_settings": {"display_name": "PayBox"},
         "client_reference_id": str(rental["id"]),
         "metadata": {"rental_id": str(rental["id"])},
         "line_items": [{"price_data": {

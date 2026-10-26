@@ -2,7 +2,8 @@
 {% block body_class %}home-page{% endblock %}
 {% block extra_head %}
 <link href="{{ url_for('static', path='css/home.css') }}?v=9" rel="stylesheet">
-<script defer src="{{ url_for('static', path='js/home.js') }}?v=3"></script>
+<script defer src="{{ url_for('static', path='js/home.js') }}?v=4"></script>
+<script defer src="{{ url_for('static', path='js/live.js') }}?v=1"></script>
 {% endblock %}
 {% block content %}
 {% set available = lockers | selectattr('status', 'equalto', 'available') | list %}
@@ -67,6 +68,7 @@
 <li class="grid-empty">No lockers are listed yet.</li>
 {% endfor %}
 </ul>
+<p id="live-message" class="home-error" role="status" hidden></p>
 <p class="filter-empty" hidden role="status">No lockers are available right now.</p>
 </section>
 

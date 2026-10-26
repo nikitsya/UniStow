@@ -1,6 +1,11 @@
 {% extends "screen.html" %}
 {% block screen_title %}My rentals{% endblock %}
+{% block extra_head %}
+{{ super() }}
+<script defer src="{{ url_for('static', path='js/live.js') }}?v=1"></script>
+{% endblock %}
 {% block screen_content %}
+<div id="live-rentals-list">
 {% if user and reservations %}
 <div class="rentals-list">
     {% for reservation in reservations %}
@@ -16,5 +21,7 @@
 <p class="confirmation">Sign in to view and manage your rentals.</p>
 <a class="confirm-button" href="{{ url_for('sign_in') }}">Sign in</a>
 {% endif %}
+</div>
+<p id="live-message" class="confirmation" role="status" hidden></p>
 <a class="back-button" href="{{ url_for('home') }}">Back to lockers</a>
 {% endblock %}

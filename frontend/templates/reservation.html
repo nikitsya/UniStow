@@ -1,6 +1,13 @@
 {% extends "screen.html" %}
 {% block screen_title %}My rental · Locker {{ rental.number }}{% endblock %}
+{% block extra_head %}
+{{ super() }}
+<script defer src="{{ url_for('static', path='js/payment.js') }}?v=live-1"></script>
+<script defer src="{{ url_for('static', path='js/open_locker.js') }}?v=live-1"></script>
+<script defer src="{{ url_for('static', path='js/live.js') }}?v=1"></script>
+{% endblock %}
 {% block screen_content %}
+<div id="live-rental" data-status="{{ rental.status }}">
 <div class="rental-overview"><span class="detail-label">Reservation #{{ rental.id }}</span><span
         class="rental-state state-{{ rental.status }}">{{ rental.status | capitalize }}</span></div>
 <dl class="rental-facts">
@@ -26,6 +33,7 @@
     {% endif %}
 </dl>
 <p class="total"><span>Total</span><strong>€{{ '%.2f' | format(rental.total_price_cents / 100) }}</strong></p>
+<div id="rental-actions">
     {% if rental.status == 'pending' %}
     <p class="operator-help">Your rental starts after payment is confirmed.</p>
     <button class="confirm-button" data-checkout-url="{{ url_for('checkout', rental_id=rental.id) }}"
@@ -35,7 +43,7 @@
         format(rental.total_price_cents / 100) }}
     </button>
     <p aria-live="polite" class="confirmation" id="payment-message" role="status"></p>
-    <script defer src="{{ url_for('static', path='js/payment.js') }}?v=confirmation-1"></script>
+
     {% elif rental.status == 'active' %}
     <p class="confirmation">Payment confirmed. Your rental is active.</p>
     {% elif rental.status == 'completed' %}
@@ -56,7 +64,7 @@
     </button>
     {% endif %}
     <p aria-live="polite" class="confirmation" id="open-locker-message" role="status">{% if not can_open %}The locker is
-        not ready. Check the controller and rental period, then refresh.{% endif %}</p>
+        not ready. Check the controller and rental period, please wait.{% endif %}</p>
 {% if can_open and rental.door_state == "closed" %}
     <button class="back-button" data-url="{{ url_for('finish_rental', rental_id=rental.id) }}" id="finish-rental-button"
             type="button">Finish rental
@@ -74,7 +82,10 @@
             <button class="confirm-button" id="confirm-finish" type="button">Finish rental</button>
         </div>
     </dialog>
-    <script defer src="{{ url_for('static', path='js/open_locker.js') }}?v=3"></script>
+
     {% endif %}
+</div>
+<p id="live-message" class="confirmation" role="status" hidden></p>
+</div>
     <a class="back-button" href="{{ url_for('home') }}">Back to lockers</a>
 {% endblock screen_content %}
