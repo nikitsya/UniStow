@@ -46,7 +46,8 @@
             {% for locker in lockers %}
             <li data-status="{{ locker.status }}">
                 {% if locker.status == 'available' %}
-                <a aria-label="Rent {{ locker.name }}, {{ locker.size }}, €{{ '%.2f' | format(locker.price_per_day_cents / 100) }} per day" class="home-locker is-available"
+                <a aria-label="Rent {{ locker.name }}, {{ locker.size }}, €{{ '%.2f' | format(locker.price_per_day_cents / 100) }} per day"
+                   class="home-locker is-available"
                    href="{{ url_for('rental', locker_id=locker.id) }}">
                     {% else %}
                     <div aria-disabled="true" class="home-locker">

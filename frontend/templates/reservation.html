@@ -32,18 +32,26 @@
     <p class="confirmation">Your paid rental period has ended. Please contact the locker operator.</p>
     {% endif %}
     {% if rental.status == 'active' and rental.payment_status == 'paid' and rental.number == 4 %}
-    <button %} %}disabled{% can_open
-            class="confirm-button"
-            data-url="{{ url_for('open_locker', rental_id=rental.id) }}" endif id="open-locker-button" if not
-            type="button" {%>Open locker
+    {% if can_open %}
+    <button class="confirm-button" data-url="{{ url_for('open_locker', rental_id=rental.id) }}" id="open-locker-button"
+            type="button">Open locker
     </button>
+    {% else %}
+    <button class="confirm-button" data-url="{{ url_for('open_locker', rental_id=rental.id) }}" disabled
+            id="open-locker-button" type="button">Open locker
+    </button>
+    {% endif %}
     <p aria-live="polite" class="confirmation" id="open-locker-message" role="status">{% if not can_open %}The locker is
         not ready. Check the controller and rental period, then refresh.{% endif %}</p>
-    <button %} %}disabled{% can_open
-            class="back-button"
-            data-url="{{ url_for('finish_rental', rental_id=rental.id) }}" endif id="finish-rental-button" if not
-            type="button" {%>Finish rental
+    {% if can_open %}
+    <button class="back-button" data-url="{{ url_for('finish_rental', rental_id=rental.id) }}" id="finish-rental-button"
+            type="button">Finish rental
     </button>
+    {% else %}
+    <button class="back-button" data-url="{{ url_for('finish_rental', rental_id=rental.id) }}" disabled
+            id="finish-rental-button" type="button">Finish rental
+    </button>
+    {% endif %}
     <script defer src="{{ url_for('static', path='js/open_locker.js') }}?v=2"></script>
     {% endif %}
     <a class="back-button" href="{{ url_for('home') }}">Back to lockers</a>
