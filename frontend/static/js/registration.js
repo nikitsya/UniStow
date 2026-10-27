@@ -16,7 +16,7 @@ registrationForm.addEventListener('submit', async (event) => {
     try {
         const response = await fetch(registrationForm.action, {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
+            headers: {'Content-Type': 'application/json', 'X-PayBox-Request': '1'},
             body: JSON.stringify({
                 email: registrationForm.elements.email.value.trim(),
                 password: registrationForm.elements.password.value,

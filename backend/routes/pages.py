@@ -44,6 +44,8 @@ def home(request: Request, db: Annotated[Session, Depends(get_db)]):
 @router.get("/rentals")
 def my_rentals(request: Request, db: Annotated[Session, Depends(get_db)]):
     user = current_user(db, request)
+    if user is None:
+        return RedirectResponse("/login?my_rentals=true", status_code=303)
     reservations = current_rentals(db, user)
     return templates.TemplateResponse(
         request, "my_rentals.html", {"title": "My rentals | PayBox", "user": user,
@@ -59,9 +61,11 @@ def registration(request: Request):
 
 
 @router.get("/login")
-def sign_in(request: Request, locker_id: int | None = None, rental_id: int | None = None):
+def sign_in(request: Request, locker_id: int | None = None, rental_id: int | None = None,
+            my_rentals: bool = False):
     destination = (f"/rentals/{rental_id}" if rental_id is not None else
-                   f"/lockers/{locker_id}/rent" if locker_id is not None else "/")
+                   f"/lockers/{locker_id}/rent" if locker_id is not None else
+                   "/rentals" if my_rentals else "/")
     return templates.TemplateResponse(
         request, "login.html", {"title": "Sign in | PayBox", "destination": destination}
     )

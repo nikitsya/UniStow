@@ -39,11 +39,11 @@ class RegistrationTests(unittest.TestCase):
         app.dependency_overrides.clear()
         self.engine.dispose()
 
-    def register(self, email="Person@example.com", password=None):
+    def register(self, email="Person@example.com", password=None, headers=None):
         return self.client.post("/api/register", json={
             "email": email,
             "password": self.password if password is None else password,
-        })
+        }, headers={"X-PayBox-Request": "1"} if headers is None else headers)
 
     def test_registration_stores_hash_and_returns_public_fields(self):
         response = self.register()
@@ -53,6 +53,13 @@ class RegistrationTests(unittest.TestCase):
             stored = connection.execute(text("SELECT password_hash FROM users")).scalar_one()
         self.assertNotEqual(stored, self.password)
         self.assertTrue(password_hasher.verify(self.password, stored))
+
+    def test_browser_header_required(self):
+        for headers in ({}, {"X-PayBox-Request": "invalid"}):
+            with self.subTest(headers=headers):
+                self.assertEqual(self.register(headers=headers).status_code, 403)
+        with self.engine.connect() as connection:
+            self.assertEqual(connection.execute(text("SELECT count(*) FROM users")).scalar_one(), 0)
 
     def test_duplicate_email_does_not_replace_password(self):
         self.register()

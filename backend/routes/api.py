@@ -50,7 +50,7 @@ def create_rental(details: RentalRequest, request: Request,
     return reserve_locker(db, user["id"], details.locker_id, details.days)
 
 
-@router.post("/register", status_code=201)
+@router.post("/register", status_code=201, dependencies=[Depends(check_browser_request)])
 def register(details: Registration, db: Annotated[Session, Depends(get_db)]):
     user = create_user(db, details.email, details.password)
     if user is None:

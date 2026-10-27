@@ -102,6 +102,23 @@ class LoginTests(unittest.TestCase):
             connection.execute(text("UPDATE sessions SET expires_at = '2000-01-01'"))
         self.assertEqual(self.client.get(path, follow_redirects=False).status_code, 303)
 
+    def test_my_rentals_requires_valid_session(self):
+        with patch('routes.pages.current_rentals', return_value=[]) as rentals:
+            response = self.client.get('/rentals', follow_redirects=False)
+            self.assertEqual(response.status_code, 303)
+            self.assertEqual(response.headers['location'], '/login?my_rentals=true')
+            rentals.assert_not_called()
+            self.assertIn('data-destination="/rentals"',
+                          self.client.get(response.headers['location']).text)
+            self.login()
+            self.assertEqual(self.client.get('/rentals').status_code, 200)
+            rentals.assert_called_once()
+            rentals.reset_mock()
+            with self.engine.begin() as connection:
+                connection.execute(text("UPDATE sessions SET expires_at = '2000-01-01'"))
+            self.assertEqual(self.client.get('/rentals', follow_redirects=False).status_code, 303)
+            rentals.assert_not_called()
+
     def test_login_destination_stays_local(self):
         self.assertIn('data-destination="/"', self.client.get('/login').text)
         self.assertEqual(self.client.get('/login', params={'locker_id': 'https://example.com'}).status_code, 422)
