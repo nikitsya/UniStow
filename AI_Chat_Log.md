@@ -18,3 +18,4 @@
 | 26 October 2026 | OpenAI Codex helped add rental completion after collecting belongings.                                    |
 | 26 October 2026 | OpenAI Codex helped add automatic rental, door and locker availability updates.                           |
 | 26 October 2026 | OpenAI Codex helped organise backend files into auth and services folders.                                |
+| 27 October 2026 | OpenAI Codex helped align the documentation with the working prototype.                                   |

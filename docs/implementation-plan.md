@@ -1,29 +1,30 @@
 # Implementation plan
 
-The project overview and planned stack are in the [README](../README.md).
+See the [README](../README.md) for the current stack and startup instructions.
 
-## First working version
+## Working now
 
-1. Set up FastAPI with Jinja2 pages and PostgreSQL.
-2. Add registration, login and ownership checks.
-3. Add one demo locker and a device simulator.
-4. Store door status and last-seen time, and show them in the web app.
-5. Let the rental owner request an unlock and see the device acknowledgement.
+- Mobile-friendly locker list, registration, sign-in and account menu.
+- PostgreSQL reservations, ownership checks and **Continue rental** for the owner.
+- Stripe test checkout, verified webhooks and payment reconciliation.
+- Automatic updates for availability, rental status and door state.
+- Raspberry Pi 400 with an SG92R servo and magnetic door sensor.
+- Authorised opening, closure checks and rental completion after collection.
+- Automatic startup of pigpiod and the Pi controller.
 
-Check that another user cannot access the rental, and that duplicate or expired commands
-are ignored. Clearly label simulated device data.
+The Pi currently polls the local FastAPI backend over HTTP. PubNub and AWS were part
+of the initial proposal and are not implemented. The Checkpoint 1 presentation is a
+record of that proposal, not a description of the current system.
 
-## After that
+## Next steps
 
-- Connect the Raspberry Pi through secured pub-sub channels.
-- Add Stripe test checkout, reservations and verified payment webhooks.
-- Handle rental expiry, collection and cases where the device or payment fails.
-- Deploy on AWS with HTTPS, restricted access and encrypted storage/backups.
-- Finish the architecture diagram, Fritzing sketch, screencast and submission materials.
-
-## Still to decide
-
-- Available hardware and power supplies.
-- AWS account, budget, domain and PostgreSQL hosting.
-- Whether PubNub channel access controls are available in the account.
-- Daily rental closing time and how users get help retrieving belongings.
+1. Implement and test overdue status updates, payment-method setup and EUR 1 daily
+   test charges. Consent is already saved; automatic charging is not implemented.
+2. Add operator contact details and a recovery process for failed payments,
+   interrupted collection and hardware faults.
+3. Test the complete journey on mobile, including two users competing for a locker,
+   network loss, restarts and repeated button presses.
+4. Choose hosting and deploy with HTTPS, restricted database access and backups.
+   Update the Pi server address and Stripe webhook destination for deployment.
+5. Check the assessment brief against the finished work and prepare an up-to-date
+   architecture diagram, wiring diagram, demonstration and submission materials.

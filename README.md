@@ -1,118 +1,122 @@
 # PayBox
 
-PayBox is an IoT smart locker project for short-term storage. The idea is to let a user
-rent a locker through a web app, pay using Stripe test payments and open it from their account.
-A Raspberry Pi controls the latch and reports the door status.
+PayBox is a mobile-friendly campus locker prototype. Users register, reserve a locker,
+pay through Stripe in test mode and open it from their account. A Raspberry Pi 400
+controls the servo latch and reports the magnetic door sensor.
 
-## How it will work
+## How it works
 
-1. Sign in and check locker availability, price and rental end time.
-2. Reserve the locker and complete a test payment.
-3. Open the locker and reopen it during the rental without paying again.
-4. Collect belongings, confirm the locker is empty and close the door to finish.
+1. Sign in and choose Locker 4, the only physical locker. The other eight are placeholders.
+2. Select 1–4 calendar days, accept the terms and reserve. The default is one day at EUR 1.
+3. Continue to the rental page and select **Pay**. Confirmed payment enables access.
+4. Use **Open locker** during the paid period. Your locker card shows **Continue rental**.
+5. Select **Finish rental**, collect everything and close the door. The controller
+   verifies closure and acknowledges completion before the locker becomes available.
 
-The first version uses Locker 4 at EUR 1 per calendar day, with 1 day selected by default
-and up to 4 days payable in advance. Days end at 18:00 in Ireland; starts at or after 18:00
-count the next date as day one. EUR 1 becomes due at the unpaid deadline and each following
-18:00 until collection and rental completion. Payments will be in test mode, with no real money
-charged. The web pages should work on mobile and be easy to use
-with clear labels, keyboard controls and readable status messages.
+Days end at **18:00, Europe/Dublin**. Before 18:00, the reservation date is day one;
+at or after 18:00, the next date is day one. The deadline is calculated when reserving
+and does not move when payment is confirmed. Prices and times are checked by the server.
 
-## Planned stack
+An unpaid reservation is held for up to 15 minutes. Starting checkout keeps it blocked
+until Stripe payment is reconciled; checkout has its own expiry. Rental status, door state
+and availability update automatically while the page is visible. A closed door reading
+does not prove that the latch is locked.
 
-| Part             | Technology                                             |
-|------------------|--------------------------------------------------------|
-| Web app          | Python, FastAPI, Jinja2, HTML, CSS and JavaScript      |
-| Database         | PostgreSQL                                             |
-| Device messaging | PubNub, subject to channel access control availability |
-| Payments         | Stripe test environment                                |
-| Hardware         | Raspberry Pi, servo latch and door contact sensor      |
-| Hosting          | AWS, Nginx and Uvicorn, with a custom HTTPS domain     |
+## Current stack
 
-The hardware prototype will use a small box, breadboard, jumper wires and suitable power supplies.
-
-## Architecture
+| Part | Technology |
+|------|------------|
+| Web app | Python, FastAPI, Jinja2, HTML, CSS and JavaScript |
+| Database | PostgreSQL 16 in Docker |
+| Payments | Stripe sandbox Checkout and verified webhooks |
+| Hardware | Raspberry Pi 400, SG92R servo and magnetic contact sensor |
+| Device connection | HTTP heartbeat and command polling on the local network |
 
 ```mermaid
 flowchart LR
-    Browser -->|HTTPS| App[FastAPI on AWS]
-    App --> DB[(PostgreSQL)]
-    App -->|Checkout| Stripe[Stripe test payments]
-    Stripe -->|Verified webhook| App
-    App <-->|Commands and status| PubNub
-    PubNub <--> Pi[Raspberry Pi]
+    Browser -->|HTTP locally| App[FastAPI on Mac]
+    App --> DB[(PostgreSQL in Docker)]
+    App -->|HTTPS| Stripe[Stripe sandbox]
+    Stripe -->|Events via local CLI listener| App
+    Pi[Raspberry Pi] -->|Heartbeat and command polling| App
     Pi --> Latch[Servo latch]
     Sensor[Door sensor] --> Pi
 ```
 
-PostgreSQL will store users, lockers, rentals, payments and device commands/events.
-The server will check payments and rental ownership before sending an unlock command.
+AWS hosting, HTTPS deployment and PubNub are not part of the current implementation.
+Passwords use Argon2; session tokens are stored as hashes. Sessions last 24 hours and
+use an HttpOnly cookie, with Secure enabled on HTTPS. Rental access requires ownership
+and confirmed payment. Device requests require a separate key; commands expire and
+are dispatched only once. Card details stay with Stripe.
 
-## Main rules
+## Run locally
 
-- Require login and check ownership before showing rental data or allowing access.
-- Prevent two users from reserving the same locker. Verify payment webhooks and handle repeated events only once.
-- Give commands unique IDs and expiry times so stale or repeated messages cannot reopen the locker.
-- Show payment, command acknowledgement and actual door state separately. Flag offline devices and failed access for
-  assistance.
-- Do not release a locker just because the rental expires. Require confirmed collection and a closed door; unknown
-  sensor state needs assistance.
-- Keep secrets out of Git, hash passwords, protect sessions and forms, and restrict device channels and server/database
-  access.
-- Use encrypted connections and encrypted storage/backups. Card details stay with Stripe.
+Prerequisites: Docker Desktop, Python 3.11 or later, and `uv`.
+For first-time setup, copy `.env.example` to `.env` and fill in the required values.
+Keep `.env` out of Git; do not overwrite an existing configuration.
 
-## Registration API
+From the project folder, with Docker Desktop running:
 
-`POST /api/register` accepts JSON with `email` and `password` (15–128 characters).
-It returns the user's `id` and normalised `email`: 201 on success, 409 for an existing
-email, or 422 for invalid input. Passwords are stored as Argon2 hashes.
-Open `/register` or select **Create account** on the locker list to register.
-Use `/login` to sign in. A session lasts 24 hours; **Sign out** revokes it.
-Sessions use an HttpOnly cookie, with Secure enabled on HTTPS. Session keys are
-stored as hashes in the database. Rental pages require sign-in; guests return to
-their selected locker after signing in.
+```sh
+docker compose up -d db
+```
 
-**Reserve locker** saves a `pending` rental for up to 15 minutes (or until the
-rental deadline, if sooner). The server checks consent and calculates the price
-and 18:00 Ireland end time. Repeating the same reservation returns the existing
-record. Without a checkout attempt, expired holds are marked `cancelled` when a
-new reservation is made. A checkout attempt keeps the locker blocked until payment
-is reconciled. Active and overdue rentals also block it. Physical access is not implemented yet.
+On a new database, Docker creates the tables. Then add the nine locker records using
+[the migration instructions](docs/database.md#initial-setup). Existing data is retained.
 
-`POST /api/login` accepts email and password; `GET /api/me` returns the signed-in
-user. `POST /api/logout` signs out. Login and logout requests require the header
-`X-PayBox-Request: 1`; the web forms send it automatically.
+From `backend/`:
 
-Run the isolated registration tests from `backend/`:
-`uv run python -m unittest discover -s tests -v`.
+```sh
+uv sync
+uv run uvicorn main:app --host 0.0.0.0 --port 8000
+```
 
-## Stripe setup
+Open `http://127.0.0.1:8000` on the Mac. In PyCharm, use a Python run configuration:
+module `uvicorn`, parameters `main:app --host 0.0.0.0 --port 8000`, working directory
+`backend`, and the `backend/.venv` interpreter. Stop any existing server before starting another.
 
-In the Stripe Dashboard, open a sandbox or test mode and find **API keys**.
-Copy the secret key beginning with `sk_test_` into `STRIPE_SECRET_KEY` in the
-root `.env` file. Keep the key out of Git and chat. `APP_BASE_URL` defaults to
-`http://127.0.0.1:8000`; use this address when testing sign-in and checkout.
+The database and backend must stay running. See [Raspberry Pi setup](hardware/README.md)
+for the controller's automatic startup and local network configuration.
+
+## Stripe testing
+
+Set `STRIPE_SECRET_KEY` to a sandbox key beginning with `sk_test_` in `.env`.
+Set `APP_BASE_URL` to the browser address used for checkout; the default is
+`http://127.0.0.1:8000`. Install Stripe CLI, then run from `backend/`:
 
 ```sh
 uv run python listen_stripe.py
 ```
 
-It saves `STRIPE_WEBHOOK_SECRET` in `.env` without displaying it. Restart the backend
-once it reports ready, and keep the listener running while testing. The reservation
-page also checks Stripe directly on refresh, so a missed local event can be recovered.
-Test card: `4242 4242 4242 4242`, a future expiry date and any three-digit CVC.
-Automatic overdue collection and physical unlocking are still future work.
+The listener saves `STRIPE_WEBHOOK_SECRET` in `.env`. Restart the backend when it reports
+ready and keep the listener running. The pending rental page also checks payment with
+Stripe periodically, roughly every 10 seconds, to recover missed events.
+Use test card `4242 4242 4242 4242`, a future expiry and any three-digit CVC. No real money is charged.
 
-## Project files
+## Tests
 
-- `backend/main.py` - FastAPI application setup.
-- `backend/auth/` - Accounts and sessions.
-- `backend/services/` - Locker, rental and payment logic.
-- `backend/routes/` - Page, API and device routes.
-- `backend/database.py` and `backend/database/` - Database connection, SQL and migrations.
-- `frontend/` - HTML templates, CSS and JavaScript, served by FastAPI.
-- `android/` - Android prototype.
-- `docs/` - Implementation plan, presentation and design images.
-- [Implementation plan](docs/implementation-plan.md) - Next development steps.
-- [Database plan](docs/database.md) - Proposed tables, fields and relationships.
-- [AI assistance log](AI_Chat_Log.md) - Brief record of AI help.
+From `backend/`:
+
+```sh
+uv run python -m unittest discover -s tests -v
+```
+
+To include database tests, start PostgreSQL and prefix the command with
+`PAYBOX_TEST_POSTGRES=1`. These tests use isolated database schemas.
+
+## Project files and remaining work
+
+- `backend/main.py` — Application setup; `routes/` — Page, API and device routes.
+- `backend/auth/` — Accounts and sessions; `services/` — Rental, payment and command logic.
+- `backend/database.py` — Connection; `backend/database/` — SQL schema and migrations.
+- `frontend/` — Templates, CSS and JavaScript served by FastAPI.
+- `hardware/` — Pi scripts, configuration example and systemd services.
+- `android/` — Earlier Android prototype.
+- [Database](docs/database.md), [implementation plan](docs/implementation-plan.md) and [AI assistance log](AI_Chat_Log.md).
+
+Automatic EUR 1 daily overdue charging, payment-method setup and scheduled overdue status
+updates are not implemented. Overdue access currently needs operator assistance; contact
+details still need to be supplied. See the plan for deployment and submission tasks.
+
+The Checkpoint 1 presentation in `docs/` records the original proposal, including Flask,
+PubNub and AWS. It is historical; this README describes the current implementation.
