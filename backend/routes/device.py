@@ -29,7 +29,7 @@ class DoorReport(BaseModel):
 
 
 def check_device_key(request: Request):
-    key = os.environ.get("PAYBOX_DEVICE_KEY", "")
+    key = os.environ.get("UNISTOW_DEVICE_KEY", "")
     if not key:
         raise HTTPException(503, "Device access is not configured.")
     supplied = request.headers.get("Authorization", "")

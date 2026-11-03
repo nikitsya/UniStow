@@ -43,7 +43,7 @@ class RegistrationTests(unittest.TestCase):
         return self.client.post("/api/register", json={
             "email": email,
             "password": self.password if password is None else password,
-        }, headers={"X-PayBox-Request": "1"} if headers is None else headers)
+        }, headers={"X-UniStow-Request": "1"} if headers is None else headers)
 
     def test_registration_stores_hash_and_returns_public_fields(self):
         response = self.register()
@@ -55,7 +55,7 @@ class RegistrationTests(unittest.TestCase):
         self.assertTrue(password_hasher.verify(self.password, stored))
 
     def test_browser_header_required(self):
-        for headers in ({}, {"X-PayBox-Request": "invalid"}):
+        for headers in ({}, {"X-UniStow-Request": "invalid"}):
             with self.subTest(headers=headers):
                 self.assertEqual(self.register(headers=headers).status_code, 403)
         with self.engine.connect() as connection:

@@ -14,8 +14,8 @@ window.initialiseLockerActions = function () {
         openMessage.dataset.commandMessage = 'true';
         openMessage.textContent = 'Sending opening request…';
         try {
-            const headers = {'X-PayBox-Request': '1'};
-            if (finish) headers['X-PayBox-Collect-All'] = 'yes';
+            const headers = {'X-UniStow-Request': '1'};
+            if (finish) headers['X-UniStow-Collect-All'] = 'yes';
             const response = await fetch(button.dataset.url, {
                 method: 'POST', headers, signal: AbortSignal.timeout(8000),
             });

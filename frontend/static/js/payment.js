@@ -12,7 +12,7 @@ window.initialisePayment = function () {
         paymentMessage.textContent = '';
         try {
             const response = await fetch(payButton.dataset.checkoutUrl, {
-                method: 'POST', headers: {'X-PayBox-Request': '1'}, signal: AbortSignal.timeout(8000),
+                method: 'POST', headers: {'X-UniStow-Request': '1'}, signal: AbortSignal.timeout(8000),
             });
             if (response.status === 401) {
                 window.location.assign(payButton.dataset.loginUrl);
@@ -37,7 +37,7 @@ window.initialisePayment = function () {
     async function checkPayment() {
         try {
             const response = await fetch(payButton.dataset.reconcileUrl, {
-                method: 'POST', headers: {'X-PayBox-Request': '1'}, signal: AbortSignal.timeout(8000),
+                method: 'POST', headers: {'X-UniStow-Request': '1'}, signal: AbortSignal.timeout(8000),
             });
             if (response.status === 401) {
                 window.location.assign(payButton.dataset.loginUrl);

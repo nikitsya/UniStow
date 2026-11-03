@@ -14,11 +14,11 @@ if not password:
 engine = create_engine(
     URL.create(
         "postgresql+psycopg",
-        username="paybox",
+        username=os.environ.get("POSTGRES_USER", "unistow"),
         password=password,
         host=os.environ.get("POSTGRES_HOST", "127.0.0.1"),
         port=int(os.environ.get("POSTGRES_PORT", "5433")),
-        database="paybox",
+        database=os.environ.get("POSTGRES_DB", "unistow"),
     ),
     pool_pre_ping=True,
     connect_args={"connect_timeout": 3},

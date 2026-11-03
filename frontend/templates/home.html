@@ -8,8 +8,8 @@
 {% block content %}
 {% set available = lockers | selectattr('status', 'equalto', 'available') | list %}
 <header class="home-header">
-    <a aria-label="PayBox home" class="home-brand" href="{{ url_for('home') }}"><span aria-hidden="true"
-                                                                                      class="brand-symbol">P<span></span></span>PayBox</a>
+    <a aria-label="UniStow home" class="home-brand" href="{{ url_for('home') }}"><span aria-hidden="true"
+                                                                                       class="brand-symbol">U<span></span></span>UniStow</a>
     <details class="account-menu" id="account">
         <summary aria-label="Your account" class="header-account">
             <svg aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24">

@@ -16,7 +16,7 @@ from main import app
 from services.rentals import reserve_locker, rental_end
 
 
-@unittest.skipUnless(os.environ.get('PAYBOX_TEST_POSTGRES') == '1', 'Requires PostgreSQL; isolated schema rolled back')
+@unittest.skipUnless(os.environ.get('UNISTOW_TEST_POSTGRES') == '1', 'Requires PostgreSQL; isolated schema rolled back')
 class CommandTests(unittest.TestCase):
     def setUp(self):
         self.connection = engine.connect()
@@ -48,8 +48,8 @@ class CommandTests(unittest.TestCase):
 
         app.dependency_overrides[get_db] = test_db
         self.client = TestClient(app)
-        self.client.cookies.set('paybox_session', 'session-1')
-        key = patch.dict('os.environ', {'PAYBOX_DEVICE_KEY': 'test-device-key'})
+        self.client.cookies.set('unistow_session', 'session-1')
+        key = patch.dict('os.environ', {'UNISTOW_DEVICE_KEY': 'test-device-key'})
         key.start()
         self.addCleanup(key.stop)
         self.controller = str(uuid4())
@@ -70,14 +70,14 @@ class CommandTests(unittest.TestCase):
     def test_home_continues_only_the_owners_current_rental(self):
         for status in ('pending', 'active', 'overdue'):
             self.connection.execute(text('UPDATE rentals SET status=:status'), {'status': status})
-            self.client.cookies.set('paybox_session', 'session-1')
+            self.client.cookies.set('unistow_session', 'session-1')
             page = self.client.get('/')
             self.assertEqual(page.status_code, 200)
             self.assertIn('Continue rental for Locker 4', page.text)
             self.assertIn(f'/rentals/{self.rental_id}', page.text)
-            self.client.cookies.set('paybox_session', 'session-2')
+            self.client.cookies.set('unistow_session', 'session-2')
             self.assertNotIn('Continue rental', self.client.get('/').text)
-        self.client.cookies.set('paybox_session', 'session-1')
+        self.client.cookies.set('unistow_session', 'session-1')
         for status in ('completed', 'cancelled'):
             self.connection.execute(text(
                 "UPDATE rentals SET status=:status, completed_at=CASE WHEN :status='completed' THEN clock_timestamp() ELSE NULL END"),
@@ -91,7 +91,7 @@ class CommandTests(unittest.TestCase):
         self.assertNotIn('Continue rental', self.client.get('/').text)
 
     def open(self):
-        return self.client.post(f'/api/rentals/{self.rental_id}/open', headers={'X-PayBox-Request': '1'})
+        return self.client.post(f'/api/rentals/{self.rental_id}/open', headers={'X-UniStow-Request': '1'})
 
     def take(self, controller=None):
         return self.client.post('/api/device/commands/next', headers=self.device_headers,
@@ -122,9 +122,9 @@ class CommandTests(unittest.TestCase):
     def test_authentication_ownership_and_browser_header(self):
         self.client.cookies.clear()
         self.assertEqual(self.open().status_code, 401)
-        self.client.cookies.set('paybox_session', 'session-2')
+        self.client.cookies.set('unistow_session', 'session-2')
         self.assertEqual(self.open().status_code, 404)
-        self.client.cookies.set('paybox_session', 'session-1')
+        self.client.cookies.set('unistow_session', 'session-1')
         self.assertEqual(self.client.post(f'/api/rentals/{self.rental_id}/open').status_code, 403)
         self.assertEqual(
             self.client.post('/api/device/commands/next', json={'controller_id': self.controller}).status_code, 401)
@@ -182,9 +182,9 @@ class CommandTests(unittest.TestCase):
                          r'<button(?=[^>]*id="open-locker-button")(?=[^>]*\bdisabled\b)[^>]*>')
 
     def finish(self, confirmed=True):
-        headers = {'X-PayBox-Request': '1'}
+        headers = {'X-UniStow-Request': '1'}
         if confirmed:
-            headers['X-PayBox-Collect-All'] = 'yes'
+            headers['X-UniStow-Collect-All'] = 'yes'
         return self.client.post(f'/api/rentals/{self.rental_id}/finish', headers=headers)
 
     def acknowledge(self, command_id, controller=None):
@@ -195,9 +195,9 @@ class CommandTests(unittest.TestCase):
         self.assertEqual(self.finish(False).status_code, 422)
         self.client.cookies.clear()
         self.assertEqual(self.finish().status_code, 401)
-        self.client.cookies.set('paybox_session', 'session-2')
+        self.client.cookies.set('unistow_session', 'session-2')
         self.assertEqual(self.finish().status_code, 404)
-        self.client.cookies.set('paybox_session', 'session-1')
+        self.client.cookies.set('unistow_session', 'session-1')
         self.connection.execute(text("UPDATE payments SET status='pending'"))
         self.assertEqual(self.finish().status_code, 409)
 
@@ -223,7 +223,7 @@ class CommandTests(unittest.TestCase):
         self.assertEqual(self.acknowledge(command_id).status_code, 200)
         self.assertEqual(self.connection.execute(text('SELECT completed_at FROM rentals')).scalar_one(), completed)
         with Session(bind=self.connection, join_transaction_mode='create_savepoint') as db:
-            from lockers import read_lockers
+            from services.lockers import read_lockers
             self.assertEqual(read_lockers(db, 1)[0]['status'], 'available')
         self.assertEqual(self.open().status_code, 409)
         page = self.client.get(f'/rentals/{self.rental_id}').text

@@ -6,7 +6,7 @@ if (logoutButton) {
         message.textContent = '';
         try {
             const response = await fetch('/api/logout', {
-                method: 'POST', headers: {'X-PayBox-Request': '1'},
+                method: 'POST', headers: {'X-UniStow-Request': '1'},
             });
             if (!response.ok) throw new Error('Sign-out failed');
             window.location.reload();

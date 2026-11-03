@@ -37,7 +37,7 @@ class RentalAccessTests(unittest.TestCase):
 
     def test_server_uses_signed_in_user(self):
         body = {'locker_id': 4, 'days': 2, 'overdue_consent': True, 'user_id': 999}
-        headers = {'X-PayBox-Request': '1'}
+        headers = {'X-UniStow-Request': '1'}
         self.assertEqual(self.client.post('/api/rentals', json=body, headers=headers).status_code, 401)
         self.login()
         self.assertEqual(self.client.post('/api/rentals', json=body).status_code, 403)

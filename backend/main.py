@@ -7,7 +7,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from routes import api, device, pages
 
 app = FastAPI(
-    title="PayBox", docs_url=None, redoc_url=None, openapi_url=None
+    title="UniStow", docs_url=None, redoc_url=None, openapi_url=None
 )
 app.mount("/static", StaticFiles(directory=pages.frontend_directory / "static"), name="static")
 
@@ -39,5 +39,5 @@ async def database_error(request: Request, exception: SQLAlchemyError):
     if request.url.path.startswith("/api/"):
         return JSONResponse(status_code=503, content={"detail": message})
     return pages.templates.TemplateResponse(
-        request, "error.html", {"title": "PayBox", "message": message}, status_code=503
+        request, "error.html", {"title": "UniStow", "message": message}, status_code=503
     )

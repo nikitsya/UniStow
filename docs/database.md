@@ -1,17 +1,17 @@
 # Database
 
-PayBox uses PostgreSQL 16. [schema.sql](../backend/database/schema.sql) defines the current tables.
+UniStow uses PostgreSQL 16. [schema.sql](../backend/database/schema.sql) defines the current tables.
 
-| Table | Purpose |
-|-------|---------|
-| `users` | Normalised, unique email addresses and Argon2 password hashes |
-| `sessions` | Hashed session tokens, user references and expiry times |
-| `lockers` | Number, size, daily price, enabled flag, door state and controller readiness |
-| `rentals` | Owner, locker, booked dates, price, status and accepted overdue terms |
-| `payments` | One Stripe checkout request per rental, fixed parameters, retry key and payment status |
-| `payment_events` | Processed Stripe event IDs to prevent duplicate handling |
-| `locker_commands` | Opening/collection commands, controller ID, expiry, dispatch and completion times |
-| `overdue_charges` | Daily charge records; the table exists but automatic billing is not implemented |
+| Table             | Purpose                                                                                |
+|-------------------|----------------------------------------------------------------------------------------|
+| `users`           | Normalised, unique email addresses and Argon2 password hashes                          |
+| `sessions`        | Hashed session tokens, user references and expiry times                                |
+| `lockers`         | Number, size, daily price, enabled flag, door state and controller readiness           |
+| `rentals`         | Owner, locker, booked dates, price, status and accepted overdue terms                  |
+| `payments`        | One Stripe checkout request per rental, fixed parameters, retry key and payment status |
+| `payment_events`  | Processed Stripe event IDs to prevent duplicate handling                               |
+| `locker_commands` | Opening/collection commands, controller ID, expiry, dispatch and completion times      |
+| `overdue_charges` | Daily charge records; the table exists but automatic billing is not implemented        |
 
 A user and a locker can each have many past rentals. A unique index permits only one
 unfinished (`pending`, `active` or `overdue`) rental per locker. Foreign keys preserve
@@ -62,7 +62,7 @@ Docker runs `schema.sql` only when initialising an empty database volume. It cre
 tables without inserting lockers. For a new database, run this from the project folder:
 
 ```sh
-docker compose exec -T db psql -U paybox -d paybox -v ON_ERROR_STOP=1 < backend/database/migrations/001_add_lockers.sql
+docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1' < backend/database/migrations/001_add_lockers.sql
 ```
 
 This adds nine lockers with only Locker 4 enabled. Repeating it leaves existing records

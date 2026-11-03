@@ -43,7 +43,7 @@ if (form) {
         try {
             const response = await fetch(form.action, {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json', 'X-PayBox-Request': '1'},
+                headers: {'Content-Type': 'application/json', 'X-UniStow-Request': '1'},
                 body: JSON.stringify({
                     locker_id: Number(form.dataset.lockerId),
                     days: Number(daysInput.value), overdue_consent: consent.checked

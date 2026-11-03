@@ -45,12 +45,12 @@ def checkout_parameters(rental, base_url: str, now):
         raise HTTPException(status_code=409, detail="Too close to the rental deadline to start checkout.")
     return {
         "mode": "payment", "payment_method_types": ["card"],
-        "branding_settings": {"display_name": "PayBox"},
+        "branding_settings": {"display_name": "UniStow"},
         "client_reference_id": str(rental["id"]),
         "metadata": {"rental_id": str(rental["id"])},
         "line_items": [{"price_data": {
             "currency": "eur", "unit_amount": rental["total_price_cents"],
-            "product_data": {"name": f"PayBox Locker {rental['number']} — {rental['prepaid_days']} day(s)"},
+            "product_data": {"name": f"UniStow Locker {rental['number']} — {rental['prepaid_days']} day(s)"},
         }, "quantity": 1}],
         "success_url": f"{base_url}/rentals/{rental['id']}?returned=1",
         "cancel_url": f"{base_url}/rentals/{rental['id']}",

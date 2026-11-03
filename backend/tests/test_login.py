@@ -31,7 +31,7 @@ class LoginTests(unittest.TestCase):
     def login(self, email="PERSON@example.com", password=None, headers=None):
         return self.client.post('/api/login', json={
             'email': email, 'password': self.password if password is None else password,
-        }, headers={'X-PayBox-Request': '1'} if headers is None else headers)
+        }, headers={'X-UniStow-Request': '1'} if headers is None else headers)
 
     def test_session_and_logout(self):
         self.assertEqual(self.client.get('/api/me').status_code, 401)
@@ -40,14 +40,14 @@ class LoginTests(unittest.TestCase):
         self.assertEqual(response.json(), {'id': 1, 'email': 'person@example.com'})
         self.assertIn('HttpOnly', response.headers['set-cookie'])
         self.assertIn('SameSite=lax', response.headers['set-cookie'])
-        token = self.client.cookies['paybox_session']
+        token = self.client.cookies['unistow_session']
         with self.engine.connect() as connection:
             stored = connection.execute(text('SELECT token_hash FROM sessions')).scalar_one()
         self.assertNotEqual(stored, token)
         self.assertEqual(self.client.get('/api/me').status_code, 200)
         self.assertEqual(self.client.get('/api/me').headers['cache-control'], 'no-store')
-        self.assertEqual(self.client.post('/api/logout', headers={'X-PayBox-Request': '1'}).status_code, 204)
-        self.client.cookies.set('paybox_session', token)
+        self.assertEqual(self.client.post('/api/logout', headers={'X-UniStow-Request': '1'}).status_code, 204)
+        self.client.cookies.set('unistow_session', token)
         self.assertEqual(self.client.get('/api/me').status_code, 401)
 
     def test_wrong_credentials(self):
@@ -63,16 +63,16 @@ class LoginTests(unittest.TestCase):
             connection.execute(text("UPDATE sessions SET expires_at = '2000-01-01'"))
         self.assertEqual(self.client.get('/api/me').status_code, 401)
         self.client.cookies.clear()
-        self.client.cookies.set('paybox_session', 'invented-token')
+        self.client.cookies.set('unistow_session', 'invented-token')
         self.assertEqual(self.client.get('/api/me').status_code, 401)
 
     def test_login_rotates_session(self):
         self.login()
-        old = self.client.cookies['paybox_session']
+        old = self.client.cookies['unistow_session']
         self.login()
-        self.assertNotEqual(old, self.client.cookies['paybox_session'])
+        self.assertNotEqual(old, self.client.cookies['unistow_session'])
         self.client.cookies.clear()
-        self.client.cookies.set('paybox_session', old)
+        self.client.cookies.set('unistow_session', old)
         self.assertEqual(self.client.get('/api/me').status_code, 401)
 
     def test_browser_header_required(self):

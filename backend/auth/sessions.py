@@ -6,13 +6,13 @@ from fastapi import HTTPException, Request, Response
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-COOKIE_NAME = "paybox_session"
+COOKIE_NAME = "unistow_session"
 SESSION_SECONDS = 24 * 60 * 60
 
 
 def check_browser_request(request: Request):
     # Cross-origin forms cannot send this header; CORS is not enabled.
-    if request.headers.get("X-PayBox-Request") != "1":
+    if request.headers.get("X-UniStow-Request") != "1":
         raise HTTPException(status_code=403, detail="Invalid request.")
 
 

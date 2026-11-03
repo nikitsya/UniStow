@@ -99,6 +99,6 @@ def finish_rental(rental_id: int, request: Request, db: Annotated[Session, Depen
     user = current_user(db, request)
     if user is None:
         raise HTTPException(401, "Please sign in.")
-    if request.headers.get("X-PayBox-Collect-All") != "yes":
+    if request.headers.get("X-UniStow-Collect-All") != "yes":
         raise HTTPException(422, "Confirm that you will collect all your belongings.")
     return request_open(db, rental_id, user["id"], action="finish")

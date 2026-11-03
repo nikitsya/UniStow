@@ -1,6 +1,4 @@
 """Run the paid-rental controller on the Raspberry Pi, replacing report_door.py."""
-from pathlib import Path
-
 import json
 from queue import Empty, Queue
 from threading import Event, Lock, Thread
@@ -9,6 +7,8 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 from uuid import uuid4
+
+from pathlib import Path
 
 
 class LockerCycle:
@@ -109,7 +109,7 @@ def communicate(server, key, shared, lock, commands, collections, finishing, sto
                 finishing.clear()
                 print('Rental completed. Refresh My rental.', flush=True)
             post('/api/device/heartbeat', report)
-            message = f"Connected to PayBox. Door: {report['door_state']}."
+            message = f"Connected to UniStow. Door: {report['door_state']}."
             if report['ready']:
                 started = monotonic()
                 result = post('/api/device/commands/next', {'controller_id': controller_id, 'supports_finish': True})
@@ -123,9 +123,9 @@ def communicate(server, key, shared, lock, commands, collections, finishing, sto
                             shared['ready'] = False
                         commands.put((command['id'], deadline, command['action']))
         except HTTPError as error:
-            message = f'PayBox returned HTTP {error.code}. Check the server and device key.'
+            message = f'UniStow returned HTTP {error.code}. Check the server and device key.'
         except (URLError, TimeoutError, OSError, ValueError, KeyError, TypeError):
-            message = 'PayBox is unreachable or returned an invalid response. Local closing remains active.'
+            message = 'UniStow is unreachable or returned an invalid response. Local closing remains active.'
         if message != previous:
             print(message, flush=True)
             previous = message

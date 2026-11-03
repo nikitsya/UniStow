@@ -1,6 +1,6 @@
 # Raspberry Pi hardware
 
-## Report the door state to PayBox
+## Report the door state to UniStow
 
 This first connection step reports the sensor only; it does not unlock the locker.
 These instructions assume the current database schema and locker records are installed;
@@ -19,10 +19,11 @@ see [database setup](../docs/database.md#initial-setup).
    browser checkout return address; it is separate from the Pi server address.
 3. Copy `report_door.py` and `device_config.example.json` to the same folder on the Pi.
    Rename the JSON file to `device_config.json`. Set `server_url` to the Mac's address
-   and `device_key` to `PAYBOX_DEVICE_KEY` from the Mac project's `.env`.
+   and `device_key` to `UNISTOW_DEVICE_KEY` from the Mac project's `.env`.
    Copy only that key, not database or Stripe secrets. Do not commit the JSON file.
 4. Stop other GPIO tests, then run `report_door.py` in Thonny. Expect
-   `Connected to PayBox. Door: closed.` Open and close the door; the paid rental page updates its door state automatically.
+   `Connected to UniStow. Door: closed.` Open and close the door; the paid rental page updates its door state
+   automatically.
 
 Reports arrive every two seconds. After 15 seconds without a report, the device is
 treated as offline, the door reads `Unknown` and opening is unavailable. Door closed does not prove the latch is locked.
@@ -35,7 +36,7 @@ Stop the reporting script before running the locker test.
 1. Start Docker PostgreSQL and the backend on the Mac using the [README](../README.md).
 2. Stop `report_door.py` and any hardware tests on the Pi. Copy `run_locker.py`
    beside the existing `device_config.json`, then run it in Thonny with the door closed.
-3. Sign in to PayBox as the owner of an active, paid rental and press **Open locker**.
+3. Sign in to UniStow as the owner of an active, paid rental and press **Open locker**.
    Open the door after the latch moves, then close it. After one second continuously
    closed, the controller commands the latch closed.
 
@@ -47,7 +48,7 @@ for assistance without completing the rental. An unexpected open door outside
 that cycle does not automatically unlock the latch.
 For an active paid rental, **Open locker** lets the owner retract the latch
 while the door is open and the controller is ready. **Finish rental** still requires
-a closed door. Replace the Pi's `run_locker.py` and restart `paybox-locker` to use this behaviour.
+a closed door. Replace the Pi's `run_locker.py` and restart `unistow-locker` to use this behaviour.
 Local closing continues if the Mac connection drops. Opening requests expire after
 10 seconds and are dispatched only once. Wait for the button to become available
 before requesting another opening.
@@ -106,28 +107,32 @@ needs checking by the operator. Overdue access still requires operator assistanc
 This service uses the Pi user `nikitsya` and expects `run_locker.py` and
 `device_config.json` in `/home/nikitsya/Desktop`. Check both files exist first.
 Stop all GPIO scripts in Thonny and close the door before starting the service.
-Copy `paybox-locker.service` to the Pi Desktop, then run in the Pi terminal:
+Copy `unistow-locker.service` to the Pi Desktop, then run in the Pi terminal:
+
+When upgrading an existing installation, stop and disable the previously installed
+locker controller service before enabling this one. Only one controller service
+must run at a time. Keep the existing device key in `device_config.json`.
 
 ```bash
-sudo install -m 644 ~/Desktop/paybox-locker.service /etc/systemd/system/paybox-locker.service
+sudo install -m 644 ~/Desktop/unistow-locker.service /etc/systemd/system/unistow-locker.service
 sudo systemctl daemon-reload
-sudo systemctl enable --now paybox-locker.service
-systemctl is-active paybox-locker.service
+sudo systemctl enable --now unistow-locker.service
+systemctl is-active unistow-locker.service
 ```
 
 Expected: `active`. Check messages with:
 
 ```bash
-journalctl -u paybox-locker.service -b --no-pager -n 20
+journalctl -u unistow-locker.service -b --no-pager -n 20
 ```
 
-After reboot, check the service again and test PayBox. The Mac backend must still
+After reboot, check the service again and test UniStow. The Mac backend must still
 be running, with PostgreSQL available and the Mac awake. Screen sharing does not
 need to be open. The controller retries network connections and systemd restarts it if
 it exits. Starting it prepares the closed latch; it does not request an opening.
 
 Do not run a second controller or GPIO test in Thonny while the service is active.
-Before a manual test, use `sudo systemctl stop paybox-locker.service`.
-After stopping the test, use `sudo systemctl start paybox-locker.service`.
-After updating the script, use `sudo systemctl restart paybox-locker.service`.
-To remove automatic startup, use `sudo systemctl disable --now paybox-locker.service`.
+Before a manual test, use `sudo systemctl stop unistow-locker.service`.
+After stopping the test, use `sudo systemctl start unistow-locker.service`.
+After updating the script, use `sudo systemctl restart unistow-locker.service`.
+To remove automatic startup, use `sudo systemctl disable --now unistow-locker.service`.

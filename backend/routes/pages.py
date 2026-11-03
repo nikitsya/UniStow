@@ -36,7 +36,7 @@ def current_rentals(db, user):
 def home(request: Request, db: Annotated[Session, Depends(get_db)]):
     user = current_user(db, request)
     return templates.TemplateResponse(
-        request, "home.html", {"title": "PayBox", "lockers": read_lockers(db), "user": user,
+        request, "home.html", {"title": "UniStow", "lockers": read_lockers(db), "user": user,
                                "own_rentals": {r["locker_id"]: r for r in current_rentals(db, user)}}
     )
 
@@ -48,7 +48,7 @@ def my_rentals(request: Request, db: Annotated[Session, Depends(get_db)]):
         return RedirectResponse("/login?my_rentals=true", status_code=303)
     reservations = current_rentals(db, user)
     return templates.TemplateResponse(
-        request, "my_rentals.html", {"title": "My rentals | PayBox", "user": user,
+        request, "my_rentals.html", {"title": "My rentals | UniStow", "user": user,
                                      "reservations": reservations}
     )
 
@@ -56,7 +56,7 @@ def my_rentals(request: Request, db: Annotated[Session, Depends(get_db)]):
 @router.get("/register")
 def registration(request: Request):
     return templates.TemplateResponse(
-        request, "register.html", {"title": "Create account | PayBox"}
+        request, "register.html", {"title": "Create account | UniStow"}
     )
 
 
@@ -67,7 +67,7 @@ def sign_in(request: Request, locker_id: int | None = None, rental_id: int | Non
                    f"/lockers/{locker_id}/rent" if locker_id is not None else
                    "/rentals" if my_rentals else "/")
     return templates.TemplateResponse(
-        request, "login.html", {"title": "Sign in | PayBox", "destination": destination}
+        request, "login.html", {"title": "Sign in | UniStow", "destination": destination}
     )
 
 
@@ -83,7 +83,7 @@ def reservation(request: Request, rental_id: int, db: Annotated[Session, Depends
             datetime.now(timezone.utc) - last_seen
     ).total_seconds() < 15
     return templates.TemplateResponse(request, "reservation.html", {
-        "title": "My rental | PayBox", "rental": rental,
+        "title": "My rental | UniStow", "rental": rental,
         "ends_at": ends_at.strftime("%d %B %Y at %H:%M"),
         "device_online": device_online,
         "can_open": (rental["number"] == 4 and rental["status"] == "active"
@@ -105,5 +105,5 @@ def rental(request: Request, locker_id: int, db: Annotated[Session, Depends(get_
     if locker["status"] != "available":
         raise HTTPException(status_code=409, detail="This locker is unavailable")
     return templates.TemplateResponse(
-        request, "rental.html", {"title": f"{locker['name']} | PayBox", "locker": locker}
+        request, "rental.html", {"title": f"{locker['name']} | UniStow", "locker": locker}
     )

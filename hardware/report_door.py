@@ -1,12 +1,12 @@
-from pathlib import Path
-
 import json
-from gpiozero import Button
-from gpiozero.pins.pigpio import PiGPIOFactory
 from time import sleep
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
+
+from gpiozero import Button
+from gpiozero.pins.pigpio import PiGPIOFactory
+from pathlib import Path
 
 
 class NoRedirects(HTTPRedirectHandler):
@@ -48,12 +48,12 @@ def main():
                 try:
                     with opener.open(request, timeout=5) as response:
                         response.read()
-                    message = f"Connected to PayBox. Door: {state}."
+                    message = f"Connected to UniStow. Door: {state}."
                 except HTTPError as error:
-                    print(f"PayBox returned HTTP {error.code}. Check the server and device key.")
+                    print(f"UniStow returned HTTP {error.code}. Check the server and device key.")
                     return
                 except (URLError, TimeoutError, OSError):
-                    message = "PayBox is unreachable. Retrying; no servo movement commanded."
+                    message = "UniStow is unreachable. Retrying; no servo movement commanded."
                 if message != previous:
                     print(message, flush=True)
                     previous = message

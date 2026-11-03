@@ -1,6 +1,6 @@
-# PayBox
+# UniStow
 
-PayBox is a mobile-friendly campus locker prototype. Users register, reserve a locker,
+UniStow is a mobile-friendly campus locker prototype. Users register, reserve a locker,
 pay through Stripe in test mode and open it from their account. A Raspberry Pi 400
 controls the servo latch and reports the magnetic door sensor.
 
@@ -55,6 +55,13 @@ Prerequisites: Docker Desktop, Python 3.11 or later, and `uv`.
 For first-time setup, copy `.env.example` to `.env` and fill in the required values.
 Keep `.env` out of Git; do not overwrite an existing configuration.
 
+Existing installations can retain their database and Docker volume by keeping
+`POSTGRES_USER`, `POSTGRES_DB` and `COMPOSE_PROJECT_NAME` set to their original values
+in `.env`. New installations default to `unistow`. The device key variable is now
+`UNISTOW_DEVICE_KEY`; retain its existing secret value when updating the name.
+After updating, restart the backend and refresh browser pages. Users will need to
+sign in again because the session cookie name has changed.
+
 From the project folder, with Docker Desktop running:
 
 ```sh
@@ -102,7 +109,7 @@ uv run python -m unittest discover -s tests -v
 ```
 
 To include database tests, start PostgreSQL and prefix the command with
-`PAYBOX_TEST_POSTGRES=1`. These tests use isolated database schemas.
+`UNISTOW_TEST_POSTGRES=1`. These tests use isolated database schemas.
 
 ## Project files and remaining work
 
@@ -112,7 +119,8 @@ To include database tests, start PostgreSQL and prefix the command with
 - `frontend/` — Templates, CSS and JavaScript served by FastAPI.
 - `hardware/` — Pi scripts, configuration example and systemd services.
 - `android/` — Earlier Android prototype.
-- [Database](docs/database.md), [implementation plan](docs/implementation-plan.md) and [AI assistance log](AI_Chat_Log.md).
+- [Database](docs/database.md), [implementation plan](docs/implementation-plan.md)
+  and [AI assistance log](docs/AI_Chat_Log.md).
 
 Automatic EUR 1 daily overdue charging, payment-method setup and scheduled overdue status
 updates are not implemented. Overdue access currently needs operator assistance; contact

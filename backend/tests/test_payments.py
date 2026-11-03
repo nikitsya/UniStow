@@ -21,7 +21,7 @@ class PaymentSettingsTests(unittest.TestCase):
         rental = {'id': 7, 'number': 4, 'prepaid_days': 2,
                   'total_price_cents': 200, 'paid_until': now + timedelta(days=1)}
         params = checkout_parameters(rental, 'http://127.0.0.1:8000', now)
-        self.assertEqual(params['branding_settings']['display_name'], 'PayBox')
+        self.assertEqual(params['branding_settings']['display_name'], 'UniStow')
         self.assertEqual(params['line_items'][0]['price_data']['unit_amount'], 200)
         self.assertEqual(params['line_items'][0]['price_data']['currency'], 'eur')
         self.assertEqual(params['payment_method_types'], ['card'])
@@ -40,7 +40,7 @@ class CheckoutAccessTests(unittest.TestCase):
 
     def test_checkout_requires_session_and_browser_header(self):
         path = '/api/rentals/7/checkout'
-        headers = {'X-PayBox-Request': '1'}
+        headers = {'X-UniStow-Request': '1'}
         self.assertEqual(self.client.post(path, headers=headers).status_code, 401)
         self.login()
         self.assertEqual(self.client.post(path).status_code, 403)

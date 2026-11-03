@@ -38,7 +38,7 @@ class WebhookSignatureTests(unittest.TestCase):
                                          headers={'stripe-signature': signed(live)}).status_code, 400)
 
 
-@unittest.skipUnless(os.environ.get('PAYBOX_TEST_POSTGRES') == '1',
+@unittest.skipUnless(os.environ.get('UNISTOW_TEST_POSTGRES') == '1',
                      'Requires local PostgreSQL; all fixture rows are rolled back')
 class WebhookDatabaseTests(unittest.TestCase):
     def setUp(self):
@@ -115,7 +115,7 @@ class WebhookDatabaseTests(unittest.TestCase):
         self.checkout.update(status='expired', payment_status='unpaid', payment_intent=None)
         self.assertEqual(self.send_event('expired', 'checkout.session.expired').status_code, 200)
         self.assertEqual(self.status(), 'cancelled')
-        from lockers import read_lockers
+        from services.lockers import read_lockers
         with Session(bind=self.connection, join_transaction_mode='create_savepoint') as db:
             self.assertEqual(read_lockers(db, self.locker)[0]['status'], 'available')
 

@@ -13,7 +13,7 @@ loginForm.addEventListener('submit', async (event) => {
     try {
         const response = await fetch(loginForm.action, {
             method: 'POST',
-            headers: {'Content-Type': 'application/json', 'X-PayBox-Request': '1'},
+            headers: {'Content-Type': 'application/json', 'X-UniStow-Request': '1'},
             body: JSON.stringify({
                 email: loginForm.elements.email.value.trim(),
                 password: loginForm.elements.password.value,

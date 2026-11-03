@@ -1,11 +1,11 @@
-name: paybox
+name: unistow
 
 services:
   db:
     image: postgres:16
     environment:
-      POSTGRES_DB: paybox
-      POSTGRES_USER: paybox
+      POSTGRES_DB: ${POSTGRES_DB:-unistow}
+      POSTGRES_USER: ${POSTGRES_USER:-unistow}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
     ports:
       - "127.0.0.1:${POSTGRES_PORT:-5433}:5432"
@@ -13,7 +13,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./backend/database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -h 127.0.0.1 -U paybox -d paybox" ]
+      test: [ "CMD-SHELL", "pg_isready -h 127.0.0.1 -U $$POSTGRES_USER -d $$POSTGRES_DB" ]
       interval: 3s
       timeout: 3s
       retries: 10

@@ -24,7 +24,7 @@ class DeviceTests(unittest.TestCase):
                                     )
                                     """))
             connection.execute(text('INSERT INTO lockers (number) VALUES (4), (5)'))
-        key = patch.dict('os.environ', {'PAYBOX_DEVICE_KEY': 'test-device-key'})
+        key = patch.dict('os.environ', {'UNISTOW_DEVICE_KEY': 'test-device-key'})
         key.start()
         self.addCleanup(key.stop)
 
@@ -57,7 +57,7 @@ class DeviceTests(unittest.TestCase):
     def test_unconfigured_key_and_invalid_reports(self):
         self.assertEqual(self.report('locked').status_code, 422)
         self.assertEqual(self.report(locker_number=5).status_code, 422)
-        with patch.dict('os.environ', {'PAYBOX_DEVICE_KEY': ''}):
+        with patch.dict('os.environ', {'UNISTOW_DEVICE_KEY': ''}):
             self.assertEqual(self.report(key='').status_code, 503)
 
     def test_missing_locker_is_not_created(self):

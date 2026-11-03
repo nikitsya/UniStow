@@ -1,5 +1,5 @@
 [Unit]
-Description=PayBox locker controller
+Description=UniStow locker controller
 Wants=pigpiod.service network-online.target
 After=pigpiod.service network-online.target
 StartLimitIntervalSec=0
