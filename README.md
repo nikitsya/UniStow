@@ -24,13 +24,13 @@ does not prove that the latch is locked.
 
 ## Current stack
 
-| Part | Technology |
-|------|------------|
-| Web app | Python, FastAPI, Jinja2, HTML, CSS and JavaScript |
-| Database | PostgreSQL 16 in Docker |
-| Payments | Stripe sandbox Checkout and verified webhooks |
-| Hardware | Raspberry Pi 400, SG92R servo and magnetic contact sensor |
-| Device connection | HTTP heartbeat and command polling on the local network |
+| Part              | Technology                                                |
+|-------------------|-----------------------------------------------------------|
+| Web app           | Python, FastAPI, Jinja2, HTML, CSS and JavaScript         |
+| Database          | PostgreSQL 16 in Docker                                   |
+| Payments          | Stripe sandbox Checkout and verified webhooks             |
+| Hardware          | Raspberry Pi 400, SG92R servo and magnetic contact sensor |
+| Device connection | HTTP heartbeat and command polling on the local network   |
 
 ```mermaid
 flowchart LR

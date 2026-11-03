@@ -1,6 +1,7 @@
+from time import monotonic, sleep
+
 from gpiozero import Button, Servo
 from gpiozero.pins.pigpio import PiGPIOFactory
-from time import monotonic, sleep
 
 # Pulse widths define the latch positions; they are not measured angles.
 CLOSED_PULSE_US = 1500

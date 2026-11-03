@@ -96,7 +96,8 @@ See the [pigpiod options](https://github.com/joan2937/pigpio/blob/master/pigpiod
 Choose **Finish rental** in My rental and confirm that you will collect everything.
 Open the door, remove your belongings and close it. The Pi commands the latch closed
 and checks the door for another two seconds before sending a completion acknowledgement.
-The rental status updates automatically to `completed`; Locker 4 becomes available. **Open locker** alone does not finish the rental.
+The rental status updates automatically to `completed`; Locker 4 becomes available. **Open locker** alone does not
+finish the rental.
 
 If the network drops, keep the script running: it retries the acknowledgement.
 If the script or Pi stops before acknowledgement, the rental stays occupied and
