@@ -1,0 +1,13 @@
+.git
+.idea
+**/.venv
+**/__pycache__
+**/.pytest_cache
+.env
+.env.*
+local-docs
+docs
+hardware
+**/*.pem
+**/*.key
+**/device_config.json

@@ -9,3 +9,6 @@ __pycache__/
 *.egg-info/
 backend/requests.http
 hardware/device_config.json
+
+.env.production
+*.dump

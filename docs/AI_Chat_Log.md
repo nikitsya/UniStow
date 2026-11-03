@@ -21,3 +21,4 @@
 | 27 October 2026 | OpenAI Codex helped align the documentation with the working prototype.                                                                                                                  |
 | 27 October 2026 | OpenAI Codex helped protect account pages and registration requests.                                                                                                                     |
 | 3 November 2026 | OpenAI Codex helped rename the project to UniStow across the interface, code, configuration and documentation, updated the presentation and image branding, and ran the automated tests. |
+| 3 November 2026 | OpenAI Codex helped prepare a dedicated AWS deployment with Docker, PostgreSQL, HTTPS and deployment instructions.                                                                       |
