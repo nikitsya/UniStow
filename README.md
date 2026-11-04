@@ -118,7 +118,6 @@ To include database tests, start PostgreSQL and prefix the command with
 - `backend/database.py` — Connection; `backend/database/` — SQL schema and migrations.
 - `frontend/` — Templates, CSS and JavaScript served by FastAPI.
 - `hardware/` — Pi scripts, configuration example and systemd services.
-- `android/` — Earlier Android prototype.
 - [Database](docs/database.md), [implementation plan](docs/implementation-plan.md)
   and [AI assistance log](docs/AI_Chat_Log.md).
 
