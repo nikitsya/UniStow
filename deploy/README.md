@@ -6,6 +6,17 @@ network. Caddy obtains and renews HTTPS certificates automatically.
 
 ## Server and DNS
 
+The initial deployment on 4 November 2026 uses instance `i-0455c51903253118b`
+in `eu-north-1`, Elastic IP `13.61.161.1`, and `/opt/unistow` as the application
+directory. The public URL is https://unistow.app; `www` redirects to this address.
+Both DNS records use DNS-only mode. Caddy has obtained Let's Encrypt certificates.
+
+The deployment has a fresh database. Registration, sign-in, Secure/HttpOnly session
+cookies, public pages, the locker API and HTTPS redirects were verified. The
+temporary verification account was removed afterwards. Stripe credentials are
+not yet configured, and the physical controller has not been switched to this
+server. A new device key is stored in the server's private `.env.production` file.
+
 Use Ubuntu 24.04 LTS, at least 2 GiB RAM and 20 GiB storage. Allow TCP ports 80 and
 443 publicly and restrict SSH (22) to your current IP. Do not expose 5432 or 8000.
 Keep the instance metadata service on IMDSv2. Install Docker Engine and the Compose
