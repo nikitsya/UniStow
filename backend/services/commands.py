@@ -39,19 +39,27 @@ def request_open(db, rental_id, user_id, action="open"):
         raise HTTPException(409, 'The locker controller is offline or busy. Refresh and try again.')
     if locker['door_state'] not in ('open', 'closed') or (action == 'finish' and locker['door_state'] != 'closed'):
         raise HTTPException(409, 'The door is already open or its state is unknown.')
+    command_id, _ = record_command(db, locker, rental, now, locker['controller_id'], action)
+    return {'status': 'queued', 'command_id': command_id}
+
+
+def record_command(db, locker, rental, now, controller_id, action, *, dispatched=False):
+    # The caller holds the locker row lock until this transaction commits.
     recent = db.execute(text('SELECT 1 FROM locker_commands WHERE locker_id=:id AND expires_at>:now LIMIT 1'),
                         {'id': locker['id'], 'now': now}).first()
     if recent:
         raise HTTPException(409, 'An opening request was already sent. Wait before trying again.')
     command_id = str(uuid4())
+    expiry = min(now + timedelta(seconds=10), rental['paid_until'])
     db.execute(text('''
-                    INSERT INTO locker_commands(id, rental_id, locker_id, controller_id, created_at, expires_at, action)
-                    VALUES (:id, :rental, :locker, :controller, :now, :expires, :action)
-                    '''), {'id': command_id, 'rental': rental_id, 'locker': locker['id'],
-                           'controller': locker['controller_id'], 'now': now, 'action': action,
-                           'expires': min(now + timedelta(seconds=10), rental['paid_until'])})
+                    INSERT INTO locker_commands(id, rental_id, locker_id, controller_id, created_at, expires_at, action,
+                                                dispatched_at)
+                    VALUES (:id, :rental, :locker, :controller, :now, :expires, :action, :dispatched)
+                    '''), {'id': command_id, 'rental': rental['id'], 'locker': locker['id'],
+                           'controller': controller_id, 'now': now, 'action': action,
+                           'expires': expiry, 'dispatched': now if dispatched else None})
     db.commit()
-    return {'status': 'queued', 'command_id': command_id}
+    return command_id, expiry.timestamp()
 
 
 def take_command(db, controller_id, supports_finish=False):

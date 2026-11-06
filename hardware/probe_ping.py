@@ -3,7 +3,8 @@ from pathlib import Path
 
 import json
 from http.client import HTTPException
-from time import time
+from threading import Event
+from time import monotonic, time
 from urllib.error import HTTPError
 from urllib.parse import quote, urlencode
 from urllib.request import build_opener
@@ -39,11 +40,13 @@ def subscribe_batch(config, opener, cursor):
         return json.load(response)
 
 
-def open_test_ack(event, seen, now):
+def validated_command(event, seen, now, kind, controller_id=None):
     data = event.get('d')
     if event.get('c') != CHANNEL or event.get('i') != 'unistow-mac-reader':
         return None
-    if not isinstance(data, dict) or data.get('type') != 'test_open':
+    if not isinstance(data, dict) or data.get('type') != kind:
+        return None
+    if kind == 'open' and (not controller_id or data.get('controller_id') != controller_id):
         return None
     command_id = data.get('id')
     expires = data.get('expires_at')
@@ -62,10 +65,30 @@ def open_test_ack(event, seen, now):
     if command_id in seen:
         return None
     seen[command_id] = expires
-    return {'type': 'test_open_ack', 'id': command_id}
+    return data
 
 
-def listen_open_tests(stop):
+def open_test_ack(event, seen, now):
+    command = validated_command(event, seen, now, 'test_open')
+    if command:
+        return {'type': 'test_open_ack', 'id': command['id']}
+    return None
+
+
+def handle_open(event, seen, controller_id, commands):
+    now = time()
+    started = monotonic()
+    command = validated_command(event, seen, now, 'open', controller_id)
+    if command:
+        moved = Event()
+        ttl = command['expires_at'] - now
+        commands.put((command['id'], started + ttl, 'open', moved))
+        if moved.wait(ttl):
+            return {'type': 'open_ack', 'id': command['id']}
+    return None
+
+
+def listen_commands(stop, controller_id=None, commands=None):
     opener = build_opener(NoRedirects())
     cursor = {'tt': '0'}
     seen = {}
@@ -76,14 +99,17 @@ def listen_open_tests(stop):
             batch = subscribe_batch(config, opener, cursor)
             cursor.update(tt=batch['t']['t'], tr=batch['t']['r'])
             for event in batch['m']:
-                ack = open_test_ack(event, seen, time())
+                if controller_id:
+                    ack = handle_open(event, seen, controller_id, commands)
+                else:
+                    ack = open_test_ack(event, seen, time())
                 if ack and not stop.is_set():
                     with opener.open(event_request(config, ack), timeout=5) as response:
                         if json.load(response)[:2] != [1, 'Sent']:
                             raise ValueError('Acknowledgement rejected.')
-                    print('Acknowledged open test', ack['id'], flush=True)
+                    print('Acknowledged', ack['type'], ack['id'], flush=True)
         except (OSError, HTTPException, ValueError, TypeError, KeyError):
-            print('Open test subscription unavailable. Check the token and network.', flush=True)
+            print('Command subscription unavailable. Check the token and network.', flush=True)
             stop.wait(5)
 
 

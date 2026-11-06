@@ -8,7 +8,7 @@ from auth.sessions import check_browser_request, current_user, end_session, star
 from auth.users import authenticate_user, create_user
 from database import get_db
 from schemas import Login, Registration, RentalRequest
-from services.commands import authorised_locker, request_open
+from services.commands import authorised_locker, record_command, request_open
 from services.lockers import read_lockers
 from services.payment_confirmation import process_event, reconcile_rental, verify_event
 from services.payments import create_checkout
@@ -108,6 +108,15 @@ def open_locker(rental_id: int, request: Request, db: Annotated[Session, Depends
         raise HTTPException(401, "Please sign in.")
     if getattr(request.app.state, "open_test_client", None) is not None:
         raise HTTPException(409, "Physical commands are disabled during the delivery test.")
+    client = getattr(request.app.state, "open_client", None)
+    if client is not None:
+        locker, rental, now = authorised_locker(db, rental_id, user["id"])
+        events = request.app.state.door_events
+        controller = events.ready_controller()
+        if not controller:
+            raise HTTPException(409, "The locker controller is offline or busy.")
+        command_id, expiry = record_command(db, locker, rental, now, controller, "open", dispatched=True)
+        return events.open(client, command_id, expiry, controller)
     return request_open(db, rental_id, user["id"])
 
 

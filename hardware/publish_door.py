@@ -10,7 +10,7 @@ from urllib.request import Request, build_opener
 
 
 def publish_request(config, state):
-    return event_request(config, {'door_state': state})
+    return event_request(config, state if isinstance(state, dict) else {'door_state': state})
 
 
 def event_request(config, payload):
@@ -62,14 +62,16 @@ def publish(config_path, state, opener):
         raise ValueError('PubNub did not acknowledge the reading.')
 
 
-def report_changes(shared, lock, stop, opener):
+def report_changes(shared, lock, stop, opener, controller_id=None):
     config_path = Path(__file__).with_name('device_config.json')
     published = None
     next_report = 0
     previous_error = None
     while not stop.is_set():
         with lock:
-            state = shared['door_state']
+            state = {'door_state': shared['door_state']}
+            if controller_id:
+                state.update(controller_id=controller_id, ready=shared['ready'])
         if state != published or monotonic() >= next_report:
             try:
                 publish(config_path, state, opener)

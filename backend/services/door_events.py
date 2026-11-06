@@ -4,7 +4,7 @@ import os
 from contextlib import asynccontextmanager
 from threading import Event, Lock
 from time import monotonic, time
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from fastapi import HTTPException
 from pubnub.callbacks import SubscribeCallback
@@ -31,6 +31,8 @@ class DoorEvents(SubscribeCallback):
         self.pending_tests = {}
         self.timetoken = 0
         self.state = None
+        self.controller = None
+        self.pending_opens = {}
 
     def status(self, client, status):
         if status.category == PNStatusCategory.PNConnectedCategory:
@@ -53,28 +55,38 @@ class DoorEvents(SubscribeCallback):
     def test_open(self, client, expires_at):
         command_id = str(uuid4())
         payload = {'type': 'test_open', 'id': command_id, 'expires_at': expires_at}
+        self.send_and_wait(client, payload, self.pending_tests, 'The controller did not acknowledge the test in time.')
+        return {'status': 'test_acknowledged', 'command_id': command_id}
+
+    def open(self, client, command_id, expires_at, controller_id):
+        payload = {'type': 'open', 'id': command_id, 'expires_at': expires_at, 'controller_id': controller_id}
+        self.send_and_wait(client, payload, self.pending_opens, 'Delivery is uncertain. Check the locker.')
+        return {'status': 'opening', 'command_id': command_id}
+
+    def send_and_wait(self, client, payload, pending, timeout_message):
+        command_id = payload['id']
         received = Event()
         with self.lock:
-            self.pending_tests[command_id] = received
+            pending[command_id] = received
         try:
             client.publish().channel(COMMAND_CHANNEL).message(payload).should_store(False).pn_async(
                 self.ping_published
             )
-            if not received.wait(max(0, min(5, expires_at - time()))):
-                raise HTTPException(504, 'The controller did not acknowledge the test in time.')
-            return {'status': 'test_acknowledged', 'command_id': command_id}
+            if not received.wait(max(0, min(5, payload['expires_at'] - time()))):
+                raise HTTPException(504, timeout_message)
         finally:
             with self.lock:
-                self.pending_tests.pop(command_id, None)
+                pending.pop(command_id, None)
 
     def message(self, client, event):
         if event.channel != CHANNEL or event.publisher != 'unistow-locker-4':
             return
-        if isinstance(event.message, dict) and event.message.get('type') == 'test_open_ack':
+        if isinstance(event.message, dict) and event.message.get('type') in ('test_open_ack', 'open_ack'):
             command_id = event.message.get('id')
             if isinstance(command_id, str):
                 with self.lock:
-                    received = self.pending_tests.get(command_id)
+                    pending = self.pending_tests if event.message['type'] == 'test_open_ack' else self.pending_opens
+                    received = pending.get(command_id)
                     if received:
                         received.set()
             return
@@ -93,7 +105,21 @@ class DoorEvents(SubscribeCallback):
                 return
             self.timetoken = stamp
             self.state = event.message['door_state']
+            self.controller = None
+            controller = event.message.get('controller_id')
+            if event.message.get('ready') is True and isinstance(controller, str):
+                try:
+                    if str(UUID(controller)) == controller:
+                        self.controller = controller
+                except ValueError:
+                    pass
         log.info('Locker 4 door via PubNub: %s', event.message['door_state'])
+
+    def ready_controller(self):
+        with self.lock:
+            if fresh_reading(self.timetoken / 10_000_000):
+                return self.controller
+        return None
 
     def latest(self, last_heartbeat):
         with self.lock:
@@ -110,8 +136,11 @@ async def lifespan(app):
     subscribe_key = os.getenv('PUBNUB_SUBSCRIBE_KEY')
     token = os.getenv('PUBNUB_READ_TOKEN')
     test_mode = os.getenv('UNISTOW_OPEN_TEST') == '1'
-    if test_mode and not (subscribe_key and token and os.getenv('PUBNUB_PROBE_PUBLISH_KEY')):
-        raise RuntimeError('Open test mode requires PubNub publishing and subscription credentials.')
+    physical = os.getenv('UNISTOW_PUBNUB_OPEN') == '1'
+    if test_mode and physical:
+        raise RuntimeError('Choose either physical opening or delivery testing.')
+    if (test_mode or physical) and not (subscribe_key and token and os.getenv('PUBNUB_PROBE_PUBLISH_KEY')):
+        raise RuntimeError('Locker command delivery requires PubNub publishing and subscription credentials.')
     if not (subscribe_key or token):
         yield
         return
@@ -124,7 +153,8 @@ async def lifespan(app):
     reader = PubNub(config)
     try:
         reader.set_token(token)
-        events = DoorEvents(probe_enabled=bool(config.publish_key) and not test_mode)
+        events = DoorEvents(probe_enabled=bool(config.publish_key) and not (test_mode or physical))
+        app.state.open_client = reader if physical else None
         app.state.open_test_client = reader if test_mode else None
         app.state.door_events = events
         reader.add_listener(events)
@@ -133,4 +163,5 @@ async def lifespan(app):
     finally:
         app.state.door_events = None
         app.state.open_test_client = None
+        app.state.open_client = None
         reader.stop()

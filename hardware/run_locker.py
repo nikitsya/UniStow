@@ -163,13 +163,14 @@ def main():
                             args=(server, key, shared, lock, commands, collections, finishing, stop), daemon=True)
             worker.start()
             if pubnub.get('token'):
+                controller_id = str(uuid4()) if pubnub.get('open_locker') is True else None
                 from publish_door import report_changes
                 publisher = Thread(target=report_changes,
-                                   args=(shared, lock, stop, build_opener(NoRedirects())), daemon=True)
+                                   args=(shared, lock, stop, build_opener(NoRedirects()), controller_id), daemon=True)
                 publisher.start()
-                if pubnub.get('open_test') is True:
-                    from probe_ping import listen_open_tests
-                    Thread(target=listen_open_tests, args=(stop,), daemon=True).start()
+                if controller_id or pubnub.get('open_test') is True:
+                    from probe_ping import listen_commands
+                    Thread(target=listen_commands, args=(stop, controller_id, commands), daemon=True).start()
             print('Controller started. Close the door to prepare the latch.')
             last_command = None
             collection_command = None
@@ -177,8 +178,10 @@ def main():
                 now = monotonic()
                 closed = door.is_pressed
                 requested = False
+                acknowledgement = None
                 try:
-                    command_id, deadline, command_action = commands.get_nowait()
+                    command_id, deadline, command_action, *receipts = commands.get_nowait()
+                    acknowledgement = receipts[0] if receipts else None
                     if command_id != last_command:
                         last_command = command_id
                         requested = now < deadline and cycle.ready(closed) and not finishing.is_set()
@@ -191,6 +194,8 @@ def main():
                 action = cycle.tick(closed, now, requested)
                 if action == 'open':
                     servo.max()
+                    if requested and acknowledgement:
+                        acknowledgement.set()
                     print('Opening commanded (2250 us). Open the door, then close it.', flush=True)
                 elif action == 'close':
                     servo.min()

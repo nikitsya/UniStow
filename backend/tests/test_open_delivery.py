@@ -9,7 +9,7 @@ from uuid import uuid4
 from services.door_events import CHANNEL, COMMAND_CHANNEL, DoorEvents
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'hardware'))
-from probe_ping import open_test_ack
+from probe_ping import handle_open, open_test_ack
 
 
 class OpenDeliveryTests(unittest.TestCase):
@@ -28,6 +28,22 @@ class OpenDeliveryTests(unittest.TestCase):
         for event in (dict(self.event, i='other'), dict(self.event, c=CHANNEL),
                       dict(self.event, d=dict(self.payload, type='open'))):
             self.assertIsNone(open_test_ack(event, {}, 100))
+
+    def test_only_a_fresh_open_for_this_boot_reaches_the_servo_queue_once(self):
+        controller = str(uuid4())
+        data = dict(self.payload, type='open', controller_id=controller)
+        queue = Mock()
+        queue.put.side_effect = lambda item: item[3].set()
+        seen = {}
+        with patch('probe_ping.time', return_value=100):
+            for event in (self.event, dict(self.event, d=dict(data, controller_id=str(uuid4()))),
+                          dict(self.event, d=dict(data, expires_at=100)), dict(self.event, d=data, i='other')):
+                self.assertIsNone(handle_open(event, seen, controller, queue))
+            queue.put.assert_not_called()
+            event = dict(self.event, d=data)
+            self.assertEqual(handle_open(event, seen, controller, queue), {'type': 'open_ack', 'id': data['id']})
+            self.assertIsNone(handle_open(event, seen, controller, queue))
+            queue.put.assert_called_once()
 
     def test_matches_controller_acknowledgement(self):
         events = DoorEvents()

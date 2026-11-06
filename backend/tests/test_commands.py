@@ -3,7 +3,7 @@ import secrets
 import unittest
 from datetime import timedelta
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
@@ -96,6 +96,17 @@ class CommandTests(unittest.TestCase):
     def take(self, controller=None):
         return self.client.post('/api/device/commands/next', headers=self.device_headers,
                                 json={'controller_id': controller or self.controller})
+
+    def test_pubnub_open_cannot_be_repeated_or_collected_over_http(self):
+        events = Mock()
+        events.ready_controller.return_value = self.controller
+        events.open.return_value = {'status': 'opening'}
+        with patch.object(app.state, 'open_client', object(), create=True), \
+                patch.object(app.state, 'door_events', events, create=True):
+            self.assertEqual(self.open().status_code, 202)
+            self.assertEqual(self.open().status_code, 409)
+            self.assertIsNone(self.take().json()['command'])
+            events.open.assert_called_once()
 
     def test_owner_paid_flow_dispatches_once(self):
         response = self.open()
