@@ -88,6 +88,15 @@ opening and collection in person before demonstrating physical access.
 The app accepts forwarded headers because its port is accessible only within the
 private Docker networks. Do not publish the app port directly.
 
+## Storage encryption
+
+On 6 November 2026, the EC2 console showed **Encrypted** for the 20 GiB gp3
+root volume attached to `unistow-server` at `/dev/sda1` in `eu-north-1`.
+The volume uses the AWS-managed EBS key (`aws/ebs`). This provides encryption
+at rest for the PostgreSQL data stored on that disk.
+
+![EC2 volume encryption details showing Encrypted and the aws/ebs key alias](../docs/images/unistow-ebs-encryption.png)
+
 ## Backups and updates
 
 Before an update, take a database backup and copy it to a separate secure location:
