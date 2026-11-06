@@ -2,7 +2,7 @@
 {% set header_title %}My rental · Locker {{ rental.number }}{% endset %}
 {% block extra_head %}
 {{ super() }}
-<script defer src="{{ url_for('static', path='js/payment.js') }}?v=live-1"></script>
+<script defer src="{{ url_for('static', path='js/payment.js') }}?v=2"></script>
 <script defer src="{{ url_for('static', path='js/open_locker.js') }}?v=4"></script>
 <script defer src="{{ url_for('static', path='js/live.js') }}?v=4"></script>
 {% endblock %}
@@ -42,6 +42,9 @@
                 id="pay-button" type="button">Pay €{{ '%.2f' |
             format(rental.total_price_cents / 100) }}
         </button>
+        <button class="back-button" data-url="{{ url_for('cancel_reservation', rental_id=rental.id) }}" id="cancel-reservation"
+                type="button">Cancel reservation
+        </button>
         <p aria-live="polite" class="confirmation" id="payment-message" role="status"></p>
 
         {% elif rental.status == 'active' %}
@@ -50,7 +53,7 @@
         {% elif rental.status == 'completed' %}
         <p class="confirmation">Rental completed. Thank you for collecting your belongings.</p>
         {% elif rental.status == 'cancelled' %}
-        <p class="confirmation">This reservation has expired. You can choose an available locker again.</p>
+        <p class="confirmation">This reservation has been cancelled. You can choose an available locker again.</p>
         {% elif rental.status == 'overdue' %}
         <p class="confirmation">Your paid rental period has ended. Please contact the locker operator.</p>
         {% endif %}

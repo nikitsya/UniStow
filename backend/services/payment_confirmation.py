@@ -116,3 +116,32 @@ def reconcile_rental(db: Session, rental_id: int, user_id: int):
     if payment and payment["checkout_session_id"]:
         apply_checkout(db, retrieve_checkout(payment["checkout_session_id"]))
     return owned_rental(db, rental_id, user_id)
+
+
+def cancel_pending_reservation(db: Session, rental_id: int, user_id: int):
+    rental = owned_rental(db, rental_id, user_id)
+    db.execute(text("SELECT id FROM lockers WHERE id = :id FOR UPDATE"), {"id": rental["locker_id"]})
+    rental = owned_rental(db, rental_id, user_id)
+    if rental["status"] == "cancelled":
+        return
+    if rental["status"] != "pending" or rental["payment_status"] == "paid":
+        raise HTTPException(409, "Only an unpaid reservation can be cancelled.")
+    if rental["payment_status"] is None:
+        db.execute(text("UPDATE rentals SET status = 'cancelled' WHERE id = :id"), {"id": rental_id})
+        db.commit()
+        return
+
+    session_id = db.scalar(text("SELECT checkout_session_id FROM payments WHERE rental_id = :id"), {"id": rental_id})
+    db.commit()
+    if not session_id:
+        raise HTTPException(409, "Checkout is being prepared. Please try again shortly.")
+    try:
+        checkout = stripe_client().v1.checkout.sessions.expire(session_id).to_dict()
+    except stripe.InvalidRequestError:
+        # Payment or expiry may have won the race with cancellation.
+        checkout = retrieve_checkout(session_id)
+    except stripe.StripeError:
+        raise HTTPException(503, "Could not confirm cancellation. Please try again.") from None
+    apply_checkout(db, checkout)
+    if owned_rental(db, rental_id, user_id)["status"] != "cancelled":
+        raise HTTPException(409, "Check your payment status before cancelling.")

@@ -3,11 +3,37 @@ window.initialisePayment = function () {
     if (!payButton || payButton.dataset.bound) return;
     payButton.dataset.bound = 'true';
     const paymentMessage = document.querySelector('#payment-message');
+    const cancelButton = document.querySelector('#cancel-reservation');
+    cancelButton.addEventListener('click', async () => {
+        if (window.paymentBusy || !window.confirm('Cancel this reservation and release the locker?')) return;
+        window.paymentBusy = true;
+        payButton.disabled = cancelButton.disabled = true;
+        try {
+            const response = await fetch(cancelButton.dataset.url, {
+                method: 'POST', headers: {'X-UniStow-Request': '1'}, signal: AbortSignal.timeout(20000),
+            });
+            if (response.status === 401) {
+                window.location.assign(payButton.dataset.loginUrl);
+                return;
+            }
+            if (response.ok) {
+                window.location.reload();
+                return;
+            }
+            const result = await response.json();
+            paymentMessage.textContent = result.detail || 'Could not cancel the reservation. Please try again.';
+        } catch {
+            paymentMessage.textContent = 'Refresh the page to check whether your reservation was cancelled.';
+        } finally {
+            window.paymentBusy = false;
+            payButton.disabled = cancelButton.disabled = false;
+        }
+    });
     payButton.addEventListener('click', async () => {
         if (payButton.disabled) return;
         const label = payButton.textContent;
         window.paymentBusy = true;
-        payButton.disabled = true;
+        payButton.disabled = cancelButton.disabled = true;
         payButton.textContent = 'Opening Stripe…';
         paymentMessage.textContent = '';
         try {
@@ -29,7 +55,7 @@ window.initialisePayment = function () {
             paymentMessage.textContent = 'Could not connect to checkout. Please retry this reservation.';
         } finally {
             window.paymentBusy = false;
-            payButton.disabled = false;
+            payButton.disabled = cancelButton.disabled = false;
             payButton.textContent = label;
         }
     });

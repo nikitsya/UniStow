@@ -10,7 +10,7 @@ from database import get_db
 from schemas import Login, Registration, RentalRequest
 from services.commands import authorised_locker, record_command, request_open
 from services.lockers import read_lockers
-from services.payment_confirmation import process_event, reconcile_rental, verify_event
+from services.payment_confirmation import cancel_pending_reservation, process_event, reconcile_rental, verify_event
 from services.payments import create_checkout
 from services.rentals import reserve_locker
 
@@ -31,6 +31,15 @@ def reconcile(rental_id: int, request: Request, db: Annotated[Session, Depends(g
         raise HTTPException(status_code=401, detail="Please sign in.")
     rental = reconcile_rental(db, rental_id, user["id"])
     return {"status": rental["status"]}
+
+
+@router.post("/rentals/{rental_id}/cancel", dependencies=[Depends(check_browser_request)])
+def cancel_reservation(rental_id: int, request: Request, db: Annotated[Session, Depends(get_db)]):
+    user = current_user(db, request)
+    if user is None:
+        raise HTTPException(401, "Please sign in.")
+    cancel_pending_reservation(db, rental_id, user["id"])
+    return {"status": "cancelled"}
 
 
 @router.post("/rentals/{rental_id}/checkout", dependencies=[Depends(check_browser_request)])

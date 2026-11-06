@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 
 from database import engine, get_db
 from main import app
+from services.payment_confirmation import cancel_pending_reservation
 from services.rentals import reserve_locker
 
 SECRET = 'whsec_test_only_not_a_real_secret'
@@ -89,6 +90,25 @@ class WebhookDatabaseTests(unittest.TestCase):
     def status(self):
         return self.connection.execute(text('SELECT status FROM rentals WHERE id=:id'),
                                        {'id': self.rental['id']}).scalar_one()
+
+    def test_cancel_before_checkout_releases_locker(self):
+        self.connection.execute(text('DELETE FROM payments WHERE rental_id=:id'), {'id': self.rental['id']})
+        with Session(bind=self.connection, join_transaction_mode='create_savepoint') as db:
+            cancel_pending_reservation(db, self.rental['id'], self.rental['user_id'])
+            cancel_pending_reservation(db, self.rental['id'], self.rental['user_id'])
+            replacement = reserve_locker(db, self.rental['user_id'], self.locker, 2)
+        self.assertNotEqual(replacement['id'], self.rental['id'])
+        self.assertEqual(self.status(), 'cancelled')
+
+    def test_cancel_expires_existing_checkout(self):
+        self.checkout.update(status='expired', payment_status='unpaid')
+        with patch('services.payment_confirmation.stripe_client') as stripe_client, Session(
+                bind=self.connection, join_transaction_mode='create_savepoint') as db:
+            expire = stripe_client.return_value.v1.checkout.sessions.expire
+            expire.return_value.to_dict.return_value = self.checkout
+            cancel_pending_reservation(db, self.rental['id'], self.rental['user_id'])
+            expire.assert_called_once_with(self.session_id)
+        self.assertEqual(self.status(), 'cancelled')
 
     def test_payment_duplicate_and_reordered_event(self):
         self.assertEqual(self.send_event().status_code, 200)
