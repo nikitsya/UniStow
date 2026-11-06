@@ -131,6 +131,15 @@ opening and collection in person before demonstrating physical access.
 The app accepts forwarded headers because its port is accessible only within the
 private Docker networks. Do not publish the app port directly.
 
+## EC2 inbound access
+
+On 6 November 2026, the EC2 console showed three inbound rules for
+`launch-wizard-2`. The group permits public IPv4 traffic on TCP ports 80
+and 443 and restricts SSH (TCP port 22) to a single IPv4 address (`/32`).
+The group has no inbound rule for PostgreSQL (5432) or FastAPI (8000).
+
+![EC2 inbound rules showing public HTTP and HTTPS and SSH restricted to one IPv4 address](../docs/images/unistow-ec2-inbound-rules.png)
+
 ## Storage encryption
 
 On 6 November 2026, the EC2 console showed **Encrypted** for the 20 GiB gp3
