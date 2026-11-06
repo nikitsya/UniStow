@@ -57,7 +57,12 @@ Keep `.env` out of Git; do not overwrite an existing configuration.
 
 Existing installations can retain their database and Docker volume by keeping
 `POSTGRES_USER`, `POSTGRES_DB` and `COMPOSE_PROJECT_NAME` set to their original values
-in `.env`. New installations default to `unistow`. The device key variable is now
+in `.env`. New installations default to `unistow`, which creates the container
+`unistow-db-1` and the volume `unistow_postgres_data`. If you still use
+`paybox_postgres_data`, keep `COMPOSE_PROJECT_NAME=paybox` until you have
+copied and verified the data in the new volume.
+
+The device key variable is now
 `UNISTOW_DEVICE_KEY`; retain its existing secret value when updating the name.
 After updating, restart the backend and refresh browser pages. Users will need to
 sign in again because the session cookie name has changed.
