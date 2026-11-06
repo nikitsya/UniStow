@@ -400,7 +400,7 @@
     background: #fff;
 }
 
-.finish-dialog-actions .back-button:focus-visible {
+#finish-dialog .back-button:focus-visible {
     outline: none;
     text-decoration: underline;
     text-underline-offset: 3px;
