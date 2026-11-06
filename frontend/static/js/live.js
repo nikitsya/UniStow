@@ -42,7 +42,7 @@
             if (rental) {
                 const next = fresh.querySelector('#live-rental');
                 if (!next) throw new Error('Rental unavailable');
-                for (const selector of ['.rental-overview', '.rental-facts', '.total']) {
+                for (const selector of ['.rental-overview', '.rental-facts', '.total', '#active-rental-notice']) {
                     replaceIfChanged(`#live-rental ${selector}`, fresh);
                 }
                 const actionsChanged = rental.dataset.status !== next.dataset.status
@@ -62,6 +62,9 @@
                     if (button && updated) button.disabled = cooldown || updated.disabled;
                 }
                 const notice = document.querySelector('#open-locker-message');
+                if (notice?.dataset.commandMessage === 'opening' && next.dataset.doorState === 'open') {
+                    delete notice.dataset.commandMessage;
+                }
                 if (notice && !notice.dataset.commandMessage) {
                     notice.textContent = next.querySelector('#open-locker-message')?.textContent || '';
                 }

@@ -24,6 +24,7 @@ window.initialiseLockerActions = function () {
                 openMessage.textContent = 'Controller acknowledged the test. The latch stayed in place.';
                 return;
             }
+            if (response.ok && !finish) openMessage.dataset.commandMessage = 'opening';
             openMessage.textContent = response.ok
                 ? (finish
                     ? 'Collection requested. When the latch moves, open the door, collect everything and close it. The status will update automatically.'
