@@ -3,12 +3,12 @@
 ## Test a door reading through PubNub
 
 Use this one-shot test on an idle Locker 4. It reads GPIO17 and publishes the
-door position to `unistow.locker.4.events`. The rental controller still uses
+door position to `unistow.locker-4.events`. The rental controller still uses
 the HTTP API.
 
 1. Enable Access Manager on the PubNub keyset. From a trusted machine, grant
    a short-lived token bound to user ID `unistow-locker-4` with write permission
-   only on `unistow.locker.4.events`. Keep the secret key on the trusted machine.
+   only on `unistow.locker-4.events`. Keep the secret key on the trusted machine.
 2. On the Pi, copy `publish_door.py` beside `run_locker.py`. Add the `pubnub`
    section from `device_config.example.json` to the private `device_config.json`.
    Fill in the publish key, subscribe key and token. Run `chmod 600 device_config.json`.
@@ -20,6 +20,20 @@ the HTTP API.
    and run it again to check for `{"door_state": "open"}`. The script reads
    the sensor once per run and leaves the servo alone.
 5. Close the door and restart the locker service if you stopped it.
+
+## Receive the reading in local FastAPI
+
+Set `PUBNUB_SUBSCRIBE_KEY` and `PUBNUB_READ_TOKEN` in the local server
+environment before starting FastAPI. Grant the token to `unistow-mac-reader`
+with read permission on `unistow.locker-4.events`. Restart with a fresh token
+after expiry. When the server logs `Listening on unistow.locker-4.events`,
+run the sensor test on the Pi and look for `Locker 4 door via PubNub: closed`
+or `open` in the server log.
+
+The Locker 4 rental page uses the latest fresh reading from PubNub or the
+HTTP heartbeat. PubNub readings expire after 15 seconds and are held in
+memory for this local test. Command authorisation still uses the controller
+heartbeat and the database.
 
 ## Report the door state to UniStow
 

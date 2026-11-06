@@ -28,7 +28,7 @@
         {% if rental.status != 'pending' %}
         <div>
             <dt>Door</dt>
-            <dd>{{ rental.door_state | capitalize if device_online else 'Unknown' }}</dd>
+            <dd>{{ door_state | capitalize }}</dd>
         </div>
         {% endif %}
     </dl>

@@ -5,9 +5,10 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy.exc import SQLAlchemyError
 
 from routes import api, device, pages
+from services.door_events import lifespan
 
 app = FastAPI(
-    title="UniStow", docs_url=None, redoc_url=None, openapi_url=None
+    lifespan=lifespan, title="UniStow", docs_url=None, redoc_url=None, openapi_url=None
 )
 app.mount("/static", StaticFiles(directory=pages.frontend_directory / "static"), name="static")
 

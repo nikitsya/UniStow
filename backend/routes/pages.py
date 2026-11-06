@@ -82,10 +82,14 @@ def reservation(request: Request, rental_id: int, db: Annotated[Session, Depends
     device_online = last_seen is not None and 0 <= (
             datetime.now(timezone.utc) - last_seen
     ).total_seconds() < 15
+    door_state = rental.get("door_state") if device_online else "unknown"
+    events = getattr(request.app.state, "door_events", None)
+    if rental["number"] == 4 and events is not None:
+        door_state = events.latest(last_seen) or door_state
     return templates.TemplateResponse(request, "reservation.html", {
         "title": "My rental | UniStow", "rental": rental,
         "ends_at": ends_at.strftime("%d %B %Y at %H:%M"),
-        "device_online": device_online,
+        "door_state": door_state,
         "can_open": (rental["number"] == 4 and rental["status"] == "active"
                      and rental.get("payment_status") == "paid"
                      and rental["paid_until"] > datetime.now(timezone.utc)
