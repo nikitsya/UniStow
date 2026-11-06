@@ -4,10 +4,11 @@
     <meta charset="UTF-8">
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <meta content="#183B35" name="theme-color">
+    <link href="{{ url_for('static', path='unistow.svg') }}" rel="icon" type="image/svg+xml">
     <title>{{ title }}</title>
     <link href="{{ url_for('static', path='css/main.css') }}" rel="stylesheet">
     <script defer src="{{ url_for('static', path='js/rental.js') }}?v=checkout-3"></script>
-    <link href="{{ url_for('static', path='css/home.css') }}?v=13" rel="stylesheet">
+    <link href="{{ url_for('static', path='css/home.css') }}?v=14" rel="stylesheet">
     {% if active_tab %}
     <script defer src="{{ url_for('static', path='js/account_menu.js') }}"></script>
     <link href="{{ url_for('static', path='css/bottom_nav.css') }}" rel="stylesheet">
