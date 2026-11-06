@@ -4,7 +4,7 @@
 {{ super() }}
 <script defer src="{{ url_for('static', path='js/payment.js') }}?v=3"></script>
 <script defer src="{{ url_for('static', path='js/open_locker.js') }}?v=6"></script>
-<script defer src="{{ url_for('static', path='js/live.js') }}?v=6"></script>
+<script defer src="{{ url_for('static', path='js/live.js') }}?v=7"></script>
 {% endblock %}
 {% block screen_content %}
 {% set collection_notice = 'Take all your belongings, then close the door to finish your rental.' %}
@@ -54,7 +54,7 @@
            role="status">{% if rental.collecting %}{{ collection_notice }}{% elif
             door_state == 'open' %}Your locker door is
             open.{% elif rental.number == 4 and rental.payment_status == 'paid' and not can_open %}Please wait until the
-            locker is ready.{% else %}Payment confirmed. Your rental is active.{% endif %}</p>
+            locker is ready.{% endif %}</p>
         {% elif rental.status == 'completed' %}
         <p class="confirmation">Rental completed. Thank you for collecting your belongings.</p>
         {% elif rental.status == 'cancelled' %}

@@ -5,6 +5,25 @@
     let timer;
     const parser = new DOMParser();
 
+    const paymentConfirmation = 'Payment confirmed. Your rental is active.';
+
+    function showPaymentConfirmation() {
+        const notice = document.querySelector('#active-rental-notice');
+        if (!notice || notice.textContent.trim()) return;
+        const key = 'unistow:payment-confirmed:' + window.location.pathname;
+        try {
+            if (sessionStorage.getItem(key)) return;
+            sessionStorage.setItem(key, '1');
+        } catch {
+            // The current page can still show confirmation without browser storage.
+        }
+        notice.textContent = paymentConfirmation;
+    }
+
+    if (new URLSearchParams(window.location.search).get('returned') === '1') {
+        showPaymentConfirmation();
+    }
+
     function replaceIfChanged(selector, fresh) {
         const current = document.querySelector(selector);
         const next = fresh.querySelector(selector);
@@ -52,9 +71,11 @@
                     || Boolean(document.querySelector('#pay-button')) !== Boolean(next.querySelector('#pay-button'))
                     || Boolean(document.querySelector('#open-locker-button')) !== Boolean(next.querySelector('#open-locker-button'));
                 if (actionsChanged && !window.paymentBusy && !window.lockerBusy) {
+                    const justPaid = rental.dataset.status === 'pending' && next.dataset.status === 'active';
                     document.querySelector('#finish-dialog')?.close();
                     replaceIfChanged('#rental-actions', fresh);
                     rental.dataset.status = next.dataset.status;
+                    if (justPaid) showPaymentConfirmation();
                     window.initialisePayment();
                     window.initialiseLockerActions();
                 }
@@ -80,7 +101,8 @@
                         delete notice.dataset.commandMessage;
                         const message = Date.now() < relockGraceUntil && !collecting
                             ? 'Securing your locker…' : updatedNotice.textContent;
-                        if (notice.textContent !== message) notice.textContent = message;
+                        const keepConfirmation = !message.trim() && notice.textContent === paymentConfirmation;
+                        if (!keepConfirmation && notice.textContent !== message) notice.textContent = message;
                     }
                 }
                 const finish = document.querySelector('#finish-rental-button');
