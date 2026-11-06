@@ -97,9 +97,14 @@
     cursor: not-allowed;
 }
 
-.flow-page #finish-rental-button {
-    border: 1px solid #b9c6b0;
-    background: #e6ecdf;
+.flow-page :is(#finish-rental-button, #confirm-finish):enabled {
+    border: 1px solid #c78e62;
+    background: #fae4ce;
+    color: #703910;
+}
+
+.flow-page :is(#finish-rental-button, #confirm-finish):enabled:hover {
+    background: #f4d5b5;
 }
 
 .flow-page .confirmation {
@@ -115,6 +120,10 @@
 .flow-page .operator-help {
     font-size: 12px;
     line-height: 1.65;
+}
+
+.flow-page .operator-help,
+#rental-actions > .confirmation:first-child {
     margin: 14px 0 22px;
 }
 
