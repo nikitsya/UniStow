@@ -2,7 +2,7 @@
 {% set header_title %}My rental · Locker {{ rental.number }}{% endset %}
 {% block extra_head %}
 {{ super() }}
-<script defer src="{{ url_for('static', path='js/payment.js') }}?v=3"></script>
+<script defer src="{{ url_for('static', path='js/payment.js') }}?v=4"></script>
 <script defer src="{{ url_for('static', path='js/open_locker.js') }}?v=6"></script>
 <script defer src="{{ url_for('static', path='js/live.js') }}?v=7"></script>
 {% endblock %}
@@ -48,6 +48,16 @@
         <button class="back-button" data-url="{{ url_for('cancel_reservation', rental_id=rental.id) }}" id="cancel-reservation"
                 type="button">Cancel reservation
         </button>
+
+        <dialog aria-describedby="cancel-reservation-description" aria-labelledby="cancel-reservation-title" class="finish-dialog"
+                closedby="any" id="cancel-reservation-dialog">
+            <h2 id="cancel-reservation-title">Cancel your reservation?</h2>
+            <p id="cancel-reservation-description">The locker will be available for someone else to reserve.</p>
+            <div class="finish-dialog-actions">
+                <button autofocus class="back-button" id="keep-reservation" type="button">Keep reservation</button>
+                <button class="confirm-button" id="confirm-cancellation" type="button">Cancel reservation</button>
+            </div>
+        </dialog>
 
         {% elif rental.status == 'active' %}
         <p class="confirmation" data-collection-notice="{{ collection_notice }}" id="active-rental-notice"

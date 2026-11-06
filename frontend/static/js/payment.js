@@ -4,8 +4,14 @@ window.initialisePayment = function () {
     payButton.dataset.bound = 'true';
     const paymentMessage = document.querySelector('#payment-message');
     const cancelButton = document.querySelector('#cancel-reservation');
-    cancelButton.addEventListener('click', async () => {
-        if (window.paymentBusy || !window.confirm('Cancel this reservation and release the locker?')) return;
+    const dialog = document.querySelector('#cancel-reservation-dialog');
+    cancelButton.addEventListener('click', () => {
+        if (!window.paymentBusy) dialog.showModal();
+    });
+    document.querySelector('#keep-reservation').addEventListener('click', () => dialog.close());
+    document.querySelector('#confirm-cancellation').addEventListener('click', async () => {
+        if (!dialog.open || window.paymentBusy) return;
+        dialog.close();
         window.paymentBusy = true;
         payButton.disabled = cancelButton.disabled = true;
         paymentMessage.textContent = 'Cancelling your reservation…';
