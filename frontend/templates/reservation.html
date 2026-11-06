@@ -55,15 +55,11 @@
         {% endif %}
         {% if rental.status == 'active' and rental.payment_status == 'paid' and rental.number == 4 %}
         {% set open_url = url_for('test_open_locker' if open_test else 'open_locker', rental_id=rental.id) %}
-        {% if can_open %}
-        <button class="confirm-button" data-url="{{ open_url }}" id="open-locker-button" type="button">
+        <button class="confirm-button" data-url="{{ open_url }}" door_state== id="open-locker-button"
+                if type="button" {%
+        'open' or not can_open %}disabled{% endif %}>
             {{ 'Test open delivery' if open_test else 'Open locker' }}
         </button>
-        {% else %}
-        <button class="confirm-button" data-url="{{ open_url }}" disabled id="open-locker-button" type="button">
-            {{ 'Test open delivery' if open_test else 'Open locker' }}
-        </button>
-        {% endif %}
         <p aria-live="polite" class="confirmation" id="open-locker-message" role="status">{% if not can_open %}The
             locker is
             not ready. Check the controller and rental period, please wait.{% endif %}</p>
