@@ -5,11 +5,17 @@ from dotenv import load_dotenv
 from sqlalchemy import URL, create_engine
 from sqlalchemy.orm import sessionmaker
 
-load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+project_root = Path(__file__).resolve().parent.parent
+load_dotenv(project_root / ".env")
 
 password = os.environ.get("POSTGRES_PASSWORD")
 if not password:
     raise RuntimeError("Set POSTGRES_PASSWORD in the project's .env file.")
+
+connect_args = {"connect_timeout": 3}
+root_certificate = os.environ.get("POSTGRES_SSLROOTCERT")
+if root_certificate:
+    connect_args.update(sslmode="verify-full", sslrootcert=str(project_root / root_certificate))
 
 engine = create_engine(
     URL.create(
@@ -21,7 +27,7 @@ engine = create_engine(
         database=os.environ.get("POSTGRES_DB", "unistow"),
     ),
     pool_pre_ping=True,
-    connect_args={"connect_timeout": 3},
+    connect_args=connect_args,
 )
 
 SessionLocal = sessionmaker(autoflush=False, bind=engine)

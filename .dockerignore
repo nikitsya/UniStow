@@ -11,3 +11,4 @@ hardware
 **/*.pem
 **/*.key
 **/device_config.json
+.local-postgres*

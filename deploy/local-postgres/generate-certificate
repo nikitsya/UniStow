@@ -1,0 +1,18 @@
+#!/bin/sh
+set -eu
+cd "$(dirname "$0")/../.."
+umask 077
+if [ -f .local-postgres/server.crt ] && [ -f .local-postgres/server.key ]; then
+    openssl x509 -checkend 0 -noout -in .local-postgres/server.crt
+    exit 0
+fi
+if [ -e .local-postgres ]; then
+    echo "Incomplete certificate directory: .local-postgres" >&2
+    exit 1
+fi
+tmp=$(mktemp -d .local-postgres.XXXXXX)
+trap 'rm -rf "$tmp"' EXIT
+openssl req -x509 -newkey rsa:3072 -nodes -days 365 -sha256 \
+    -subj '/CN=localhost' -addext 'subjectAltName=DNS:localhost,DNS:db,IP:127.0.0.1' \
+    -addext 'extendedKeyUsage=serverAuth' -keyout "$tmp/server.key" -out "$tmp/server.crt"
+mv "$tmp" .local-postgres

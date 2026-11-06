@@ -74,8 +74,14 @@ sign in again because the session cookie name has changed.
 From the project folder, with Docker Desktop running:
 
 ```sh
-docker compose up -d db
+./deploy/local-postgres/generate-certificate
+docker compose up -d --wait db
 ```
+
+For an existing local `.env`, add `POSTGRES_SSLROOTCERT=.local-postgres/server.crt`
+and restart FastAPI. The client verifies the database certificate and hostname.
+Keep the generated key on this machine. To rotate the one-year certificate, move
+the certificate directory aside, generate a new pair and recreate the db container.
 
 On a new database, Docker creates the tables. Then add the nine locker records using
 [the migration instructions](docs/database.md#initial-setup). Existing data is retained.

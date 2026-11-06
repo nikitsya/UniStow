@@ -3,6 +3,18 @@ name: unistow
 services:
   db:
     image: postgres:16
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - |
+        install -m 644 /run/local-cert/server.crt /run/postgres-tls/server.crt
+        install -m 600 -o postgres /run/local-cert/server.key /run/postgres-tls/server.key
+        exec docker-entrypoint.sh "$$@"
+      - --
+    command: [ "postgres", "-c", "ssl=on", "-c", "ssl_cert_file=/run/postgres-tls/server.crt",
+               "-c", "ssl_key_file=/run/postgres-tls/server.key", "-c", "hba_file=/etc/postgresql/local-hba.conf" ]
+    tmpfs:
+      - /run/postgres-tls
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-unistow}
       POSTGRES_USER: ${POSTGRES_USER:-unistow}
@@ -10,6 +22,9 @@ services:
     ports:
       - "127.0.0.1:${POSTGRES_PORT:-5433}:5432"
     volumes:
+      - ./.local-postgres/server.crt:/run/local-cert/server.crt:ro
+      - ./.local-postgres/server.key:/run/local-cert/server.key:ro
+      - ./deploy/local-postgres/pg_hba.conf:/etc/postgresql/local-hba.conf:ro
       - postgres_data:/var/lib/postgresql/data
       - ./backend/database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
     healthcheck:
