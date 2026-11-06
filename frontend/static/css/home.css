@@ -192,10 +192,10 @@
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
-    min-height: 212px;
-    height: 100%;
+    width: 100%;
+    aspect-ratio: 1;
     border-radius: 9px;
-    padding: 64px 10px 16px;
+    padding: 36px 12px 12px;
     color: #5a5651;
     background: #e5e0d8;
     text-decoration: none;
@@ -238,7 +238,7 @@ a.home-locker:active {
     position: absolute;
     width: 34px;
     height: 12px;
-    top: 24px;
+    top: 14px;
     left: 50%;
     transform: translateX(-50%);
     border-top: 2px solid currentColor;
@@ -485,8 +485,7 @@ a.home-locker:active {
     }
 
     .home-locker {
-        min-height: 240px;
-        padding: 72px 20px 22px;
+        padding: 40px 18px 16px;
     }
 
     .locker-label h3 {
@@ -495,6 +494,12 @@ a.home-locker:active {
 
     .home-status {
         font-size: 12px;
+    }
+}
+
+@media (max-width: 479px) {
+    .home-locker-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
 
