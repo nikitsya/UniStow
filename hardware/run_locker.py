@@ -1,7 +1,6 @@
 """Run the paid-rental controller on the Raspberry Pi, replacing report_door.py."""
-from pathlib import Path
-
 import json
+from pathlib import Path
 from queue import Empty, Queue
 from threading import Event, Lock, Thread
 from time import monotonic, sleep
@@ -162,7 +161,11 @@ def main():
             worker = Thread(target=communicate,
                             args=(server, key, shared, lock, commands, collections, finishing, stop), daemon=True)
             worker.start()
-            if pubnub.get('token'):
+            automatic = pubnub.get('renew_token') is True
+            if automatic:
+                from renew_token import renew_tokens
+                Thread(target=renew_tokens, args=(server, key, stop), daemon=True).start()
+            if automatic or pubnub.get('token'):
                 controller_id = str(uuid4()) if pubnub.get('open_locker') is True else None
                 from publish_door import report_changes
                 publisher = Thread(target=report_changes,

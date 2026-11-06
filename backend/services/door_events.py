@@ -2,7 +2,7 @@
 import logging
 import os
 from contextlib import asynccontextmanager
-from threading import Event, Lock
+from threading import Event, Lock, Thread
 from time import monotonic, time
 from uuid import UUID, uuid4
 
@@ -12,8 +12,8 @@ from pubnub.enums import PNStatusCategory
 from pubnub.pnconfiguration import PNConfiguration
 from pubnub.pubnub import PubNub
 
-CHANNEL = 'unistow.locker-4.events'
-COMMAND_CHANNEL = 'unistow.locker-4.commands'
+from services.pubnub_tokens import COMMANDS as COMMAND_CHANNEL, EVENTS as CHANNEL, READER, REFRESH_SECONDS, LockerTokens
+
 log = logging.getLogger('uvicorn.error')
 
 
@@ -131,37 +131,67 @@ class DoorEvents(SubscribeCallback):
         return None
 
 
+def renew_reader(reader, issuer, stopped):
+    while not stopped.is_set():
+        try:
+            reader.set_token(issuer.reader())
+            # Subscribing again reconnects the native SDK with its current cursor.
+            reader.subscribe().channels(CHANNEL).execute()
+            log.info('Renewed the Locker 4 server token.')
+            delay = REFRESH_SECONDS
+        except Exception:
+            log.warning('Locker 4 server token renewal failed. Retrying in 30 seconds.')
+            delay = 30
+        stopped.wait(delay)
+
+
 @asynccontextmanager
 async def lifespan(app):
     subscribe_key = os.getenv('PUBNUB_SUBSCRIBE_KEY')
     token = os.getenv('PUBNUB_READ_TOKEN')
     test_mode = os.getenv('UNISTOW_OPEN_TEST') == '1'
     physical = os.getenv('UNISTOW_PUBNUB_OPEN') == '1'
+    automatic = physical and bool(os.getenv('PUBNUB_SECRET_KEY'))
     if test_mode and physical:
         raise RuntimeError('Choose either physical opening or delivery testing.')
-    if (test_mode or physical) and not (subscribe_key and token and os.getenv('PUBNUB_PROBE_PUBLISH_KEY')):
+    if (test_mode or physical) and not (
+            subscribe_key and (automatic or token) and os.getenv('PUBNUB_PROBE_PUBLISH_KEY')):
         raise RuntimeError('Locker command delivery requires PubNub publishing and subscription credentials.')
     if not (subscribe_key or token):
         yield
         return
-    if not (subscribe_key and token):
+    if not (subscribe_key and (automatic or token)):
         raise RuntimeError('Set both PUBNUB_SUBSCRIBE_KEY and PUBNUB_READ_TOKEN.')
     config = PNConfiguration()
     config.publish_key = os.getenv('PUBNUB_PROBE_PUBLISH_KEY')
     config.subscribe_key = subscribe_key
-    config.user_id = 'unistow-mac-reader'
+    config.user_id = READER
     reader = PubNub(config)
+    issuer = LockerTokens() if automatic else None
+    stopped = Event()
+    renewal = None
     try:
-        reader.set_token(token)
+        if token:
+            reader.set_token(token)
         events = DoorEvents(probe_enabled=bool(config.publish_key) and not (test_mode or physical))
         app.state.open_client = reader if physical else None
         app.state.open_test_client = reader if test_mode else None
         app.state.door_events = events
         reader.add_listener(events)
-        reader.subscribe().channels(CHANNEL).execute()
+        if issuer:
+            app.state.locker_tokens = issuer
+            renewal = Thread(target=renew_reader, args=(reader, issuer, stopped), daemon=True)
+            renewal.start()
+        else:
+            reader.subscribe().channels(CHANNEL).execute()
         yield
     finally:
         app.state.door_events = None
         app.state.open_test_client = None
         app.state.open_client = None
+        stopped.set()
+        if renewal:
+            renewal.join()
+            app.state.locker_tokens = None
+            issuer.admin.stop()
         reader.stop()

@@ -88,3 +88,16 @@ require explicit migrations; initialisation scripts run only on an empty volume.
 References: [Docker on Ubuntu](https://docs.docker.com/engine/install/ubuntu/),
 [Caddy HTTPS](https://caddyserver.com/docs/automatic-https), and
 [Stripe webhooks](https://docs.stripe.com/webhooks).
+
+## Renew Locker 4 PubNub tokens
+
+With physical opening enabled, set `PUBNUB_SECRET_KEY` in the server's private
+`.env.production` and recreate the app container. Use the same Testing keyset
+as the publish and subscribe keys. The server issues separate one-hour tokens
+for the device and the reader and refreshes its subscription after 45 minutes.
+
+Install `renew_token.py` beside `run_locker.py` on the Pi. Set
+`pubnub.renew_token` to `true` in its private device configuration and restart
+`uniflow-locker.service`. The Pi uses its existing device key and HTTPS server
+address to obtain a token at startup and renew it before expiry. Check for
+`Renewed the Locker 4 device token.` in the service journal.
