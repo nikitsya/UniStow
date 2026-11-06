@@ -2,40 +2,11 @@
 {% set active_tab = 'lockers' %}
 {% block body_class %}home-page{% endblock %}
 {% block extra_head %}
-<link href="{{ url_for('static', path='css/home.css') }}?v=11" rel="stylesheet">
-<script defer src="{{ url_for('static', path='js/home.js') }}?v=4"></script>
+<script defer src="{{ url_for('static', path='js/home.js') }}?v=5"></script>
 <script defer src="{{ url_for('static', path='js/live.js') }}?v=1"></script>
 {% endblock %}
 {% block content %}
 {% set available = lockers | selectattr('status', 'equalto', 'available') | list %}
-<header class="home-header">
-    <a aria-label="UniStow home" class="home-brand" href="{{ url_for('home') }}"><span aria-hidden="true"
-                                                                                       class="brand-symbol">U<span></span></span>UniStow</a>
-    <details class="account-menu" id="account">
-        <summary aria-label="Your account" class="header-account">
-            <svg aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24">
-                <circle cx="12" cy="8" r="3.5"/>
-                <path d="M5 21v-3a7 7 0 0 1 14 0v3"/>
-            </svg>
-        </summary>
-        <div aria-labelledby="account-heading" class="account-dropdown">
-            <div class="section-heading"><h2 id="account-heading">Account</h2></div>
-            {% if user %}
-            <p class="account-email">{{ user.email }}</p>
-            <button class="home-text-link" id="logout-button" type="button">Sign out <span aria-hidden="true">→</span>
-            </button>
-            <p class="home-error" id="logout-message" role="status"></p>
-            <script defer src="{{ url_for('static', path='js/logout.js') }}"></script>
-            {% else %}
-            <p class="section-note">Create an account to rent a locker.</p>
-            <div class="home-account-actions"><a class="home-primary" href="{{ url_for('registration') }}">Create
-                account</a><a class="home-text-link" href="{{ url_for('sign_in') }}">Sign in →</a></div>
-            {% endif %}
-        </div>
-    </details>
-    <div class="home-intro"><p class="eyebrow">CAMPUS STORAGE</p></div>
-    <p class="rental-guidance">Rent for 1–4 calendar days. Your rental ends at 18:00.</p>
-</header>
 <div class="home-content">
     <section aria-label="Lockers" class="home-section" id="lockers">
         <div aria-label="Filter lockers" class="locker-filters" hidden role="group">

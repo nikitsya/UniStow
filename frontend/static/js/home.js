@@ -16,14 +16,3 @@ window.updateLockerFilter = function () {
     });
     emptyMessage.hidden = button.dataset.filter !== 'available' || lockers.some(locker => !locker.hidden);
 };
-const accountMenu = document.querySelector('.account-menu');
-const accountSummary = accountMenu.querySelector('summary');
-document.addEventListener('click', (event) => {
-    if (!accountMenu.contains(event.target)) accountMenu.open = false;
-});
-document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && accountMenu.open) {
-        accountMenu.open = false;
-        accountSummary.focus();
-    }
-});

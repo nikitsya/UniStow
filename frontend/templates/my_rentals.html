@@ -1,11 +1,12 @@
-{% extends "screen.html" %}
+{% extends "layout.html" %}
 {% set active_tab = 'rentals' %}
-{% block screen_title %}My rentals{% endblock %}
+{% block body_class %}flow-page{% endblock %}
 {% block extra_head %}
-{{ super() }}
+<link href="{{ url_for('static', path='css/screens.css') }}?v=4" rel="stylesheet">
 <script defer src="{{ url_for('static', path='js/live.js') }}?v=1"></script>
 {% endblock %}
-{% block screen_content %}
+{% block content %}
+<section aria-label="My rentals" class="rental-screen">
 <div id="live-rentals-list">
     {% if user and reservations %}
     <div class="rentals-list">
@@ -24,4 +25,5 @@
     {% endif %}
 </div>
 <p class="confirmation" hidden id="live-message" role="status"></p>
+</section>
 {% endblock %}
