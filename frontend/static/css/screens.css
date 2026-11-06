@@ -97,13 +97,13 @@
     cursor: not-allowed;
 }
 
-.flow-page :is(#finish-rental-button, #confirm-finish):enabled {
+.flow-page :is(#finish-rental-button, .finish-dialog-actions .confirm-button):enabled {
     border: 1px solid #c78e62;
     background: #fae4ce;
     color: #703910;
 }
 
-.flow-page :is(#finish-rental-button, #confirm-finish):enabled:hover {
+.flow-page :is(#finish-rental-button, .finish-dialog-actions .confirm-button):enabled:hover {
     background: #f4d5b5;
 }
 
