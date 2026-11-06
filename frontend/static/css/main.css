@@ -1,4 +1,6 @@
 :root {
+    overscroll-behavior: none;
+    overflow-x: clip;
     color-scheme: light;
     font-family: Roboto, "Helvetica Neue", Arial, sans-serif;
     color: #fff;
