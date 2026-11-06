@@ -5,7 +5,7 @@ from fastapi import HTTPException
 from sqlalchemy import text
 
 
-def request_open(db, rental_id, user_id, action="open"):
+def authorised_locker(db, rental_id, user_id):
     rental = db.execute(text('SELECT * FROM rentals WHERE id=:id AND user_id=:user'),
                         {'id': rental_id, 'user': user_id}).mappings().first()
     if rental is None:
@@ -28,6 +28,11 @@ def request_open(db, rental_id, user_id, action="open"):
         raise HTTPException(409, 'Opening requires an active, paid rental within its paid period.')
     if locker['number'] != 4 or not locker['is_enabled']:
         raise HTTPException(409, 'This locker cannot be opened remotely.')
+    return locker, rental, now
+
+
+def request_open(db, rental_id, user_id, action="open"):
+    locker, rental, now = authorised_locker(db, rental_id, user_id)
     if (not locker['device_ready'] or not locker['controller_id']
             or locker['last_seen_at'] is None
             or not 0 <= (now - locker['last_seen_at']).total_seconds() < 15):

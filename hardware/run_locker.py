@@ -78,7 +78,7 @@ def load_config():
             or not isinstance(key, str) or not key.strip()):
         raise ValueError('Invalid device configuration.')
     pubnub = config.get('pubnub')
-    return server, key, isinstance(pubnub, dict) and bool(pubnub.get('token'))
+    return server, key, pubnub if isinstance(pubnub, dict) else {}
 
 
 def communicate(server, key, shared, lock, commands, collections, finishing, stop):
@@ -138,7 +138,7 @@ def main():
     from gpiozero.pins.pigpio import PiGPIOFactory
 
     try:
-        server, key, publish_enabled = load_config()
+        server, key, pubnub = load_config()
     except (OSError, ValueError, KeyError, TypeError, AttributeError):
         print('Check device_config.json beside this script.')
         return
@@ -162,11 +162,14 @@ def main():
             worker = Thread(target=communicate,
                             args=(server, key, shared, lock, commands, collections, finishing, stop), daemon=True)
             worker.start()
-            if publish_enabled:
+            if pubnub.get('token'):
                 from publish_door import report_changes
                 publisher = Thread(target=report_changes,
                                    args=(shared, lock, stop, build_opener(NoRedirects())), daemon=True)
                 publisher.start()
+                if pubnub.get('open_test') is True:
+                    from probe_ping import listen_open_tests
+                    Thread(target=listen_open_tests, args=(stop,), daemon=True).start()
             print('Controller started. Close the door to prepare the latch.')
             last_command = None
             collection_command = None

@@ -1,6 +1,6 @@
 import unittest
 from datetime import datetime, timedelta, timezone
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from fastapi import HTTPException
 
@@ -57,6 +57,28 @@ class CheckoutAccessTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertRegex(response.text, r'class="rental-state state-pending">Pending</span>')
         self.assertRegex(response.text, r'<dt>Payment</dt>\s*<dd>\s*Not\s+paid\s*</dd>')
+
+    def test_delivery_button_accepts_click_without_recent_telemetry(self):
+        self.login()
+        now = datetime.now(timezone.utc)
+        rental = {'id': 7, 'number': 4, 'prepaid_days': 1, 'total_price_cents': 100,
+                  'status': 'active', 'paid_until': now + timedelta(hours=1), 'payment_status': 'paid'}
+        events = Mock()
+        events.latest.return_value = None
+        events.test_open.return_value = {'status': 'test_acknowledged'}
+        with patch.object(self.client.app.state, 'open_test_client', object(), create=True), \
+                patch.object(self.client.app.state, 'door_events', events, create=True), \
+                patch('routes.pages.owned_rental', return_value=rental), \
+                patch('routes.api.authorised_locker', return_value=({}, rental, now)) as authorise:
+            page = self.client.get('/rentals/7')
+            button = page.text.split('id="open-locker-button"', 1)[1].split('>', 1)[0]
+            self.assertNotIn('disabled', button)
+            headers = {'X-UniStow-Request': '1'}
+            self.assertEqual(self.client.post('/api/rentals/7/open', headers=headers).status_code, 409)
+            response = self.client.post('/api/rentals/7/test-open', headers=headers)
+            self.assertEqual(response.json()['status'], 'test_acknowledged')
+            authorise.assert_called_once()
+            events.test_open.assert_called_once()
 
     def test_my_rental_shows_local_deadline_and_payment(self):
         self.login()

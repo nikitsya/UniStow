@@ -2,10 +2,11 @@
 import logging
 import os
 from contextlib import asynccontextmanager
-from threading import Lock
+from threading import Event, Lock
 from time import monotonic, time
 from uuid import uuid4
 
+from fastapi import HTTPException
 from pubnub.callbacks import SubscribeCallback
 from pubnub.enums import PNStatusCategory
 from pubnub.pnconfiguration import PNConfiguration
@@ -16,12 +17,18 @@ COMMAND_CHANNEL = 'unistow.locker-4.commands'
 log = logging.getLogger('uvicorn.error')
 
 
+def fresh_reading(timestamp):
+    # Allow a small clock difference between PubNub and the local server.
+    return -1 <= time() - timestamp < 15
+
+
 class DoorEvents(SubscribeCallback):
     def __init__(self, probe_enabled=False):
         self.probe_enabled = probe_enabled
         self.probe_id = None
         self.probe_started = 0
         self.lock = Lock()
+        self.pending_tests = {}
         self.timetoken = 0
         self.state = None
 
@@ -43,8 +50,33 @@ class DoorEvents(SubscribeCallback):
         if status.is_error():
             log.warning('Locker ping publish failed: HTTP %s', status.status_code)
 
+    def test_open(self, client, expires_at):
+        command_id = str(uuid4())
+        payload = {'type': 'test_open', 'id': command_id, 'expires_at': expires_at}
+        received = Event()
+        with self.lock:
+            self.pending_tests[command_id] = received
+        try:
+            client.publish().channel(COMMAND_CHANNEL).message(payload).should_store(False).pn_async(
+                self.ping_published
+            )
+            if not received.wait(max(0, min(5, expires_at - time()))):
+                raise HTTPException(504, 'The controller did not acknowledge the test in time.')
+            return {'status': 'test_acknowledged', 'command_id': command_id}
+        finally:
+            with self.lock:
+                self.pending_tests.pop(command_id, None)
+
     def message(self, client, event):
         if event.channel != CHANNEL or event.publisher != 'unistow-locker-4':
+            return
+        if isinstance(event.message, dict) and event.message.get('type') == 'test_open_ack':
+            command_id = event.message.get('id')
+            if isinstance(command_id, str):
+                with self.lock:
+                    received = self.pending_tests.get(command_id)
+                    if received:
+                        received.set()
             return
         if isinstance(event.message, dict) and event.message.get('type') == 'pong':
             if self.probe_started and event.message.get('id') == self.probe_id:
@@ -54,7 +86,7 @@ class DoorEvents(SubscribeCallback):
         if not isinstance(event.message, dict) or event.message.get('door_state') not in ('open', 'closed'):
             return
         stamp = int(event.timetoken)
-        if not 0 <= time() - stamp / 10_000_000 < 15:
+        if not fresh_reading(stamp / 10_000_000):
             return
         with self.lock:
             if stamp <= self.timetoken:
@@ -68,7 +100,7 @@ class DoorEvents(SubscribeCallback):
             timestamp = self.timetoken / 10_000_000
             if last_heartbeat and last_heartbeat.timestamp() >= timestamp:
                 return None
-            if 0 <= time() - timestamp < 15:
+            if fresh_reading(timestamp):
                 return self.state
         return None
 
@@ -77,6 +109,9 @@ class DoorEvents(SubscribeCallback):
 async def lifespan(app):
     subscribe_key = os.getenv('PUBNUB_SUBSCRIBE_KEY')
     token = os.getenv('PUBNUB_READ_TOKEN')
+    test_mode = os.getenv('UNISTOW_OPEN_TEST') == '1'
+    if test_mode and not (subscribe_key and token and os.getenv('PUBNUB_PROBE_PUBLISH_KEY')):
+        raise RuntimeError('Open test mode requires PubNub publishing and subscription credentials.')
     if not (subscribe_key or token):
         yield
         return
@@ -89,11 +124,13 @@ async def lifespan(app):
     reader = PubNub(config)
     try:
         reader.set_token(token)
-        events = DoorEvents(probe_enabled=bool(config.publish_key))
+        events = DoorEvents(probe_enabled=bool(config.publish_key) and not test_mode)
+        app.state.open_test_client = reader if test_mode else None
         app.state.door_events = events
         reader.add_listener(events)
         reader.subscribe().channels(CHANNEL).execute()
         yield
     finally:
         app.state.door_events = None
+        app.state.open_test_client = None
         reader.stop()

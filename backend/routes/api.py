@@ -8,7 +8,7 @@ from auth.sessions import check_browser_request, current_user, end_session, star
 from auth.users import authenticate_user, create_user
 from database import get_db
 from schemas import Login, Registration, RentalRequest
-from services.commands import request_open
+from services.commands import authorised_locker, request_open
 from services.lockers import read_lockers
 from services.payment_confirmation import process_event, reconcile_rental, verify_event
 from services.payments import create_checkout
@@ -86,11 +86,28 @@ def logout(request: Request, response: Response, db: Annotated[Session, Depends(
     end_session(db, request, response)
 
 
+@router.post("/rentals/{rental_id}/test-open", dependencies=[Depends(check_browser_request)])
+def test_open_locker(rental_id: int, request: Request, db: Annotated[Session, Depends(get_db)]):
+    client = getattr(request.app.state, "open_test_client", None)
+    if client is None:
+        raise HTTPException(409, "Open test mode is disabled.")
+    user = current_user(db, request)
+    if user is None:
+        raise HTTPException(401, "Please sign in.")
+    _, rental, now = authorised_locker(db, rental_id, user["id"])
+    expires_at = min(now.timestamp() + 10, rental["paid_until"].timestamp())
+    db.commit()
+    events = request.app.state.door_events
+    return events.test_open(client, expires_at)
+
+
 @router.post("/rentals/{rental_id}/open", status_code=202, dependencies=[Depends(check_browser_request)])
 def open_locker(rental_id: int, request: Request, db: Annotated[Session, Depends(get_db)]):
     user = current_user(db, request)
     if user is None:
         raise HTTPException(401, "Please sign in.")
+    if getattr(request.app.state, "open_test_client", None) is not None:
+        raise HTTPException(409, "Physical commands are disabled during the delivery test.")
     return request_open(db, rental_id, user["id"])
 
 
@@ -101,4 +118,6 @@ def finish_rental(rental_id: int, request: Request, db: Annotated[Session, Depen
         raise HTTPException(401, "Please sign in.")
     if request.headers.get("X-UniStow-Collect-All") != "yes":
         raise HTTPException(422, "Confirm that you will collect all your belongings.")
+    if getattr(request.app.state, "open_test_client", None) is not None:
+        raise HTTPException(409, "Physical commands are disabled during the delivery test.")
     return request_open(db, rental_id, user["id"], action="finish")

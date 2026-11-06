@@ -20,6 +20,10 @@ window.initialiseLockerActions = function () {
                 method: 'POST', headers, signal: AbortSignal.timeout(8000),
             });
             const result = await response.json();
+            if (response.ok && result.status === 'test_acknowledged') {
+                openMessage.textContent = 'Controller acknowledged the test. The latch stayed in place.';
+                return;
+            }
             openMessage.textContent = response.ok
                 ? (finish
                     ? 'Collection requested. When the latch moves, open the door, collect everything and close it. The status will update automatically.'

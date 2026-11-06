@@ -201,3 +201,18 @@ Before a manual test, use `sudo systemctl stop uniflow-locker.service`.
 After stopping the test, use `sudo systemctl start uniflow-locker.service`.
 After updating the script, use `sudo systemctl restart uniflow-locker.service`.
 To remove automatic startup, use `sudo systemctl disable --now uniflow-locker.service`.
+
+## Test open command delivery from the rental page
+
+Use the same scoped tokens as the ping test. Set `open_test` to `true` in
+the Pi's private `pubnub` configuration and install the matching
+`probe_ping.py`, `publish_door.py` and `run_locker.py` before restarting the
+controller. Start local FastAPI with `UNISTOW_OPEN_TEST=1` and the PubNub
+credentials used for the ping test. Refresh the paid Locker 4 rental and
+select **Test open delivery**. The page reports success only after the Pi
+acknowledges the matching command ID. The Pi clock must be synchronised.
+
+The test command expires within ten seconds or at the rental deadline,
+whichever comes first. The controller handles it in a separate thread
+without calling the servo. To resume physical commands in this server,
+restart FastAPI without the test flag and reload the rental page.

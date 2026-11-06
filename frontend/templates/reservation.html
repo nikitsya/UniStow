@@ -3,7 +3,7 @@
 {% block extra_head %}
 {{ super() }}
 <script defer src="{{ url_for('static', path='js/payment.js') }}?v=live-1"></script>
-<script defer src="{{ url_for('static', path='js/open_locker.js') }}?v=live-1"></script>
+<script defer src="{{ url_for('static', path='js/open_locker.js') }}?v=open-test"></script>
 <script defer src="{{ url_for('static', path='js/live.js') }}?v=1"></script>
 {% endblock %}
 {% block screen_content %}
@@ -54,20 +54,15 @@
         <p class="confirmation">Your paid rental period has ended. Please contact the locker operator.</p>
         {% endif %}
         {% if rental.status == 'active' and rental.payment_status == 'paid' and rental.number == 4 %}
-        {% if can_open %}
-        <button class="confirm-button" data-url="{{ url_for('open_locker', rental_id=rental.id) }}"
-                id="open-locker-button"
-                type="button">Open locker
+        <button %}
+                %}disabled{%
+                can_open class="confirm-button" data-url="{{ url_for('test_open_locker' if open_test else 'open_locker', rental_id=rental.id) }}" endif id="open-locker-button" if not type="button" {%>
+            {{ 'Test open delivery' if open_test else 'Open locker' }}
         </button>
-        {% else %}
-        <button class="confirm-button" data-url="{{ url_for('open_locker', rental_id=rental.id) }}" disabled
-                id="open-locker-button" type="button">Open locker
-        </button>
-        {% endif %}
         <p aria-live="polite" class="confirmation" id="open-locker-message" role="status">{% if not can_open %}The
             locker is
             not ready. Check the controller and rental period, please wait.{% endif %}</p>
-        {% if can_open and rental.door_state == "closed" %}
+        {% if not open_test and can_open and rental.door_state == "closed" %}
         <button class="back-button" data-url="{{ url_for('finish_rental', rental_id=rental.id) }}"
                 id="finish-rental-button"
                 type="button">Finish rental

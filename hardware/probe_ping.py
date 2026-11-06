@@ -1,6 +1,9 @@
 """Reply to one server connectivity probe without accessing the GPIO pins."""
-import json
 from pathlib import Path
+
+import json
+from http.client import HTTPException
+from time import time
 from urllib.error import HTTPError
 from urllib.parse import quote, urlencode
 from urllib.request import build_opener
@@ -29,14 +32,67 @@ def pong_for(event):
     return {'type': 'pong', 'id': probe_id}
 
 
+def subscribe_batch(config, opener, cursor):
+    url = f"https://ps.pndsn.com/v2/subscribe/{quote(config['subscribe_key'], safe='')}/{CHANNEL}/0"
+    query = {'uuid': 'unistow-locker-4', 'auth': config['token'], **cursor}
+    with opener.open(url + '?' + urlencode(query), timeout=320) as response:
+        return json.load(response)
+
+
+def open_test_ack(event, seen, now):
+    data = event.get('d')
+    if event.get('c') != CHANNEL or event.get('i') != 'unistow-mac-reader':
+        return None
+    if not isinstance(data, dict) or data.get('type') != 'test_open':
+        return None
+    command_id = data.get('id')
+    expires = data.get('expires_at')
+    if not isinstance(expires, (float, int)) or not now < expires <= now + 10:
+        return None
+    if not isinstance(command_id, str):
+        return None
+    try:
+        if str(UUID(command_id)) != command_id:
+            return None
+    except ValueError:
+        return None
+    for previous in list(seen):
+        if seen[previous] <= now:
+            del seen[previous]
+    if command_id in seen:
+        return None
+    seen[command_id] = expires
+    return {'type': 'test_open_ack', 'id': command_id}
+
+
+def listen_open_tests(stop):
+    opener = build_opener(NoRedirects())
+    cursor = {'tt': '0'}
+    seen = {}
+    path = Path(__file__).with_name('device_config.json')
+    while not stop.is_set():
+        try:
+            config = json.loads(path.read_text())['pubnub']
+            batch = subscribe_batch(config, opener, cursor)
+            cursor.update(tt=batch['t']['t'], tr=batch['t']['r'])
+            for event in batch['m']:
+                ack = open_test_ack(event, seen, time())
+                if ack and not stop.is_set():
+                    with opener.open(event_request(config, ack), timeout=5) as response:
+                        if json.load(response)[:2] != [1, 'Sent']:
+                            raise ValueError('Acknowledgement rejected.')
+                    print('Acknowledged open test', ack['id'], flush=True)
+        except (OSError, HTTPException, ValueError, TypeError, KeyError):
+            print('Open test subscription unavailable. Check the token and network.', flush=True)
+            stop.wait(5)
+
+
 def main():
     config = json.loads(Path(__file__).with_name('device_config.json').read_text())['pubnub']
-    url = f"https://ps.pndsn.com/v2/subscribe/{quote(config['subscribe_key'], safe='')}/{CHANNEL}/0"
-    query = {'uuid': 'unistow-locker-4', 'auth': config['token'], 'tt': '0'}
+    query = {'tt': '0'}
     opener = build_opener(NoRedirects())
     while True:
-        with opener.open(url + '?' + urlencode(query), timeout=320) as response:
-            batch = json.load(response)
+        batch = subscribe_batch(config, opener, query)
         if query['tt'] == '0':
             print('Pi ready for ping.', flush=True)
         query.update(tt=batch['t']['t'], tr=batch['t']['r'])
