@@ -26,6 +26,9 @@ services:
 
   app:
     build: .
+    command: [ ".venv/bin/uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000",
+               "--proxy-headers", "--forwarded-allow-ips", "*",
+               "--ssl-keyfile", "/run/app-tls/server.key", "--ssl-certfile", "/run/app-tls/server.crt" ]
     restart: unless-stopped
     environment:
       PGSSLMODE: verify-full
@@ -45,13 +48,15 @@ services:
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
       UNISTOW_DEVICE_KEY: ${UNISTOW_DEVICE_KEY:?Set UNISTOW_DEVICE_KEY}
     volumes:
+      - /etc/unistow/app-tls/server.crt:/run/app-tls/server.crt:ro
+      - /etc/unistow/app-tls/server.key:/run/app-tls/server.key:ro
       - /etc/unistow/postgres-tls/server.crt:/run/postgres-tls/server.crt:ro
     depends_on:
       db:
         condition: service_healthy
     networks: [ web, database ]
     healthcheck:
-      test: [ "CMD", ".venv/bin/python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/', timeout=5)" ]
+      test: [ "CMD", ".venv/bin/python", "-c", "import ssl, urllib.request; urllib.request.urlopen('https://127.0.0.1:8000/', context=ssl.create_default_context(cafile='/run/app-tls/server.crt'), timeout=5)" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -64,6 +69,7 @@ services:
       - "80:80"
       - "443:443"
     volumes:
+      - /etc/unistow/app-tls/server.crt:/run/app-tls/server.crt:ro
       - ./deploy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro
       - /var/www/letsencrypt:/var/www/letsencrypt:ro

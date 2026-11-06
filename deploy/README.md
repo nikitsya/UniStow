@@ -64,6 +64,26 @@ Renew this database certificate before expiry. Generate a replacement pair in a
 separate directory, keep the old pair for rollback, then install the new files and
 recreate both `db` and `app` together so their bind mounts use the new pair.
 
+Before starting FastAPI, generate a separate certificate for the internal HTTPS
+listener. Nginx verifies the service name `app`. The container health check
+verifies the loopback address. Only FastAPI receives the private key.
+
+```sh
+sudo install -d -m 700 /etc/unistow/app-tls
+sudo sh -ec 'cd /etc/unistow/app-tls
+  test ! -e server.key && test ! -e server.crt || exit 1
+  umask 077
+  openssl req -x509 -newkey rsa:3072 -nodes -sha256 -days 365 \
+    -subj /CN=app -addext subjectAltName=DNS:app,IP:127.0.0.1 \
+    -addext extendedKeyUsage=serverAuth -keyout server.key -out server.crt
+  chown 10001 server.key
+  chmod 644 server.crt'
+```
+
+Renew the internal FastAPI certificate before expiry. Keep the previous pair for
+rollback, install the replacement and recreate both `app` and `nginx` so they
+use the same certificate. Certbot renews the public certificate separately.
+
 On a new server, obtain the certificate before starting the production proxy.
 Run the following from the application directory with port 80 available.
 The temporary Nginx container serves the ACME challenge for both domain names.
