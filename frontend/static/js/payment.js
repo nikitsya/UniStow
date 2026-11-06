@@ -73,10 +73,7 @@ window.initialisePayment = function () {
                 window.location.assign(payButton.dataset.loginUrl);
                 return;
             }
-            if (!response.ok) {
-                paymentMessage.textContent = 'Payment verification is unavailable. We will check again shortly.';
-                return;
-            }
+            if (!response.ok) return;
             const result = await response.json();
             if (result.status !== 'pending') {
                 document.dispatchEvent(new Event('rental-updated'));
@@ -86,7 +83,7 @@ window.initialisePayment = function () {
                 paymentMessage.textContent = 'Payment is not confirmed yet. We will check again shortly.';
             }
         } catch {
-            paymentMessage.textContent = 'Could not check payment. We will check again shortly.';
+            // The next background check will retry.
         }
     }
 

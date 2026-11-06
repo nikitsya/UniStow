@@ -3,13 +3,12 @@
 {% block body_class %}home-page{% endblock %}
 {% block extra_head %}
 <script defer src="{{ url_for('static', path='js/home.js') }}?v=5"></script>
-<script defer src="{{ url_for('static', path='js/live.js') }}?v=1"></script>
+<script defer src="{{ url_for('static', path='js/live.js') }}?v=8"></script>
 {% endblock %}
 {% block content %}
 {% set available = lockers | selectattr('status', 'equalto', 'available') | list %}
 <div class="home-content">
     <section aria-label="Lockers" class="home-section" id="lockers">
-        <p class="home-error" hidden id="live-message" role="status"></p>
         <div aria-label="Filter lockers" class="locker-filters" hidden role="group">
             <button aria-pressed="true" data-filter="all" type="button">All lockers <span>{{ lockers | length }}</span>
             </button>

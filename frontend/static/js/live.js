@@ -120,8 +120,6 @@
             } else {
                 replaceIfChanged('#live-rentals-list', fresh);
             }
-            const message = document.querySelector('#live-message');
-            if (message) message.hidden = true;
         } catch {
             for (const id of ['open-locker-button', 'finish-rental-button', 'confirm-finish']) {
                 const button = document.getElementById(id);
@@ -129,11 +127,6 @@
             }
             const grid = document.querySelector('.home-locker-grid');
             if (grid) grid.inert = true;
-            const message = document.querySelector('#live-message');
-            if (message) {
-                message.textContent = 'Connection interrupted. Reconnecting…';
-                message.hidden = false;
-            }
         } finally {
             running = false;
             timer = setTimeout(refresh, 3000);
