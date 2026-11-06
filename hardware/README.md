@@ -100,12 +100,11 @@ Stop the reporting script before running the locker test.
 
 The controller uses the tested 1500 us closed and 2250 us open pulses.
 After closing, it checks the door for another two seconds before acknowledging collection.
-If the door opens during this check in an authorised cycle, it releases the latch
-and waits for closure again, with at most three automatic retries. It then stops
-for assistance without completing the rental. An unexpected open door outside
-that cycle does not automatically unlock the latch.
-For an active paid rental, **Open locker** lets the owner retract the latch
-while the door is open and the controller is ready. **Finish rental** still requires
+An open sensor reading retracts the latch at startup, during a closing attempt,
+or after the latch has settled. The controller waits for a full second of
+continuous closed readings before lowering it again. After three failed retries
+it leaves the latch retracted for assistance. Mount the sensor so it reports
+closed only when the door is seated and the latch can clear the frame. **Finish rental** requires
 a closed door. Replace the Pi's `run_locker.py` and restart `uniflow-locker` to use this behaviour.
 Local closing continues if the Mac connection drops. Opening requests expire after
 10 seconds and are dispatched only once. Wait for the button to become available

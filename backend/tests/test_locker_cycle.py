@@ -30,12 +30,23 @@ class LockerCycleTests(unittest.TestCase):
         self.assertEqual(cycle.phase, 'confirm_close')
         self.assertEqual(cycle.tick(True, 27), 'secured')
 
-    def test_startup_open_door_does_not_move_latch(self):
+    def test_startup_with_open_door_retracts_latch_once(self):
         cycle = controller.LockerCycle()
-        for now in range(10):
+        self.assertEqual(cycle.tick(False, 0), 'open')
+        for now in range(1, 10):
             self.assertIsNone(cycle.tick(False, now))
         self.assertIsNone(cycle.tick(True, 10))
         self.assertEqual(cycle.tick(True, 11), 'close')
+
+    def test_incomplete_close_at_startup_retracts_without_a_rental_command(self):
+        cycle = controller.LockerCycle()
+        cycle.tick(True, 0)
+        self.assertEqual(cycle.tick(True, 1), 'close')
+        self.assertEqual(cycle.tick(False, 1.5), 'open')
+        self.assertIsNone(cycle.tick(True, 2))
+        self.assertIsNone(cycle.tick(False, 2.9))
+        self.assertIsNone(cycle.tick(True, 3))
+        self.assertEqual(cycle.tick(True, 4), 'close')
 
     def test_owner_can_release_latch_with_open_door(self):
         cycle = self.ready()
@@ -54,7 +65,8 @@ class LockerCycleTests(unittest.TestCase):
         self.assertEqual(cycle.tick(True, 9), 'close')
         self.assertIsNone(cycle.tick(True, 10))
         self.assertEqual(cycle.tick(True, 11), 'secured')
-        self.assertIsNone(cycle.tick(False, 12))
+        self.assertEqual(cycle.tick(False, 12), 'open')
+        self.assertIsNone(cycle.tick(False, 13))
 
     def test_recovery_retries_are_bounded(self):
         cycle = self.ready()
@@ -65,7 +77,7 @@ class LockerCycleTests(unittest.TestCase):
             cycle.tick(True, now)
             self.assertEqual(cycle.tick(True, now + 1), 'close')
             result = cycle.tick(False, now + 1.5)
-            self.assertEqual(result, 'open' if attempt < 3 else None)
+            self.assertEqual(result, 'open')
         self.assertEqual(cycle.phase, 'blocked')
         self.assertIsNone(cycle.tick(True, 30))
         self.assertEqual(cycle.tick(False, 31, True), 'open')

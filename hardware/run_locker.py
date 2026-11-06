@@ -15,7 +15,6 @@ class LockerCycle:
         self.phase = 'starting'
         self.closed_since = None
         self.retries = 0
-        self.authorised = False
 
     def ready(self, closed):
         return self.phase == 'idle' or (not closed and self.phase in ('starting', 'await_close', 'blocked'))
@@ -25,20 +24,20 @@ class LockerCycle:
             self.phase = 'await_open' if closed else 'await_close'
             self.closed_since = None
             self.retries = 0
-            self.authorised = True
             return 'open'
         if self.phase == 'confirm_close':
             if not closed:
                 self.closed_since = None
-                if self.authorised and self.retries < 3:
+                if self.retries < 3:
                     self.retries += 1
                     self.phase = 'await_close'
                     return 'open'
                 self.phase = 'blocked'
+                return 'open'
             elif now - self.closed_since >= 2:
                 self.phase = 'idle'
                 self.closed_since = None
-                self.authorised = False
+                self.retries = 0
                 return 'secured'
             return None
         if self.phase == 'blocked':
@@ -49,8 +48,9 @@ class LockerCycle:
             return None
         if not closed:
             self.closed_since = None
-            if self.phase == 'idle':
+            if self.phase in ('starting', 'idle'):
                 self.phase = 'await_close'
+                return 'open'
             return None
         if self.phase in ('starting', 'await_close'):
             if self.closed_since is None:
@@ -199,7 +199,7 @@ def main():
                     servo.max()
                     if requested and acknowledgement:
                         acknowledgement.set()
-                    print('Opening commanded (2250 us). Open the door, then close it.', flush=True)
+                    print('Latch retracted (2250 us).', flush=True)
                 elif action == 'close':
                     servo.min()
                     print('Closing commanded (1500 us).', flush=True)
