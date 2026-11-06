@@ -1,7 +1,7 @@
 <header class="home-header">
     <a aria-label="UniStow home" class="home-brand" href="{{ url_for('home') }}"><span aria-hidden="true"
                                                                                        class="brand-symbol">U<span></span></span>UniStow</a>
-    {% if booking_header %}
+    {% if not active_tab %}
     <a aria-label="Back to lockers" class="account-menu header-account" href="{{ url_for('home') }}">
         <svg aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24">
             <path d="m14 6-6 6 6 6M8 12h12"/>
@@ -32,6 +32,9 @@
     </details>
     {% endif %}
     <div class="home-intro"><p class="eyebrow">CAMPUS STORAGE</p></div>
-    <p class="rental-guidance">{% if booking_header %}Choose your rental period{% else %}Rent for 1–4 calendar days.
-        Your rental ends at 18:00.{% endif %}</p>
+    {% if header_title %}
+    <h1 class="rental-guidance">{{ header_title }}</h1>
+    {% else %}
+    <p class="rental-guidance">{{ header_hint | default('Rent for 1–4 calendar days. Your rental ends at 18:00.') }}</p>
+    {% endif %}
 </header>

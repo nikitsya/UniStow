@@ -1,5 +1,5 @@
 {% extends "screen.html" %}
-{% block screen_title %}My rental · Locker {{ rental.number }}{% endblock %}
+{% set header_title %}My rental · Locker {{ rental.number }}{% endset %}
 {% block extra_head %}
 {{ super() }}
 <script defer src="{{ url_for('static', path='js/payment.js') }}?v=live-1"></script>

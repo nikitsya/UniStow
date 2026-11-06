@@ -1,5 +1,5 @@
 {% extends "screen.html" %}
-{% block screen_title %}Create account{% endblock %}
+{% set header_title %}Create account{% endset %}
 
 {% block screen_content %}
 <form action="{{ url_for('register') }}" id="registration-form" method="post">

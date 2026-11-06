@@ -1,5 +1,5 @@
 {% extends "screen.html" %}
-{% block screen_title %}Sign in{% endblock %}
+{% set header_title %}Sign in{% endset %}
 
 {% block screen_content %}
 <form action="{{ url_for('login') }}" data-destination="{{ destination }}" id="login-form" method="post">

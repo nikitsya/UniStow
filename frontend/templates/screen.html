@@ -4,19 +4,6 @@
 <link href="{{ url_for('static', path='css/screens.css') }}?v=5" rel="stylesheet">
 {% endblock %}
 {% block content %}
-<header class="screen-header">
-    <a class="screen-brand" href="{{ url_for('home') }}"><span aria-hidden="true"
-                                                               class="screen-symbol">U<span></span></span>UniStow</a>
-    {% if not active_tab %}
-    <a aria-label="Back to lockers" class="screen-home" href="{{ url_for('home') }}">
-        <svg aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24">
-            <path d="m14 6-6 6 6 6M8 12h12"/>
-        </svg>
-    </a>
-    {% endif %}
-    <p class="screen-eyebrow">CAMPUS STORAGE</p>
-    <h1>{% block screen_title %}{% endblock %}</h1>
-</header>
 <section class="rental-screen">
     {% block screen_content %}{% endblock %}
 </section>
