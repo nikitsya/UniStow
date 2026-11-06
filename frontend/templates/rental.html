@@ -1,9 +1,10 @@
 {% extends "screen.html" %}
-{% block screen_title %}{{ locker.name }}{% endblock %}
+{% block body_class %}{{ super() }} booking-page{% endblock %}
+{% block screen_title %}Choose your rental period{% endblock %}
 
 {% block screen_content %}
-<div class="booking-summary"><span aria-hidden="true" class="summary-locker"><i></i>{{ '%02d' | format(locker.number) }}</span>
-    <div><span class="detail-label">Your locker</span>
+<div class="booking-summary"><span aria-hidden="true" class="summary-locker"><i></i></span>
+    <div>
         <h2>{{ locker.name }}</h2>
         <p>{{ locker.size }} · €{{ '%.2f' | format(locker.price_per_day_cents / 100) }} per day</p></div>
 </div>

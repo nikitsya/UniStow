@@ -89,6 +89,16 @@
     letter-spacing: -.6px;
 }
 
+.booking-page .screen-header h1 {
+    margin-top: 22px;
+    padding-top: 16px;
+    font-size: 12px;
+    line-height: 1.7;
+    font-weight: 400;
+    letter-spacing: normal;
+    color: #d0ded7;
+}
+
 .flow-page .rental-screen {
     padding: 28px;
 }
@@ -244,7 +254,7 @@
 }
 
 .booking-summary h2 {
-    font-size: 21px;
+    font-size: 16px;
     margin: 4px 0;
     font-weight: 600;
 }
