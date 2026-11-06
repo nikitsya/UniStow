@@ -107,6 +107,15 @@
     background: #f4d5b5;
 }
 
+.flow-page :is(#finish-rental-button, #confirm-finish) {
+    -webkit-tap-highlight-color: transparent;
+}
+
+.flow-page #finish-rental-button:disabled {
+    background: #edece4;
+    color: #706e68;
+}
+
 .flow-page .confirmation {
     font-size: 14px;
     color: #4b6351;
