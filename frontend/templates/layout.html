@@ -7,8 +7,10 @@
     <title>{{ title }}</title>
     <link href="{{ url_for('static', path='css/main.css') }}" rel="stylesheet">
     <script defer src="{{ url_for('static', path='js/rental.js') }}?v=checkout-3"></script>
-    {% if active_tab %}
+    {% if active_tab or booking_header %}
     <link href="{{ url_for('static', path='css/home.css') }}?v=11" rel="stylesheet">
+    {% endif %}
+    {% if active_tab %}
     <script defer src="{{ url_for('static', path='js/account_menu.js') }}"></script>
     <link href="{{ url_for('static', path='css/bottom_nav.css') }}" rel="stylesheet">
     {% endif %}
@@ -16,7 +18,7 @@
 </head>
 <body class="{% block body_class %}{% endblock %}">
 <main class="app-shell">
-    {% if active_tab %}{% include 'main_header.html' %}{% endif %}
+    {% if active_tab or booking_header %}{% include 'main_header.html' %}{% endif %}
     {% block content %}{% endblock content %}
     {% if active_tab %}{% include 'bottom_nav.html' %}{% endif %}
 </main>
