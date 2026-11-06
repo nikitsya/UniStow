@@ -54,11 +54,16 @@
         <p class="confirmation">Your paid rental period has ended. Please contact the locker operator.</p>
         {% endif %}
         {% if rental.status == 'active' and rental.payment_status == 'paid' and rental.number == 4 %}
-        <button %}
-                %}disabled{%
-                can_open class="confirm-button" data-url="{{ url_for('test_open_locker' if open_test else 'open_locker', rental_id=rental.id) }}" endif id="open-locker-button" if not type="button" {%>
+        {% set open_url = url_for('test_open_locker' if open_test else 'open_locker', rental_id=rental.id) %}
+        {% if can_open %}
+        <button class="confirm-button" data-url="{{ open_url }}" id="open-locker-button" type="button">
             {{ 'Test open delivery' if open_test else 'Open locker' }}
         </button>
+        {% else %}
+        <button class="confirm-button" data-url="{{ open_url }}" disabled id="open-locker-button" type="button">
+            {{ 'Test open delivery' if open_test else 'Open locker' }}
+        </button>
+        {% endif %}
         <p aria-live="polite" class="confirmation" id="open-locker-message" role="status">{% if not can_open %}The
             locker is
             not ready. Check the controller and rental period, please wait.{% endif %}</p>
