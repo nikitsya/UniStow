@@ -124,7 +124,7 @@ class CommandTests(unittest.TestCase):
         self.report(door='open')
         page = self.client.get(f'/rentals/{self.rental_id}')
         self.assertIn('Open locker', page.text)
-        self.assertRegex(page.text, r'<button(?=[^>]*id="open-locker-button")(?![^>]*\bdisabled\b)[^>]*>')
+        self.assertRegex(page.text, r'<button(?=[^>]*id="open-locker-button")(?=[^>]*\bdisabled\b)[^>]*>')
         self.assertRegex(page.text, r'<button(?=[^>]*id="finish-rental-button")(?=[^>]*\bdisabled\b)[^>]*>')
         self.assertEqual(self.finish().status_code, 409)
         self.assertEqual(self.open().status_code, 202)
@@ -223,6 +223,10 @@ class CommandTests(unittest.TestCase):
                                   json={'controller_id': self.controller, 'supports_finish': True}).json()['command']
         self.assertEqual(result['action'], 'finish')
         self.report(ready=False, door='open')
+        page = self.client.get(f'/rentals/{self.rental_id}').text
+        self.assertIn('>Take all your belongings, then close the door to finish your rental.</p>', page)
+        for button in ('open-locker-button', 'finish-rental-button'):
+            self.assertRegex(page, rf'<button(?=[^>]*id="{button}")(?=[^>]*\bdisabled\b)[^>]*>')
         self.report(ready=False, door='closed')
         self.assertEqual(self.connection.execute(text('SELECT status FROM rentals')).scalar_one(), 'active')
         self.assertEqual(self.acknowledge(command_id, str(uuid4())).status_code, 409)

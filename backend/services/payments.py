@@ -26,6 +26,12 @@ def owned_rental(db: Session, rental_id: int, user_id: int):
                                     lockers.door_state,
                                     lockers.last_seen_at,
                                     lockers.device_ready,
+                                    EXISTS (SELECT 1
+                                            FROM locker_commands c
+                                            WHERE c.rental_id = rentals.id
+                                              AND c.action = 'finish'
+                                              AND c.completed_at IS NULL
+                                              AND (c.dispatched_at IS NOT NULL OR c.expires_at > CURRENT_TIMESTAMP)) AS collecting,
                                     payments.status AS payment_status
                              FROM rentals
                                       JOIN lockers ON lockers.id = rentals.locker_id

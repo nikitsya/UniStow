@@ -30,6 +30,7 @@
                 lastPaymentCheck = Date.now();
                 await window.checkRentalPayment?.();
             }
+            const commandAtFetch = window.lockerCooldown;
             const response = await fetch(window.location.href, {
                 cache: 'no-store', signal: AbortSignal.timeout(8000),
             });
@@ -43,8 +44,11 @@
             if (rental) {
                 const next = fresh.querySelector('#live-rental');
                 if (!next) throw new Error('Rental unavailable');
-                for (const selector of ['.rental-overview', '.rental-facts', '.total', '#active-rental-notice']) {
+                for (const selector of ['.rental-overview', '.rental-facts', '.total']) {
                     replaceIfChanged(`#live-rental ${selector}`, fresh);
+                }
+                if (!window.lockerBusy && commandAtFetch === window.lockerCooldown) {
+                    replaceIfChanged('#active-rental-notice', fresh);
                 }
                 const actionsChanged = rental.dataset.status !== next.dataset.status
                     || Boolean(document.querySelector('#pay-button')) !== Boolean(next.querySelector('#pay-button'))

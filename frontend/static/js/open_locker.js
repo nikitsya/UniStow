@@ -12,7 +12,10 @@ window.initialiseLockerActions = function () {
         openButton.disabled = true;
         finishButton.disabled = true;
         openMessage.dataset.commandMessage = 'true';
-        openMessage.textContent = 'Unlocking…';
+        const notice = document.querySelector('#active-rental-notice');
+        const previousNotice = notice.textContent;
+        if (finish) notice.textContent = notice.dataset.collectionNotice;
+        openMessage.textContent = finish ? '' : 'Unlocking…';
         try {
             const headers = {'X-UniStow-Request': '1'};
             if (finish) headers['X-UniStow-Collect-All'] = 'yes';
@@ -24,13 +27,17 @@ window.initialiseLockerActions = function () {
                 openMessage.textContent = 'Controller acknowledged the test. The latch stayed in place.';
                 return;
             }
+            if (finish && response.ok) {
+                delete openMessage.dataset.commandMessage;
+                return;
+            }
+            if (finish) notice.textContent = previousNotice;
             if (response.ok && !finish) openMessage.dataset.commandMessage = 'opening';
             openMessage.textContent = response.ok
-                ? (finish
-                    ? 'Take all your belongings, then close the door to finish your rental.'
-                    : 'Open the door once it unlocks.')
+                ? 'Open the door once it unlocks.'
                 : (typeof result.detail === 'string' ? result.detail : 'Request failed. Please try again shortly.');
         } catch {
+            if (finish) notice.textContent = previousNotice;
             openMessage.textContent = 'Delivery is uncertain. Check the locker, wait a few seconds before trying again. No automatic retry was sent.';
         } finally {
             window.lockerBusy = false;

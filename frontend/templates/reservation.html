@@ -3,10 +3,11 @@
 {% block extra_head %}
 {{ super() }}
 <script defer src="{{ url_for('static', path='js/payment.js') }}?v=2"></script>
-<script defer src="{{ url_for('static', path='js/open_locker.js') }}?v=4"></script>
-<script defer src="{{ url_for('static', path='js/live.js') }}?v=4"></script>
+<script defer src="{{ url_for('static', path='js/open_locker.js') }}?v=5"></script>
+<script defer src="{{ url_for('static', path='js/live.js') }}?v=5"></script>
 {% endblock %}
 {% block screen_content %}
+{% set collection_notice = 'Take all your belongings, then close the door to finish your rental.' %}
 <div data-door-state="{{ door_state }}" data-status="{{ rental.status }}" id="live-rental">
     <div class="rental-overview"><span class="detail-label">Reservation #{{ rental.id }}</span><span
             class="rental-state state-{{ rental.status }}">{{ rental.status | capitalize }}</span></div>
@@ -48,7 +49,9 @@
         <p aria-live="polite" class="confirmation" id="payment-message" role="status"></p>
 
         {% elif rental.status == 'active' %}
-        <p class="confirmation" id="active-rental-notice" role="status">{% if door_state == 'open' %}Your locker door is
+        <p class="confirmation" data-collection-notice="{{ collection_notice }}" id="active-rental-notice"
+           role="status">{% if rental.collecting %}{{ collection_notice }}{% elif
+            door_state == 'open' %}Your locker door is
             open.{% else %}Payment confirmed. Your rental is active.{% endif %}</p>
         {% elif rental.status == 'completed' %}
         <p class="confirmation">Rental completed. Thank you for collecting your belongings.</p>
@@ -59,17 +62,18 @@
         {% endif %}
         {% if rental.status == 'active' and rental.payment_status == 'paid' and rental.number == 4 %}
         {% set open_url = url_for('test_open_locker' if open_test else 'open_locker', rental_id=rental.id) %}
-        {% set open_disabled = door_state == 'open' or not can_open %}
+        {% set open_disabled = rental.collecting or door_state == 'open' or not can_open %}
         <button class="confirm-button" data-url="{{ open_url }}" id="open-locker-button" type="button"
                 {{
         'disabled' if open_disabled else '' }}>
             {{ 'Test open delivery' if open_test else 'Open locker' }}
         </button>
-        <p aria-live="polite" class="confirmation" id="open-locker-message" role="status">{% if not can_open and
+        <p aria-live="polite" class="confirmation" id="open-locker-message" role="status">{% if not rental.collecting
+            and not can_open and
             door_state != 'open' %}The
             locker is
             not ready. Check the controller and rental period, please wait.{% endif %}</p>
-        {% if not open_test and http_ready and rental.door_state == "closed" %}
+        {% if not rental.collecting and not open_test and http_ready and rental.door_state == "closed" %}
         <button class="back-button" data-url="{{ url_for('finish_rental', rental_id=rental.id) }}"
                 id="finish-rental-button"
                 type="button">Finish rental
