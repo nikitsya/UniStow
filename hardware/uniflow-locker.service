@@ -1,5 +1,5 @@
 [Unit]
-Description=UniStow locker controller
+Description=UniFlow locker controller
 Wants=pigpiod.service network-online.target
 After=pigpiod.service network-online.target
 StartLimitIntervalSec=0

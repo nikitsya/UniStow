@@ -1,4 +1,6 @@
 """Run the paid-rental controller on the Raspberry Pi, replacing report_door.py."""
+from pathlib import Path
+
 import json
 from queue import Empty, Queue
 from threading import Event, Lock, Thread
@@ -7,8 +9,6 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 from uuid import uuid4
-
-from pathlib import Path
 
 
 class LockerCycle:
@@ -77,7 +77,8 @@ def load_config():
             or url.username or url.password or url.query or url.fragment
             or not isinstance(key, str) or not key.strip()):
         raise ValueError('Invalid device configuration.')
-    return server, key
+    pubnub = config.get('pubnub')
+    return server, key, isinstance(pubnub, dict) and bool(pubnub.get('token'))
 
 
 def communicate(server, key, shared, lock, commands, collections, finishing, stop):
@@ -137,7 +138,7 @@ def main():
     from gpiozero.pins.pigpio import PiGPIOFactory
 
     try:
-        server, key = load_config()
+        server, key, publish_enabled = load_config()
     except (OSError, ValueError, KeyError, TypeError, AttributeError):
         print('Check device_config.json beside this script.')
         return
@@ -148,6 +149,7 @@ def main():
     collections = Queue()
     finishing = Event()
     cycle = LockerCycle()
+    publisher = None
     worker = None
     factory = PiGPIOFactory(host='localhost')
     try:
@@ -160,6 +162,11 @@ def main():
             worker = Thread(target=communicate,
                             args=(server, key, shared, lock, commands, collections, finishing, stop), daemon=True)
             worker.start()
+            if publish_enabled:
+                from publish_door import report_changes
+                publisher = Thread(target=report_changes,
+                                   args=(shared, lock, stop, build_opener(NoRedirects())), daemon=True)
+                publisher.start()
             print('Controller started. Close the door to prepare the latch.')
             last_command = None
             collection_command = None
@@ -199,6 +206,8 @@ def main():
         stop.set()
         if worker:
             worker.join(timeout=5)
+        if publisher:
+            publisher.join(timeout=6)
         factory.close()
 
 

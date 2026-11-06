@@ -4,7 +4,7 @@
 
 Use this one-shot test on an idle Locker 4. It reads GPIO17 and publishes the
 door position to `unistow.locker-4.events`. The rental controller still uses
-the HTTP API.
+the HTTP API for commands.
 
 1. Enable Access Manager on the PubNub keyset. From a trusted machine, grant
    a short-lived token bound to user ID `unistow-locker-4` with write permission
@@ -13,13 +13,21 @@ the HTTP API.
    section from `device_config.example.json` to the private `device_config.json`.
    Fill in the publish key, subscribe key and token. Run `chmod 600 device_config.json`.
 3. Start a subscriber on the events channel with a separate read token.
-   Stop the locker service with `sudo systemctl stop unistow-locker` if it is
+   Stop the locker service with `sudo systemctl stop uniflow-locker` if it is
    running, and close any GPIO tests. Keep pigpiod running.
 4. With the sensor contacts together, run `python3 publish_door.py` and check
    the subscriber receives `{"door_state": "closed"}`. Separate the contacts
    and run it again to check for `{"door_state": "open"}`. The script reads
    the sensor once per run and leaves the servo alone.
 5. Close the door and restart the locker service if you stopped it.
+
+## Publish from the running controller
+
+Copy both `run_locker.py` and `publish_door.py` to the Pi Desktop. With a
+publish token configured, the controller sends the first door reading, changes
+of state and a fresh reading every five seconds. It retries failed publishes
+after five seconds and reads the current credentials for each attempt.
+A separate thread handles publishing while GPIO and HTTP commands continue.
 
 ## Receive the reading in local FastAPI
 
@@ -34,6 +42,21 @@ The Locker 4 rental page uses the latest fresh reading from PubNub or the
 HTTP heartbeat. PubNub readings expire after 15 seconds and are held in
 memory for this local test. Command authorisation still uses the controller
 heartbeat and the database.
+
+## Check the return path with a ping
+
+Grant the Pi user read access to `unistow.locker-4.commands` alongside its
+existing write access to the events channel. Give the FastAPI reader write
+access to the commands channel alongside its existing read access to events.
+Copy `probe_ping.py` and the matching `publish_door.py` beside the controller.
+Run `python3 probe_ping.py` on the Pi while the locker service is running.
+
+After `Pi ready for ping.`, start local FastAPI with its scoped token and
+set `PUBNUB_PROBE_PUBLISH_KEY` to the keyset's publish key for that run.
+FastAPI sends one ping after subscribing. The probe replies on the events
+channel and exits. Compare the ID in the Pi's `Sent pong` line with the
+server's `Locker 4 pong` line. Restart the probe and server to repeat.
+The probe handles only ping messages and uses no GPIO pins.
 
 ## Report the door state to UniStow
 
@@ -83,7 +106,7 @@ for assistance without completing the rental. An unexpected open door outside
 that cycle does not automatically unlock the latch.
 For an active paid rental, **Open locker** lets the owner retract the latch
 while the door is open and the controller is ready. **Finish rental** still requires
-a closed door. Replace the Pi's `run_locker.py` and restart `unistow-locker` to use this behaviour.
+a closed door. Replace the Pi's `run_locker.py` and restart `uniflow-locker` to use this behaviour.
 Local closing continues if the Mac connection drops. Opening requests expire after
 10 seconds and are dispatched only once. Wait for the button to become available
 before requesting another opening.
@@ -143,23 +166,29 @@ needs checking by the operator. Overdue access still requires operator assistanc
 This service uses the Pi user `nikitsya` and expects `run_locker.py` and
 `device_config.json` in `/home/nikitsya/Desktop`. Check both files exist first.
 Stop all GPIO scripts in Thonny and close the door before starting the service.
-Copy `unistow-locker.service` to the Pi Desktop, then run in the Pi terminal:
+Copy `uniflow-locker.service` to the Pi Desktop, then run in the Pi terminal:
 
 When upgrading an existing installation, stop and disable the previously installed
 locker controller service before enabling this one. Only one controller service
 must run at a time. Keep the existing device key in `device_config.json`.
 
 ```bash
-sudo install -m 644 ~/Desktop/unistow-locker.service /etc/systemd/system/unistow-locker.service
+sudo install -m 644 ~/Desktop/uniflow-locker.service /etc/systemd/system/uniflow-locker.service
 sudo systemctl daemon-reload
-sudo systemctl enable --now unistow-locker.service
-systemctl is-active unistow-locker.service
+# On older installations, disable the existing unit before starting UniFlow.
+for unit in paybox-locker.service unistow-locker.service; do
+    if systemctl cat "$unit" >/dev/null 2>&1; then
+        sudo systemctl disable --now "$unit" || exit 1
+    fi
+done
+sudo systemctl enable --now uniflow-locker.service
+systemctl is-active uniflow-locker.service
 ```
 
 Expected: `active`. Check messages with:
 
 ```bash
-journalctl -u unistow-locker.service -b --no-pager -n 20
+journalctl -u uniflow-locker.service -b --no-pager -n 20
 ```
 
 After reboot, check the service again and test UniStow. The Mac backend must still
@@ -168,7 +197,7 @@ need to be open. The controller retries network connections and systemd restarts
 it exits. Starting it prepares the closed latch; it does not request an opening.
 
 Do not run a second controller or GPIO test in Thonny while the service is active.
-Before a manual test, use `sudo systemctl stop unistow-locker.service`.
-After stopping the test, use `sudo systemctl start unistow-locker.service`.
-After updating the script, use `sudo systemctl restart unistow-locker.service`.
-To remove automatic startup, use `sudo systemctl disable --now unistow-locker.service`.
+Before a manual test, use `sudo systemctl stop uniflow-locker.service`.
+After stopping the test, use `sudo systemctl start uniflow-locker.service`.
+After updating the script, use `sudo systemctl restart uniflow-locker.service`.
+To remove automatic startup, use `sudo systemctl disable --now uniflow-locker.service`.
