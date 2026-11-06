@@ -9,7 +9,7 @@
             event.target.closest('input, textarea, select, [contenteditable="true"]')) return;
 
         start = event.touches[0];
-    }, { passive: true });
+    }, {passive: true});
 
     document.addEventListener('touchmove', event => {
         if (!start) return;
@@ -17,7 +17,7 @@
         const dx = Math.abs(touch.clientX - start.clientX);
         const dy = touch.clientY - start.clientY;
         if (window.scrollY > 0 || dy < -10 || (dx > 10 && dx > dy)) start = null;
-    }, { passive: true });
+    }, {passive: true});
 
     document.addEventListener('touchend', event => {
         if (!start) return;
@@ -26,7 +26,9 @@
         const dx = Math.abs(touch.clientX - start.clientX);
         start = null;
         if (window.scrollY <= 0 && dy >= refreshDistance && dy > dx) window.location.reload();
-    }, { passive: true });
+    }, {passive: true});
 
-    document.addEventListener('touchcancel', () => { start = null; }, { passive: true });
+    document.addEventListener('touchcancel', () => {
+        start = null;
+    }, {passive: true});
 })();

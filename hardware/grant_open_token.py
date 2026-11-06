@@ -1,8 +1,8 @@
 """Grant Locker 4 a one-hour physical opening token from the trusted Mac."""
 import json
-import subprocess
 import re
 import shlex
+import subprocess
 from getpass import getpass
 
 from pubnub.models.consumer.v3.channel import Channel

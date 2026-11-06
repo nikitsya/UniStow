@@ -1,8 +1,7 @@
 """Reply to one server connectivity probe without accessing the GPIO pins."""
-from pathlib import Path
-
 import json
 from http.client import HTTPException
+from pathlib import Path
 from threading import Event
 from time import monotonic, time
 from urllib.error import HTTPError

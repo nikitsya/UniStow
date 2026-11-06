@@ -1,8 +1,7 @@
 """Publish one physical door reading to the Locker 4 PubNub channel."""
-from pathlib import Path
-
 import json
 from http.client import HTTPException
+from pathlib import Path
 from time import monotonic, sleep
 from urllib.error import HTTPError
 from urllib.parse import quote, urlencode

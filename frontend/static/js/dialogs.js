@@ -13,7 +13,9 @@
     document.addEventListener('pointerdown', event => {
         pressedBackdrop = event.isPrimary && event.button === 0 ? backdropDialog(event) : null;
     });
-    document.addEventListener('pointercancel', () => { pressedBackdrop = null; });
+    document.addEventListener('pointercancel', () => {
+        pressedBackdrop = null;
+    });
     document.addEventListener('click', event => {
         const dialog = pressedBackdrop;
         pressedBackdrop = null;

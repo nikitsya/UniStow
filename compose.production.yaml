@@ -13,11 +13,11 @@ services:
       - ./backend/database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
       - ./backend/database/migrations/001_add_lockers.sql:/docker-entrypoint-initdb.d/02-lockers.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U unistow -d unistow"]
+      test: [ "CMD-SHELL", "pg_isready -U unistow -d unistow" ]
       interval: 5s
       timeout: 3s
       retries: 12
-    networks: [database]
+    networks: [ database ]
 
   app:
     build: .
@@ -40,9 +40,9 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    networks: [web, database]
+    networks: [ web, database ]
     healthcheck:
-      test: ["CMD", ".venv/bin/python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/', timeout=5)"]
+      test: [ "CMD", ".venv/bin/python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/', timeout=5)" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -61,7 +61,7 @@ services:
     depends_on:
       app:
         condition: service_healthy
-    networks: [web]
+    networks: [ web ]
 
 networks:
   web:

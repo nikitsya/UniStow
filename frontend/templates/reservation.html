@@ -44,11 +44,13 @@
                 id="pay-button" type="button">Pay €{{ '%.2f' |
             format(rental.total_price_cents / 100) }}
         </button>
-        <button class="back-button" data-url="{{ url_for('cancel_reservation', rental_id=rental.id) }}" id="cancel-reservation"
+        <button class="back-button" data-url="{{ url_for('cancel_reservation', rental_id=rental.id) }}"
+                id="cancel-reservation"
                 type="button">Cancel reservation
         </button>
 
-        <dialog aria-describedby="cancel-reservation-description" aria-labelledby="cancel-reservation-title" class="finish-dialog"
+        <dialog aria-describedby="cancel-reservation-description" aria-labelledby="cancel-reservation-title"
+                class="finish-dialog"
                 id="cancel-reservation-dialog">
             <h2 id="cancel-reservation-title">Cancel your reservation?</h2>
             <p id="cancel-reservation-description">The locker will be available for someone else to reserve.</p>
@@ -77,7 +79,7 @@
         <button class="confirm-button" data-url="{{ open_url }}" id="open-locker-button" type="button"
                 {{
         'disabled' if open_disabled else '' }}>
-            {{ 'Test open delivery' if open_test else 'Open locker' }}
+        {{ 'Test open delivery' if open_test else 'Open locker' }}
         </button>
         {% if not rental.collecting and not open_test and http_ready and rental.door_state == "closed" %}
         <button class="back-button" data-url="{{ url_for('finish_rental', rental_id=rental.id) }}"
