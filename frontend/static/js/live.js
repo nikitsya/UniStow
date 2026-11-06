@@ -1,6 +1,7 @@
 (() => {
     let running = false;
     let lastPaymentCheck = 0;
+    let relockGraceUntil = 0;
     let timer;
     const parser = new DOMParser();
 
@@ -55,6 +56,13 @@
                     window.initialisePayment();
                     window.initialiseLockerActions();
                 }
+                const doorState = next.dataset.doorState;
+                if (doorState !== 'closed' || !next.querySelector('#open-locker-button')?.disabled) {
+                    relockGraceUntil = 0;
+                } else if (rental.dataset.doorState === 'open') {
+                    relockGraceUntil = Date.now() + 10000;
+                }
+                rental.dataset.doorState = doorState;
                 const cooldown = window.lockerBusy || Date.now() < (window.lockerCooldown || 0);
                 for (const id of ['open-locker-button', 'finish-rental-button']) {
                     const button = document.getElementById(id);
@@ -66,7 +74,8 @@
                     delete notice.dataset.commandMessage;
                 }
                 if (notice && !notice.dataset.commandMessage) {
-                    notice.textContent = next.querySelector('#open-locker-message')?.textContent || '';
+                    notice.textContent = Date.now() < relockGraceUntil
+                        ? '' : next.querySelector('#open-locker-message')?.textContent || '';
                 }
                 const finish = document.querySelector('#finish-rental-button');
                 const confirm = document.querySelector('#confirm-finish');
