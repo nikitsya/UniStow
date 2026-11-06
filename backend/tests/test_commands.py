@@ -192,6 +192,14 @@ class CommandTests(unittest.TestCase):
         self.assertRegex(self.client.get(f'/rentals/{self.rental_id}').text,
                          r'<button(?=[^>]*id="open-locker-button")(?=[^>]*\bdisabled\b)[^>]*>')
 
+    def test_finish_is_disabled_when_pubnub_reports_an_open_door(self):
+        events = Mock()
+        events.latest.return_value = 'open'
+        with patch.object(app.state, 'door_events', events, create=True):
+            page = self.client.get(f'/rentals/{self.rental_id}')
+        self.assertEqual(page.status_code, 200)
+        self.assertRegex(page.text, r'<button(?=[^>]*id="finish-rental-button")(?=[^>]*\bdisabled\b)[^>]*>')
+
     def finish(self, confirmed=True):
         headers = {'X-UniStow-Request': '1'}
         if confirmed:

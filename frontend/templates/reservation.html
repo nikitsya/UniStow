@@ -81,16 +81,12 @@
         'disabled' if open_disabled else '' }}>
         {{ 'Test open delivery' if open_test else 'Open locker' }}
         </button>
-        {% if not rental.collecting and not open_test and http_ready and rental.door_state == "closed" %}
         <button class="back-button" data-url="{{ url_for('finish_rental', rental_id=rental.id) }}"
-                id="finish-rental-button"
-                type="button">Finish rental
+                !='closed' !='closed'
+                %} %}disabled{% door_state endif http_ready id="finish-rental-button" if not open_test or or or or
+                rental.collecting rental.door_state type="button" {%>
+            Finish rental
         </button>
-        {% else %}
-        <button class="back-button" data-url="{{ url_for('finish_rental', rental_id=rental.id) }}" disabled
-                id="finish-rental-button" type="button">Finish rental
-        </button>
-        {% endif %}
         <dialog aria-describedby="finish-dialog-description" aria-labelledby="finish-dialog-title" class="finish-dialog"
                 id="finish-dialog">
             <h2 id="finish-dialog-title">Finish your rental?</h2>
