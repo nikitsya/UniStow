@@ -1,5 +1,26 @@
 # Raspberry Pi hardware
 
+## Test a door reading through PubNub
+
+Use this one-shot test on an idle Locker 4. It reads GPIO17 and publishes the
+door position to `unistow.locker.4.events`. The rental controller still uses
+the HTTP API.
+
+1. Enable Access Manager on the PubNub keyset. From a trusted machine, grant
+   a short-lived token bound to user ID `unistow-locker-4` with write permission
+   only on `unistow.locker.4.events`. Keep the secret key on the trusted machine.
+2. On the Pi, copy `publish_door.py` beside `run_locker.py`. Add the `pubnub`
+   section from `device_config.example.json` to the private `device_config.json`.
+   Fill in the publish key, subscribe key and token. Run `chmod 600 device_config.json`.
+3. Start a subscriber on the events channel with a separate read token.
+   Stop the locker service with `sudo systemctl stop unistow-locker` if it is
+   running, and close any GPIO tests. Keep pigpiod running.
+4. With the sensor contacts together, run `python3 publish_door.py` and check
+   the subscriber receives `{"door_state": "closed"}`. Separate the contacts
+   and run it again to check for `{"door_state": "open"}`. The script reads
+   the sensor once per run and leaves the servo alone.
+5. Close the door and restart the locker service if you stopped it.
+
 ## Report the door state to UniStow
 
 This first connection step reports the sensor only; it does not unlock the locker.
