@@ -11,7 +11,7 @@
         {% for reservation in reservations %}
         <a class="rental-list-link" href="{{ url_for('reservation', rental_id=reservation.id) }}">
             <span><strong>Locker {{ reservation.number }}</strong><small>View rental and access your locker</small></span>
-            <span aria-hidden="true">↗</span>
+            <span aria-hidden="true">{% include 'rental_arrow.svg' %}</span>
         </a>
         {% endfor %}
     </div>
