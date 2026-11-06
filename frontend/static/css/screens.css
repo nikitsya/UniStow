@@ -400,8 +400,11 @@
     background: #fff;
 }
 
-#finish-dialog .back-button:focus-visible {
+.flow-page .finish-dialog-actions .back-button:focus {
     outline: none;
-    text-decoration: underline;
-    text-underline-offset: 3px;
+    text-decoration: none;
+}
+
+.flow-page .finish-dialog-actions .back-button:focus-visible {
+    font-weight: 700;
 }
