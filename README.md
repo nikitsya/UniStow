@@ -30,20 +30,24 @@ does not prove that the latch is locked.
 | Database          | PostgreSQL 16 in Docker                                   |
 | Payments          | Stripe sandbox Checkout and verified webhooks             |
 | Hardware          | Raspberry Pi 400, SG92R servo and magnetic contact sensor |
-| Device connection | HTTP heartbeat and command polling on the local network   |
+| Hosting           | AWS EC2, Nginx and Let's Encrypt certificates             |
+| Device connection | PubNub for opening and door events, HTTPS for collection  |
 
 ```mermaid
 flowchart LR
-    Browser -->|HTTP locally| App[FastAPI on Mac]
+    Browser -->|HTTPS| Proxy[Nginx on EC2]
+    Proxy --> App[FastAPI]
     App --> DB[(PostgreSQL in Docker)]
-    App -->|HTTPS| Stripe[Stripe sandbox]
-    Stripe -->|Events via local CLI listener| App
-    Pi[Raspberry Pi] -->|Heartbeat and command polling| App
+    App -->|Checkout| Stripe[Stripe sandbox]
+    Stripe -->|HTTPS webhook| Proxy
+    App <-->|Opening commands and door events| PubNub
+    PubNub <--> Pi[Raspberry Pi]
+    Pi -->|HTTPS heartbeat and collection| Proxy
     Pi --> Latch[Servo latch]
     Sensor[Door sensor] --> Pi
 ```
 
-AWS hosting, HTTPS deployment and PubNub are not part of the current implementation.
+See the [deployment guide](deploy/README.md) for Nginx configuration and certificate renewal.
 Passwords use Argon2; session tokens are stored as hashes. Sessions last 24 hours and
 use an HttpOnly cookie, with Secure enabled on HTTPS. Rental access requires ownership
 and confirmed payment. Device requests require a separate key; commands expire and

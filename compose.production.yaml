@@ -48,16 +48,16 @@ services:
       retries: 3
       start_period: 30s
 
-  caddy:
-    image: caddy:2
+  nginx:
+    image: nginx:stable-alpine
     restart: unless-stopped
     ports:
       - "80:80"
       - "443:443"
     volumes:
-      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
+      - ./deploy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /var/www/letsencrypt:/var/www/letsencrypt:ro
     depends_on:
       app:
         condition: service_healthy
@@ -70,5 +70,3 @@ networks:
 
 volumes:
   postgres_data:
-  caddy_data:
-  caddy_config:

@@ -1,21 +1,18 @@
 # UniStow deployment
 
-This configuration runs FastAPI, PostgreSQL 16 and Caddy on a dedicated Ubuntu EC2
-instance. Only Caddy publishes ports. PostgreSQL remains on an internal Docker
-network. Caddy obtains and renews HTTPS certificates automatically.
+This configuration runs FastAPI, PostgreSQL 16 and Nginx on a dedicated Ubuntu EC2
+instance. Only Nginx publishes ports. PostgreSQL remains on an internal Docker
+network. Certbot on the host obtains and renews HTTPS certificates automatically.
 
 ## Server and DNS
 
 The initial deployment on 4 November 2026 uses instance `i-0455c51903253118b`
 in `eu-north-1`, Elastic IP `13.61.161.1`, and `/opt/unistow` as the application
 directory. The public URL is https://unistow.app; `www` redirects to this address.
-Both DNS records use DNS-only mode. Caddy has obtained Let's Encrypt certificates.
+Both DNS records use DNS-only mode. Both names share a Let's Encrypt certificate.
 
-The deployment has a fresh database. Registration, sign-in, Secure/HttpOnly session
-cookies, public pages, the locker API and HTTPS redirects were verified. The
-temporary verification account was removed afterwards. Stripe credentials are
-not yet configured, and the physical controller has not been switched to this
-server. A new device key is stored in the server's private `.env.production` file.
+The deployed application uses Stripe sandbox payments and communicates with Locker 4.
+Keep its device key in the private production environment file.
 
 Use Ubuntu 24.04 LTS, at least 2 GiB RAM and 20 GiB storage. Allow TCP ports 80 and
 443 publicly and restrict SSH (22) to your current IP. Do not expose 5432 or 8000.
@@ -23,7 +20,7 @@ Keep the instance metadata service on IMDSv2. Install Docker Engine and the Comp
 plugin using Docker's official Ubuntu instructions.
 
 In Cloudflare, point the apex A record (`@`) to the server's public IPv4 address and
-add a `www` CNAME pointing to `unistow.app`. Start with DNS-only records so Caddy can
+add a `www` CNAME pointing to `unistow.app`. Start with DNS-only records so Certbot can
 obtain certificates directly. If proxying is enabled later, use Full (strict) TLS.
 An automatically assigned EC2 IPv4 address can change after a stop/start; use an
 Elastic IP for a stable address, accounting for AWS IPv4 charges.
@@ -43,6 +40,28 @@ UNISTOW_DEVICE_KEY=
 
 Stripe must use sandbox keys. The device key must match the physical controller.
 The webhook signing secret must belong to the deployed endpoint, not Stripe CLI.
+
+On a new server, obtain the certificate before starting the production proxy.
+Run the following from the application directory with port 80 available.
+The temporary Nginx container serves the ACME challenge for both domain names.
+
+```sh
+sudo apt-get update && sudo apt-get install -y certbot
+sudo mkdir -p /var/www/letsencrypt
+sudo docker run -d --name unistow-acme-bootstrap -p 80:80 \
+  -v /var/www/letsencrypt:/usr/share/nginx/html:ro nginx:stable-alpine
+sudo certbot certonly --webroot -w /var/www/letsencrypt --cert-name unistow.app \
+  -d unistow.app -d www.unistow.app
+sudo docker rm -f unistow-acme-bootstrap
+```
+
+Install the renewal hook and enable the timer. Verify renewal after Nginx starts
+with `sudo certbot renew --cert-name unistow.app --dry-run`.
+
+```sh
+sudo install -m 755 deploy/reload-nginx /etc/letsencrypt/renewal-hooks/deploy/reload-unistow-nginx
+sudo systemctl enable --now certbot.timer
+```
 
 ```sh
 sudo docker compose --env-file .env.production -f compose.production.yaml -p unistow up -d --build
@@ -86,7 +105,7 @@ After updating the source, rerun the build/start command. Database schema change
 require explicit migrations; initialisation scripts run only on an empty volume.
 
 References: [Docker on Ubuntu](https://docs.docker.com/engine/install/ubuntu/),
-[Caddy HTTPS](https://caddyserver.com/docs/automatic-https), and
+[Certbot renewal](https://eff-certbot.readthedocs.io/en/stable/using.html#renewing-certificates), and
 [Stripe webhooks](https://docs.stripe.com/webhooks).
 
 ## Renew Locker 4 PubNub tokens

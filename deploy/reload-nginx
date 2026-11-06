@@ -1,0 +1,5 @@
+#!/bin/sh
+set -eu
+[ "${RENEWED_LINEAGE:-}" = /etc/letsencrypt/live/unistow.app ] || exit 0
+cd /opt/unistow
+exec docker compose --env-file .env.production -f compose.production.yaml -p unistow exec -T nginx nginx -s reload
