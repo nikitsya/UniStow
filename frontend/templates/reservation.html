@@ -3,7 +3,7 @@
 {% block extra_head %}
 {{ super() }}
 <script defer src="{{ url_for('static', path='js/payment.js') }}?v=live-1"></script>
-<script defer src="{{ url_for('static', path='js/open_locker.js') }}?v=3"></script>
+<script defer src="{{ url_for('static', path='js/open_locker.js') }}?v=4"></script>
 <script defer src="{{ url_for('static', path='js/live.js') }}?v=4"></script>
 {% endblock %}
 {% block screen_content %}
@@ -46,7 +46,7 @@
 
         {% elif rental.status == 'active' %}
         <p class="confirmation" id="active-rental-notice" role="status">{% if door_state == 'open' %}Your locker door is
-            open. Close it to secure your belongings.{% else %}Payment confirmed. Your rental is active.{% endif %}</p>
+            open.{% else %}Payment confirmed. Your rental is active.{% endif %}</p>
         {% elif rental.status == 'completed' %}
         <p class="confirmation">Rental completed. Thank you for collecting your belongings.</p>
         {% elif rental.status == 'cancelled' %}

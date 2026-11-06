@@ -12,7 +12,7 @@ window.initialiseLockerActions = function () {
         openButton.disabled = true;
         finishButton.disabled = true;
         openMessage.dataset.commandMessage = 'true';
-        openMessage.textContent = 'Sending opening request…';
+        openMessage.textContent = 'Unlocking…';
         try {
             const headers = {'X-UniStow-Request': '1'};
             if (finish) headers['X-UniStow-Collect-All'] = 'yes';
@@ -27,7 +27,7 @@ window.initialiseLockerActions = function () {
             if (response.ok && !finish) openMessage.dataset.commandMessage = 'opening';
             openMessage.textContent = response.ok
                 ? (finish
-                    ? 'Collection requested. When the latch moves, open the door, collect everything and close it. The status will update automatically.'
+                    ? 'Take all your belongings, then close the door to finish your rental.'
                     : 'Open the door once it unlocks.')
                 : (typeof result.detail === 'string' ? result.detail : 'Request failed. Please try again shortly.');
         } catch {
