@@ -19,6 +19,14 @@
     display: none !important;
 }
 
+html:has(dialog:modal) {
+    overflow: hidden;
+}
+
+dialog:modal {
+    overscroll-behavior: contain;
+}
+
 body {
     margin: 0;
 }
