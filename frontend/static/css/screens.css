@@ -392,5 +392,12 @@
 }
 
 .finish-dialog-actions .back-button {
-    border: 1px solid #b9c6b0;
+    border: 0;
+    background: #fff;
+}
+
+.finish-dialog-actions .back-button:focus-visible {
+    outline: none;
+    text-decoration: underline;
+    text-underline-offset: 3px;
 }
