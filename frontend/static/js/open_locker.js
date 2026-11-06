@@ -27,7 +27,7 @@ window.initialiseLockerActions = function () {
             openMessage.textContent = response.ok
                 ? (finish
                     ? 'Collection requested. When the latch moves, open the door, collect everything and close it. The status will update automatically.'
-                    : 'Opening requested. Open the door when the latch moves, then close it to relock. The door status will update automatically.')
+                    : 'Open the door once it unlocks.')
                 : (typeof result.detail === 'string' ? result.detail : 'Request failed. Please try again shortly.');
         } catch {
             openMessage.textContent = 'Delivery is uncertain. Check the locker, wait a few seconds before trying again. No automatic retry was sent.';
