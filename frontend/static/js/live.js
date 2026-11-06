@@ -30,6 +30,7 @@
                 lastPaymentCheck = Date.now();
                 await window.checkRentalPayment?.();
             }
+            const fetchingDuringCommand = window.lockerBusy;
             const commandAtFetch = window.lockerCooldown;
             const response = await fetch(window.location.href, {
                 cache: 'no-store', signal: AbortSignal.timeout(8000),
@@ -46,9 +47,6 @@
                 if (!next) throw new Error('Rental unavailable');
                 for (const selector of ['.rental-overview', '.rental-facts', '.total']) {
                     replaceIfChanged(`#live-rental ${selector}`, fresh);
-                }
-                if (!window.lockerBusy && commandAtFetch === window.lockerCooldown) {
-                    replaceIfChanged('#active-rental-notice', fresh);
                 }
                 const actionsChanged = rental.dataset.status !== next.dataset.status
                     || Boolean(document.querySelector('#pay-button')) !== Boolean(next.querySelector('#pay-button'))
@@ -73,13 +71,17 @@
                     const updated = next.querySelector(`#${id}`);
                     if (button && updated) button.disabled = cooldown || updated.disabled;
                 }
-                const notice = document.querySelector('#open-locker-message');
-                if (notice?.dataset.commandMessage === 'opening' && next.dataset.doorState === 'open') {
-                    delete notice.dataset.commandMessage;
-                }
-                if (notice && !notice.dataset.commandMessage) {
-                    notice.textContent = Date.now() < relockGraceUntil
-                        ? '' : next.querySelector('#open-locker-message')?.textContent || '';
+                const notice = document.querySelector('#active-rental-notice');
+                const updatedNotice = next.querySelector('#active-rental-notice');
+                if (notice && updatedNotice && !fetchingDuringCommand && !window.lockerBusy && commandAtFetch === window.lockerCooldown) {
+                    const collecting = next.dataset.collecting === '1';
+                    const keepCommand = notice.dataset.commandMessage && cooldown && doorState !== 'open' && !collecting;
+                    if (!keepCommand) {
+                        delete notice.dataset.commandMessage;
+                        const message = Date.now() < relockGraceUntil && !collecting
+                            ? 'Securing your locker…' : updatedNotice.textContent;
+                        if (notice.textContent !== message) notice.textContent = message;
+                    }
                 }
                 const finish = document.querySelector('#finish-rental-button');
                 const confirm = document.querySelector('#confirm-finish');

@@ -8,6 +8,7 @@ window.initialisePayment = function () {
         if (window.paymentBusy || !window.confirm('Cancel this reservation and release the locker?')) return;
         window.paymentBusy = true;
         payButton.disabled = cancelButton.disabled = true;
+        paymentMessage.textContent = 'Cancelling your reservation…';
         try {
             const response = await fetch(cancelButton.dataset.url, {
                 method: 'POST', headers: {'X-UniStow-Request': '1'}, signal: AbortSignal.timeout(20000),
@@ -31,11 +32,9 @@ window.initialisePayment = function () {
     });
     payButton.addEventListener('click', async () => {
         if (payButton.disabled) return;
-        const label = payButton.textContent;
         window.paymentBusy = true;
         payButton.disabled = cancelButton.disabled = true;
-        payButton.textContent = 'Opening Stripe…';
-        paymentMessage.textContent = '';
+        paymentMessage.textContent = 'Opening Stripe…';
         try {
             const response = await fetch(payButton.dataset.checkoutUrl, {
                 method: 'POST', headers: {'X-UniStow-Request': '1'}, signal: AbortSignal.timeout(8000),
@@ -56,7 +55,6 @@ window.initialisePayment = function () {
         } finally {
             window.paymentBusy = false;
             payButton.disabled = cancelButton.disabled = false;
-            payButton.textContent = label;
         }
     });
 

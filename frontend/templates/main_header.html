@@ -19,9 +19,9 @@
             <div class="section-heading"><h2 id="account-heading">Account</h2></div>
             {% if user %}
             <p class="account-email">{{ user.email }}</p>
+            <p class="home-error" id="logout-message" role="status"></p>
             <button class="home-text-link" id="logout-button" type="button">Sign out <span aria-hidden="true">→</span>
             </button>
-            <p class="home-error" id="logout-message" role="status"></p>
             <script defer src="{{ url_for('static', path='js/logout.js') }}"></script>
             {% else %}
             <p class="section-note">Create an account to rent a locker.</p>

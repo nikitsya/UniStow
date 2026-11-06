@@ -7,6 +7,7 @@
 {% endblock %}
 {% block content %}
 <section aria-label="My rentals" class="rental-screen">
+    <p class="confirmation" hidden id="live-message" role="status"></p>
 <div id="live-rentals-list">
     {% if user and reservations %}
     <div class="rentals-list">
@@ -24,6 +25,5 @@
     <a class="confirm-button" href="{{ url_for('sign_in') }}">Sign in</a>
     {% endif %}
 </div>
-<p class="confirmation" hidden id="live-message" role="status"></p>
 </section>
 {% endblock %}

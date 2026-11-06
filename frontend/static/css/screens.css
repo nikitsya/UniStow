@@ -127,6 +127,10 @@
     margin: 14px 0 22px;
 }
 
+#live-message:not([hidden]) + #rental-actions > p:first-child {
+    display: none;
+}
+
 .flow-page .consent {
     font-size: 12px;
     line-height: 1.7;

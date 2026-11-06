@@ -9,6 +9,7 @@
 {% set available = lockers | selectattr('status', 'equalto', 'available') | list %}
 <div class="home-content">
     <section aria-label="Lockers" class="home-section" id="lockers">
+        <p class="home-error" hidden id="live-message" role="status"></p>
         <div aria-label="Filter lockers" class="locker-filters" hidden role="group">
             <button aria-pressed="true" data-filter="all" type="button">All lockers <span>{{ lockers | length }}</span>
             </button>
@@ -46,7 +47,6 @@
 <li class="grid-empty">No lockers are listed yet.</li>
 {% endfor %}
 </ul>
-<p class="home-error" hidden id="live-message" role="status"></p>
 <p class="filter-empty" hidden role="status">No lockers are available right now.</p>
 </section>
 

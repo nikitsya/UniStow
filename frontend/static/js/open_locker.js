@@ -3,7 +3,7 @@ window.initialiseLockerActions = function () {
     const finishButton = document.querySelector('#finish-rental-button');
     if (!openButton || openButton.dataset.bound) return;
     openButton.dataset.bound = 'true';
-    const openMessage = document.querySelector('#open-locker-message');
+    const notice = document.querySelector('#active-rental-notice');
 
     async function sendCommand(button, finish) {
         if (button.disabled) return;
@@ -11,11 +11,8 @@ window.initialiseLockerActions = function () {
         window.lockerCooldown = Date.now() + 12000;
         openButton.disabled = true;
         finishButton.disabled = true;
-        openMessage.dataset.commandMessage = 'true';
-        const notice = document.querySelector('#active-rental-notice');
-        const previousNotice = notice.textContent;
-        if (finish) notice.textContent = notice.dataset.collectionNotice;
-        openMessage.textContent = finish ? '' : 'Unlocking…';
+        notice.dataset.commandMessage = 'true';
+        notice.textContent = finish ? notice.dataset.collectionNotice : 'Unlocking…';
         try {
             const headers = {'X-UniStow-Request': '1'};
             if (finish) headers['X-UniStow-Collect-All'] = 'yes';
@@ -24,23 +21,19 @@ window.initialiseLockerActions = function () {
             });
             const result = await response.json();
             if (response.ok && result.status === 'test_acknowledged') {
-                openMessage.textContent = 'Controller acknowledged the test. The latch stayed in place.';
+                notice.textContent = 'Controller acknowledged the test. The latch stayed in place.';
                 return;
             }
-            if (finish && response.ok) {
-                delete openMessage.dataset.commandMessage;
-                return;
-            }
-            if (finish) notice.textContent = previousNotice;
-            if (response.ok && !finish) openMessage.dataset.commandMessage = 'opening';
-            openMessage.textContent = response.ok
+            if (finish && response.ok) return;
+
+            notice.textContent = response.ok
                 ? 'Open the door once it unlocks.'
                 : (typeof result.detail === 'string' ? result.detail : 'Request failed. Please try again shortly.');
         } catch {
-            if (finish) notice.textContent = previousNotice;
-            openMessage.textContent = 'Delivery is uncertain. Check the locker, wait a few seconds before trying again. No automatic retry was sent.';
+            notice.textContent = 'Delivery is uncertain. Check the locker, wait a few seconds before trying again. No automatic retry was sent.';
         } finally {
             window.lockerBusy = false;
+            document.dispatchEvent(new Event('rental-updated'));
         }
     }
 
