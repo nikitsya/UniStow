@@ -42,6 +42,11 @@ during development. Later refinements were deployed through commit `7dd8e97`.
 | The renter chooses **Finish rental**.                                  | Use pale orange for the action that ends the rental and ask for confirmation first. The white **Cancel** button dismisses the dialogue. Both this button and **Keep** in the reservation dialogue have no thick brown outline or underline. Keyboard focus uses heavier text.                               |
 | The renter confirms and collects their belongings.                     | Keep **Take all your belongings, then close the door to finish your rental.** above the disabled actions throughout collection. It takes precedence over the payment confirmation and ordinary door-open message. The renter confirmed on the phone that opening and closing the door led to **Completed**. |
 
+**Finish rental follow-up on the phone.** The renter confirmed that after confirming **Finish rental** and opening
+the door, the button stayed visible and disabled. Tapping it again could not reopen the confirmation dialogue.
+A regression test also checked that the button stays disabled when the Pi reports an open door while the database
+still shows it as closed.
+
 ## Touch, dialogues and interrupted connections
 
 | Test or observation                                              | Result and scope                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
