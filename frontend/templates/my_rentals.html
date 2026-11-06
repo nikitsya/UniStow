@@ -1,4 +1,5 @@
 {% extends "screen.html" %}
+{% set active_tab = 'rentals' %}
 {% block screen_title %}My rentals{% endblock %}
 {% block extra_head %}
 {{ super() }}
@@ -23,5 +24,4 @@
     {% endif %}
 </div>
 <p class="confirmation" hidden id="live-message" role="status"></p>
-<a class="back-button" href="{{ url_for('home') }}">Back to lockers</a>
 {% endblock %}

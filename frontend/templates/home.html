@@ -1,4 +1,5 @@
 {% extends "layout.html" %}
+{% set active_tab = 'lockers' %}
 {% block body_class %}home-page{% endblock %}
 {% block extra_head %}
 <link href="{{ url_for('static', path='css/home.css') }}?v=11" rel="stylesheet">
@@ -80,19 +81,4 @@
 
 
 </div>
-<nav aria-label="Main navigation" class="home-bottom-nav">
-    <a aria-current="location" href="#lockers">
-        <svg aria-hidden="true" viewBox="0 0 24 24">
-            <rect height="18" rx="2" width="16" x="4" y="3"/>
-            <path d="M12 3v18M7 7h2m6 0h2M9 12v3m6-3v3"/>
-        </svg>
-        <span>Lockers</span></a>
-    <a href="{{ url_for('my_rentals') }}">
-        <svg aria-hidden="true" viewBox="0 0 24 24">
-            <rect height="17" rx="2" width="14" x="5" y="4"/>
-            <path d="M9 4V2h6v2M9 10h6m-6 4h6"/>
-        </svg>
-        <span>My rentals</span></a>
-
-</nav>
 {% endblock %}
