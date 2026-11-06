@@ -41,6 +41,29 @@ UNISTOW_DEVICE_KEY=
 Stripe must use sandbox keys. The device key must match the physical controller.
 The webhook signing secret must belong to the deployed endpoint, not Stripe CLI.
 
+Before starting PostgreSQL on a new EC2 host, create its private key and self-signed
+certificate on the host. The certificate identifies the Compose service `db`.
+FastAPI trusts the mounted public certificate and checks the hostname. Only the
+database container receives the private key. PostgreSQL rejects unencrypted TCP
+connections and uses the existing cluster rules for authentication over TLS.
+
+```sh
+sudo install -d -m 700 /etc/unistow/postgres-tls
+sudo sh -ec 'cd /etc/unistow/postgres-tls
+  test ! -e server.key && test ! -e server.crt || exit 1
+  umask 077
+  openssl req -x509 -newkey rsa:3072 -nodes -sha256 -days 365 \
+    -subj /CN=db -addext subjectAltName=DNS:db -addext extendedKeyUsage=serverAuth \
+    -keyout server.key -out server.crt
+  chown 999:999 server.key
+  chmod 600 server.key
+  chmod 644 server.crt'
+```
+
+Renew this database certificate before expiry. Generate a replacement pair in a
+separate directory, keep the old pair for rollback, then install the new files and
+recreate both `db` and `app` together so their bind mounts use the new pair.
+
 On a new server, obtain the certificate before starting the production proxy.
 Run the following from the application directory with port 80 available.
 The temporary Nginx container serves the ACME challenge for both domain names.

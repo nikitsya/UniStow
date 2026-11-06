@@ -4,11 +4,16 @@ services:
   db:
     image: postgres:16
     restart: unless-stopped
+    command: [ "postgres", "-c", "ssl=on", "-c", "ssl_cert_file=/run/postgres-tls/server.crt",
+               "-c", "ssl_key_file=/run/postgres-tls/server.key", "-c", "hba_file=/etc/postgresql/tls-hba.conf" ]
     environment:
       POSTGRES_DB: unistow
       POSTGRES_USER: unistow
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
     volumes:
+      - /etc/unistow/postgres-tls/server.key:/run/postgres-tls/server.key:ro
+      - /etc/unistow/postgres-tls/server.crt:/run/postgres-tls/server.crt:ro
+      - ./deploy/local-postgres/pg_hba.conf:/etc/postgresql/tls-hba.conf:ro
       - postgres_data:/var/lib/postgresql/data
       - ./backend/database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
       - ./backend/database/migrations/001_add_lockers.sql:/docker-entrypoint-initdb.d/02-lockers.sql:ro
@@ -23,6 +28,8 @@ services:
     build: .
     restart: unless-stopped
     environment:
+      PGSSLMODE: verify-full
+      PGSSLROOTCERT: /run/postgres-tls/server.crt
       POSTGRES_HOST: db
       POSTGRES_PORT: 5432
       POSTGRES_DB: unistow
@@ -37,6 +44,8 @@ services:
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
       UNISTOW_DEVICE_KEY: ${UNISTOW_DEVICE_KEY:?Set UNISTOW_DEVICE_KEY}
+    volumes:
+      - /etc/unistow/postgres-tls/server.crt:/run/postgres-tls/server.crt:ro
     depends_on:
       db:
         condition: service_healthy
