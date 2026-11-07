@@ -16,7 +16,9 @@
 }
 
 .contact-call {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
     margin-top: 16px;
 }
 
