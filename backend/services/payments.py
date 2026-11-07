@@ -32,7 +32,7 @@ def owned_rental(db: Session, rental_id: int, user_id: int):
                                               AND c.action = 'finish'
                                               AND c.completed_at IS NULL
                                               AND (c.dispatched_at IS NOT NULL OR c.expires_at > CURRENT_TIMESTAMP)) AS collecting,
-                                    payments.status AS payment_status
+                                    payments.status                                                                  AS payment_status
                              FROM rentals
                                       JOIN lockers ON lockers.id = rentals.locker_id
                                       LEFT JOIN payments ON payments.rental_id = rentals.id
