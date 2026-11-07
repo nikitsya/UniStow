@@ -106,8 +106,11 @@ With a paid, active rental, the renter tapped **Open locker**. The phone display
 |-------------------------------------------------------------------|----------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------|
 | ![Locker scripts on the Pi desktop](images/locker-pi-desktop.png) | ![Terminal showing the locker service as inactive](images/locker-service-inactive.png) | ![Active rental showing the delivery warning](images/locker-opening-unconfirmed.png) |
 
-**Still to check:** observe the latch when the controller reconnects after the request expires, then try a fresh opening
-request.
+**Reconnection test passed.** After the original request expired, the renter restarted the controller on the Pi and
+confirmed the service was active. The latch stayed in place until the renter tapped **Open locker** again on the phone.
+The renter then saw the latch turn.
+
+![Pi terminal showing the locker service as active after startup](images/locker-service-active.png)
 
 ### Verification notes and remaining checks
 
