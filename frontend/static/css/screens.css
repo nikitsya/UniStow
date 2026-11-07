@@ -15,6 +15,11 @@
     padding: 28px;
 }
 
+.contact-call {
+    display: inline-block;
+    margin-top: 16px;
+}
+
 .flow-page .field {
     background: #fff;
     border: 1px solid #c9d1c5;
