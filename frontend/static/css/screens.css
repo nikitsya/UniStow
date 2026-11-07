@@ -122,6 +122,13 @@
     line-height: 1.65;
 }
 
+.flow-page .confirmation.unlock-warning {
+    background: #fff3d6;
+    color: #654713;
+    border-radius: 10px;
+    padding: 10px 14px;
+}
+
 .flow-page .confirmation:empty {
     display: none;
 }

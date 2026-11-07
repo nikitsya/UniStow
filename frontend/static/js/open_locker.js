@@ -5,12 +5,18 @@ window.initialiseLockerActions = function () {
     openButton.dataset.bound = 'true';
     const notice = document.querySelector('#active-rental-notice');
 
+    function showUnlockWarning() {
+        notice.classList.add('unlock-warning');
+        notice.textContent = 'We couldn’t confirm that the locker unlocked. Please check the door.';
+    }
+
     async function sendCommand(button, finish) {
         if (button.disabled) return;
         window.lockerBusy = true;
         window.lockerCooldown = Date.now() + 12000;
         openButton.disabled = true;
         finishButton.disabled = true;
+        notice.classList.remove('unlock-warning');
         notice.dataset.commandMessage = 'true';
         notice.textContent = finish ? notice.dataset.collectionNotice : 'Unlocking…';
         try {
@@ -20,6 +26,10 @@ window.initialiseLockerActions = function () {
                 method: 'POST', headers, signal: AbortSignal.timeout(8000),
             });
             const result = await response.json();
+            if (response.status === 504 && result.detail !== 'The controller did not acknowledge the test in time.') {
+                showUnlockWarning();
+                return;
+            }
             if (response.ok && result.status === 'test_acknowledged') {
                 notice.textContent = 'Controller acknowledged the test. The latch stayed in place.';
                 return;
@@ -30,7 +40,7 @@ window.initialiseLockerActions = function () {
                 ? 'Open the door once it unlocks.'
                 : (typeof result.detail === 'string' ? result.detail : 'Request failed. Please try again shortly.');
         } catch {
-            notice.textContent = 'Delivery is uncertain. Check the locker, wait a few seconds before trying again. No automatic retry was sent.';
+            showUnlockWarning();
         } finally {
             window.lockerBusy = false;
             document.dispatchEvent(new Event('rental-updated'));

@@ -99,6 +99,7 @@
                     const keepCommand = notice.dataset.commandMessage && cooldown && doorState !== 'open' && !collecting;
                     if (!keepCommand) {
                         delete notice.dataset.commandMessage;
+                        notice.classList.remove('unlock-warning');
                         const message = Date.now() < relockGraceUntil && !collecting
                             ? 'Securing your locker…' : updatedNotice.textContent;
                         const keepConfirmation = !message.trim() && notice.textContent === paymentConfirmation;
