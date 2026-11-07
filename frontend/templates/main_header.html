@@ -1,7 +1,7 @@
 <header class="home-header">
     <a aria-label="UniStow home" class="home-brand" href="{{ url_for('home') }}"><img
             alt="" height="36" src="{{ url_for('static', path='unistow.svg') }}" width="32">UniStow</a>
-    {% if not active_tab or user is undefined %}
+    {% if not active_tab %}
     <a aria-label="Back to lockers" class="account-menu header-account" href="{{ url_for('home') }}">
         <svg aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24">
             <path d="m14 6-6 6 6 6M8 12h12"/>
@@ -17,7 +17,9 @@
         </summary>
         <div aria-labelledby="account-heading" class="account-dropdown">
             <div class="section-heading"><h2 id="account-heading">Account</h2></div>
-            {% if user %}
+            {% if account_unavailable %}
+            <p class="section-note">Account details are temporarily unavailable.</p>
+            {% elif user %}
             <p class="account-email">{{ user.email }}</p>
             <p class="home-error" id="logout-message" role="status"></p>
             <button class="home-text-link" id="logout-button" type="button">Sign out <span aria-hidden="true">→</span>

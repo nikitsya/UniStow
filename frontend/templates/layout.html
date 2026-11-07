@@ -11,10 +11,8 @@
     <script defer src="{{ url_for('static', path='js/pull_to_refresh.js') }}"></script>
     <script defer src="{{ url_for('static', path='js/rental.js') }}?v=checkout-3"></script>
     <link href="{{ url_for('static', path='css/home.css') }}?v=14" rel="stylesheet">
-    {% if active_tab and user is defined %}
-    <script defer src="{{ url_for('static', path='js/account_menu.js') }}"></script>
-    {% endif %}
     {% if active_tab %}
+    <script defer src="{{ url_for('static', path='js/account_menu.js') }}"></script>
     <link href="{{ url_for('static', path='css/bottom_nav.css') }}" rel="stylesheet">
     {% endif %}
     {% block extra_head %}{% endblock %}

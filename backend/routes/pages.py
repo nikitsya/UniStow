@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from auth.sessions import current_user
@@ -54,8 +55,13 @@ def my_rentals(request: Request, db: Annotated[Session, Depends(get_db)]):
 
 
 @router.get("/contact")
-def contact(request: Request):
-    return templates.TemplateResponse(request, "contact.html", {"title": "Contact | UniStow"})
+def contact(request: Request, db: Annotated[Session, Depends(get_db)]):
+    context = {"title": "Contact | UniStow"}
+    try:
+        context["user"] = current_user(db, request)
+    except SQLAlchemyError:
+        context["account_unavailable"] = True
+    return templates.TemplateResponse(request, "contact.html", context)
 
 
 @router.get("/register")
