@@ -97,6 +97,18 @@ still shows it as closed.
    token. The setup reported **Automatic token renewal active on Locker 4**. An opening after the original token expired
    was not recorded.
 
+### 7 November 2026 — Opening Locker 4 while its controller was stopped (#7)
+
+With a paid, active rental, the renter tapped **Open locker**. The phone displayed
+“Delivery is uncertain. Check the locker.” A separate check on the Pi showed the controller service was inactive.
+
+| Raspberry Pi desktop (setup)                                      | Controller status                                                                      | Renter’s phone after tapping Open locker                                             |
+|-------------------------------------------------------------------|----------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------|
+| ![Locker scripts on the Pi desktop](images/locker-pi-desktop.png) | ![Terminal showing the locker service as inactive](images/locker-service-inactive.png) | ![Active rental showing the delivery warning](images/locker-opening-unconfirmed.png) |
+
+**Still to check:** observe the latch when the controller reconnects after the request expires, then try a fresh opening
+request.
+
 ### Verification notes and remaining checks
 
 The saved development runs include 58 passing tests for token renewal, 60 for rental notices and 61 in the
