@@ -12,19 +12,39 @@ See the [README](../README.md) for the current stack and startup instructions.
 - Authorised opening, closure checks and rental completion after collection.
 - Automatic startup of pigpiod and the Pi controller.
 
-The Pi currently polls the local FastAPI backend over HTTP. PubNub and AWS were part
-of the initial proposal and are not implemented. The Checkpoint 1 presentation is a
-record of that proposal, not a description of the current system.
+The production site runs on AWS EC2 at https://unistow.app. Nginx verifies the
+FastAPI certificate, and FastAPI verifies the PostgreSQL certificate. PubNub
+carries opening commands and door events. The Pi uses authenticated HTTPS for
+heartbeats and collection acknowledgements. See the [deployment guide](../deploy/README.md)
+for the security settings and EC2 evidence.
 
-## Next steps
+## Assessment checklist
 
-1. Implement and test overdue status updates, payment-method setup and EUR 1 daily
-   test charges. Consent is already saved; automatic charging is not implemented.
-2. Add operator contact details and a recovery process for failed payments,
-   interrupted collection and hardware faults.
-3. Test the complete journey on mobile, including two users competing for a locker,
-   network loss, restarts and repeated button presses.
-4. Choose hosting and deploy with HTTPS, restricted database access and backups.
-   Update the Pi server address and Stripe webhook destination for deployment.
-5. Check the assessment brief against the finished work and prepare an up-to-date
-   architecture diagram, wiring diagram, demonstration and submission materials.
+The individual IoT assessment is due on **8 December 2026 at 23:55**.
+Use this checklist alongside the original brief before submitting to Moodle.
+
+- [ ] Record an end-to-end run with the empty physical locker: sign in, reserve,
+  pay in Stripe test mode, open, collect and close. Show the sensor reading,
+  the resulting rental state in PostgreSQL and when the locker becomes available.
+- [ ] Review the architecture diagram in the project README. Label the internal
+  TLS connections and explain device access, channel permissions, database and
+  web server access, encryption in transit and EBS encryption at rest.
+- [ ] Prepare a Fritzing sketch showing the actual Raspberry Pi, servo and door
+  sensor connections. Check it against the physical wiring.
+- [ ] Record the screencast: explain the code and architecture, demonstrate the
+  deployed application and secured PubNub exchange live, and discuss known issues.
+- [ ] Complete the CA cover sheet and AI usage cover sheet. Bring the
+  [AI chat log](AI_Chat_Log.md) up to date.
+- [ ] Include the GitHub repository link in the submission README, verify the
+  lecturer has access and commit the final project files.
+- [ ] Package the source, diagrams, recording and required documents in one ZIP
+  that extracts to `iot_ica_firstname_lastname`. Check the extracted contents
+  for credentials before uploading. Keep the deployed site available for testing
+  after submission.
+
+## Additional prototype testing
+
+Use [issue #7](https://github.com/nikitsya/UniStow/issues/7) to record what happens
+when the Pi misses an opening request and reconnects after the command expires.
+This is a project reliability test. The assessment brief specifies a live
+demonstration of secured publish–subscribe communication.
