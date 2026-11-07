@@ -1,4 +1,29 @@
-# UniStow usability testing — 6 November 2026
+# Usability testing
+
+## 25–26 October 2026 — Local PayBox prototype
+
+These checks took place before the November phone session, when the backend ran on the Mac. Most were developer
+walkthroughs. Artur tested the physical door.
+
+| What we tried                                                       | What the tester saw                                                                                                                                                                                                                                                                  | Outcome or follow-up                                                                                                                                                                                                                                                        |
+|---------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Create an account, then register the same email again.              | The first request returned 201 and the email. The second returned 409. An invalid request initially gave a server error (500).                                                                                                                                                       | After the fix, invalid input returned 422; the tester confirmed the email error. The registration form also created an account.                                                                                                                                             |
+| Sign in, refresh, sign out and refresh again.                       | The email appeared after sign-in and stayed after refreshing. After sign-out it disappeared and stayed gone. A wrong password showed **Incorrect email or password** and left the user signed out.                                                                                   | These observations cover the session. Resuming a reservation after signing back in is a separate check below.                                                                                                                                                               |
+| Select Locker 4 while signed out.                                   | After signing in, the renter reached the rental form for the locker they had selected.                                                                                                                                                                                               | The tester confirmed the destination.                                                                                                                                                                                                                                       |
+| Reserve Locker 4, return to the list and try to continue.           | Initially the form showed a demo message and nothing appeared in Rentals. After the fix, the tester saw a **Pending** booking and Locker 4 became **Unavailable**. On returning to the list, it was unclear how to continue their own booking.                                       | The owner's card gained **Continue rental**. Check on the final version that leaving the page, or signing out and back into the same account, returns the renter to the same unpaid booking while the hold is valid. A second account should see the locker as unavailable. |
+| Leave an unpaid reservation without starting checkout.              | After 15 minutes Locker 4 became available. Reserving again left the old record **Cancelled** and the new one **Pending**.                                                                                                                                                           | The tester checked both records.                                                                                                                                                                                                                                            |
+| Pay for a reservation in the Stripe sandbox and return.             | Checkout showed the expected price. After refreshing, the rental showed **Active** and the **Pay** button had disappeared. The sandbox account name on Checkout was confusing.                                                                                                       | The tester confirmed the paid state after refresh. Automatic page updates and clearer Checkout branding were later changes; the chat did not confirm the new branding on a fresh checkout.                                                                                  |
+| Open and close the real door while watching its state.              | The magnetic contact reported open and closed as the door moved. The tester later saw the same changes in PayBox and confirmed the latch returned after opening.                                                                                                                     | This checked the sensor and normal movement. It did not cover a door held just short of closure.                                                                                                                                                                            |
+| Bring the door slowly towards the frame, then ease it back (Artur). | The magnet triggered before the door was fully seated. The servo moved the latch into the closed position, but the door was still ajar. The sensor then correctly showed **Open**. The projecting latch blocked closure, and the tester reported having to remove and refit the arm. | The local prototype added a stable-closure check and allowed the renter to request another opening to clear the latch. The November version uses automatic retraction. Its slow-closure retest is listed below.                                                             |
+| Run the servo test, then reboot the Pi.                             | The arm initially trembled while the programme ran, and one angle setting moved it towards the wall. With pigpio and the tested opening direction, the tester saw a clean movement. A roughly 30 cm lead extension worked.                                                           | After reboot the tester confirmed pigpiod was active and the hardware test still worked.                                                                                                                                                                                    |
+| Reopen the local site with the database stopped.                    | The browser showed the service-unavailable page and Pi heartbeats returned 503. The site appeared again once the database was running.                                                                                                                                               | A separate **Internal Server Error** was also reported on a rental page; its cause was not confirmed in that report.                                                                                                                                                        |
+
+The October walkthrough also shaped the interface: keep the rental deadline and price easy to find, show the account
+menu from the person icon, keep **My rentals** on its own page, and hide device and door details before payment. The
+renter asked for an in-page **Finish rental** dialogue and automatic updates after having to refresh manually. The
+November observations below record which of these changes were subsequently checked on a phone.
+
+## 6 November 2026 — UniStow phone session and follow-up checks
 
 A renter used unistow.app on a phone to open Locker 4, close it, collect their belongings and finish the rental. The
 physical door opened, held shut after closing and the rental eventually showed **Completed**. The interface review
@@ -7,7 +32,7 @@ around that journey focused on three questions: Which locker can I use? What sho
 This record separates the renter’s observations from design changes and browser checks. The phone journey took place
 during development. Later refinements were deployed through commit `7dd8e97`.
 
-## Finding a locker and moving around
+### Finding a locker and moving around
 
 | What the renter noticed                                                                                                                                                            | What changed and why                                                                                                                                                                                                                                                           |
 |------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -17,7 +42,7 @@ during development. Later refinements were deployed through commit `7dd8e97`.
 | Booking repeated “Locker 4” in several places. Returning to the list made the change in header size and layout especially noticeable. The payment page had the same inconsistency. | Reused the home header throughout the site. Only the short line describing the page changes. Detail pages put a round back button where the account control sits on the list pages. The illustrated locker keeps its **04**, where the number helps identify the physical box. |
 | The U looked off-centre in its frame.                                                                                                                                              | Centred the U and reused the same mark in the shared header and browser tab so the site is recognisable throughout the journey.                                                                                                                                                |
 
-## Reserving, paying and changing your mind
+### Reserving, paying and changing your mind
 
 - **Before payment.** Someone who changes their mind during the 15-minute reservation can use **Cancel reservation**
   below **Pay**. This releases the locker for someone else without waiting for the reservation to expire.
@@ -31,7 +56,7 @@ during development. Later refinements were deployed through commit `7dd8e97`.
   new instruction replaces the previous one. This keeps the next step in view instead of making the renter look below
   the controls for a second explanation.
 
-## Opening the door, closing it and finishing
+### Opening the door, closing it and finishing
 
 | Situation                                                              | User-facing decision or observed result                                                                                                                                                                                                                                                                     |
 |------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -47,7 +72,7 @@ the door, the button stayed visible and disabled. Tapping it again could not reo
 A regression test also checked that the button stays disabled when the Pi reports an open door while the database
 still shows it as closed.
 
-## Touch, dialogues and interrupted connections
+### Touch, dialogues and interrupted connections
 
 | Test or observation                                              | Result and scope                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 |------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -56,7 +81,7 @@ still shows it as closed.
 | Open each dialogue and inspect its initially focused button.     | Chrome checks on **Keep** and **Cancel** found no outline, border width or underline. The published stylesheet was compared with the checked version.                                                                                                                                                                                                                                                                                                                                            |
 | Leave the site open during a server restart or loss of internet. | The renter saw unsolicited red connection messages while simply viewing a page. Background updates now retry quietly on the locker list, rental list and rental detail. The last loaded content stays visible. Scripted checks exercised a connection failure and an HTTP 503 response. Background payment checks left the existing message alone. Locker controls can be disabled while their state cannot be verified. Feedback still appears if an action the renter actually requests fails. |
 
-## How the physical journey was verified
+### How the physical journey was verified
 
 1. **Read the door.** The Pi published a closed-door reading. The backend logged it and the renter saw **Closed** on the
    active rental page.
@@ -72,7 +97,7 @@ still shows it as closed.
    token. The setup reported **Automatic token renewal active on Locker 4**. An opening after the original token expired
    was not recorded.
 
-## Verification notes and remaining checks
+### Verification notes and remaining checks
 
 The saved development runs include 58 passing tests for token renewal, 60 for rental notices and 61 in the
 payment-confirmation run. These totals are separate runs of overlapping suites. Earlier runs skipped database-dependent
