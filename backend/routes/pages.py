@@ -53,6 +53,11 @@ def my_rentals(request: Request, db: Annotated[Session, Depends(get_db)]):
     )
 
 
+@router.get("/contact")
+def contact(request: Request):
+    return templates.TemplateResponse(request, "contact.html", {"title": "Contact | UniStow"})
+
+
 @router.get("/register")
 def registration(request: Request):
     return templates.TemplateResponse(

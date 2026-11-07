@@ -71,7 +71,8 @@
         {% elif rental.status == 'cancelled' %}
         <p class="confirmation">This reservation has been cancelled. You can choose an available locker again.</p>
         {% elif rental.status == 'overdue' %}
-        <p class="confirmation">Your paid rental period has ended. Please contact the locker operator.</p>
+        <p class="confirmation">Your paid rental period has ended. Please <a href="{{ url_for('contact') }}">contact the
+            locker operator</a>.</p>
         {% endif %}
         {% if rental.status == 'active' and rental.payment_status == 'paid' and rental.number == 4 %}
         {% set open_url = url_for('test_open_locker' if open_test else 'open_locker', rental_id=rental.id) %}

@@ -53,8 +53,7 @@ until collection and completion. The server saves the terms version and consent 
 `pending`, `paid`, `failed` or `waived`.
 
 Automatic charging, payment-method setup and a scheduled task to mark rentals overdue
-remain to be added. A failed charge must not release the locker. Operator contact details
-also need to be provided.
+remain to be added. A failed charge must not release the locker.
 
 ## Initial setup
 

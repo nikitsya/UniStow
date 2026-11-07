@@ -27,8 +27,8 @@
             <input id="overdue-consent" name="overdue_consent" required type="checkbox">
             <span>I agree to collect my belongings before 18:00 (Ireland time) on the final paid day. If I do not, I authorise an automatic charge of €1 to my payment method at that deadline and at 18:00 each following day until I collect my belongings and finish the rental.</span>
         </label>
-        <p class="operator-help">If you do not agree, or cannot collect your belongings, please contact the locker
-            operator before proceeding.</p>
+        <p class="operator-help">If you do not agree, or cannot collect your belongings, please <a
+                href="{{ url_for('contact') }}">contact the locker operator</a> before proceeding.</p>
         <p class="operator-help">Reserve for up to 15 minutes.</p>
         <p class="confirmation" hidden id="confirmation" role="status"></p>
         <button class="confirm-button" disabled id="confirm" type="submit">Reserve locker</button>

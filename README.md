@@ -137,8 +137,8 @@ To include database tests, start PostgreSQL and prefix the command with
   and [AI assistance log](docs/AI_Chat_Log.md).
 
 Automatic EUR 1 daily overdue charging, payment-method setup and scheduled overdue status
-updates are not implemented. Overdue access currently needs operator assistance; contact
-details still need to be supplied. See the plan for deployment and submission tasks.
+updates are not implemented. Renters can call the locker operator from the public Contact page at `/contact`. See the
+plan for deployment and submission tasks.
 
 The Checkpoint 1 presentation in `docs/` records the original proposal, including Flask,
 PubNub and AWS. It is historical; this README describes the current implementation.
