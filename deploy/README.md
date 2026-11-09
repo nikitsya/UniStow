@@ -181,3 +181,11 @@ Install `renew_token.py` beside `run_locker.py` on the Pi. Set
 `uniflow-locker.service`. The Pi uses its existing device key and HTTPS server
 address to obtain a token at startup and renew it before expiry. Check for
 `Renewed the Locker 4 device token.` in the service journal.
+
+## Daily overdue test billing
+
+Before enabling daily test charges, apply database migrations 002 and 003.
+Set `UNISTOW_OVERDUE_BILLING=1` in `.env.production` and recreate the app
+container. The default is 0. The worker runs every minute and uses a database
+lock to coordinate multiple application processes. See the
+[billing rules and verification](../docs/database.md#daily-test-billing).

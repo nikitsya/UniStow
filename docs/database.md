@@ -11,7 +11,7 @@ UniStow uses PostgreSQL 16. [schema.sql](../backend/database/schema.sql) defines
 | `payments`        | One Stripe checkout request per rental, fixed parameters, retry key and payment status |
 | `payment_events`  | Processed Stripe event IDs to prevent duplicate handling                               |
 | `locker_commands` | Opening/collection commands, controller ID, expiry, dispatch and completion times      |
-| `overdue_charges` | Daily charge records; the table exists but automatic billing is not implemented        |
+| `overdue_charges` | Daily charge records, durable Stripe requests and collection status                    |
 
 A user and a locker can each have many past rentals. A unique index permits only one
 unfinished (`pending`, `active` or `overdue`) rental per locker. Foreign keys preserve
@@ -45,7 +45,7 @@ A report older than 15 seconds is treated as offline. The sensor measures the do
 not the latch position. Commands are stored in `locker_commands`; there is no separate
 `device_events` table in the current schema.
 
-## Overdue charges: planned
+## Overdue charges
 
 The accepted terms specify EUR 1 at the unpaid deadline and each following local 18:00
 until collection and completion. The server saves the terms version and consent time.
@@ -67,8 +67,7 @@ and idempotency key.
 
 Existing reservations and Checkout requests retain their original consent and
 parameters. To exercise the new flow, create a new reservation and accept the
-updated agreement. Automatic daily charges and scheduling are the next stage
-of issue #14.
+updated agreement. Daily test billing is available as an opt-in worker described below.
 
 ## Initial setup
 
@@ -111,3 +110,70 @@ Confirm that the rental activates and that a repeated reconciliation preserves
 the timestamp. Never include card details or secret keys in test evidence.
 
 See [Stripe's documentation on saving payment details during payment](https://docs.stripe.com/payments/checkout/save-during-payment).
+
+## Daily test billing
+
+The application starts a background worker when `UNISTOW_OVERDUE_BILLING=1`.
+It runs immediately and checks again every 60 seconds. Eligible rentals have
+confirmed payment, the new storage consent and a verified saved payment method.
+The first EUR 1 charge becomes due at `paid_until`, then at each following 18:00
+in Europe/Dublin. The worker uses the database clock and local calendar dates,
+including daylight saving changes. Active eligible rentals become overdue.
+
+After a restart, the worker creates missing daily records for still-unfinished
+rentals. Several missed days can therefore produce several EUR 1 test charges
+in one pass. Completed rentals accrue no new records. Pending requests which
+have not been confirmed are waived when the rental has completed. Previously
+submitted payments are reconciled by their existing Stripe IDs.
+
+### Duplicate protection
+
+- The database permits one charge per rental and local date.
+- A PostgreSQL advisory lock permits one billing worker at a time across processes.
+- Every charge has an immutable request payload and UUID idempotency key, saved
+  before the Stripe call.
+- The worker creates an unconfirmed PaymentIntent, saves its ID durably, then
+  confirms that same intent off-session.
+- A lost confirmation response is resolved by retrieving that intent. The
+  worker validates its amount, currency, Customer, PaymentMethod, metadata and
+  test-mode flag before recording success.
+- Creation with an unknown outcome is retried with its saved key for up to
+  23 hours. After that it requires operator review. Stripe can expire idempotency
+  keys after 24 hours.
+- Confirmation and controller-reported completion take the same locker row lock.
+  The worker checks the rental status again immediately before confirming.
+- Declines and requests for additional authentication become failed records.
+  Processing payments remain pending until Stripe confirms their outcome.
+
+Existing charge rows without the new request fields require operator review.
+The worker selects new requests carrying their own idempotency key.
+
+### Enable the worker
+
+Back up the database and apply migration `003_overdue_billing_requests.sql`
+after `002_save_payment_method.sql`, before enabling the worker. Locally:
+
+```sh
+docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1' < backend/database/migrations/003_overdue_billing_requests.sql
+```
+
+On EC2, use the production Compose file and environment file as for migration 002.
+Set `UNISTOW_OVERDUE_BILLING=1` in the application's environment and restart the
+application. Production Compose passes this variable through, defaulting to 0.
+The worker accepts only a Stripe test secret key. Setting the flag to 0 and
+restarting the application disables the worker.
+
+### Verification on 9 November 2026
+
+All 86 backend tests passed with local PostgreSQL. Billing tests use isolated
+schemas and mocked Stripe responses. They cover the exact deadline, both Dublin
+clock changes, missed days, repeat runs, competing workers, lost creation and
+confirmation responses, the creation retry window, declines, processing payments,
+legacy consent, completion races and reconciliation after completion. Migration
+003 was applied twice locally to verify repeatability.
+
+Live Stripe test-mode verification is pending. The new worker has not been enabled
+on EC2. Renter-facing debt totals and payment recovery remain later work in #14.
+
+References: [Stripe idempotent requests](https://docs.stripe.com/api/idempotent_requests)
+and [PaymentIntent confirmation](https://docs.stripe.com/api/payment_intents/confirm).

@@ -136,8 +136,11 @@ To include database tests, start PostgreSQL and prefix the command with
 - [Database](docs/database.md), [implementation plan](docs/implementation-plan.md)
   and [AI assistance log](docs/AI_Chat_Log.md).
 
-Automatic EUR 1 daily overdue charging, payment-method setup and scheduled overdue status
-updates are not implemented. Renters can call the locker operator from the public Contact page at `/contact`. See the
+Test-mode payment-method storage and an opt-in daily EUR 1 overdue billing worker
+are implemented. Apply migrations and enable `UNISTOW_OVERDUE_BILLING=1` to run the
+worker. See the [billing instructions](docs/database.md#daily-test-billing).
+Verification through Stripe test Checkout and the renter-facing debt and failed-payment
+flow remain to be completed. Renters can call the locker operator from the public Contact page at `/contact`. See the
 plan for deployment and submission tasks.
 
 The Checkpoint 1 presentation in `docs/` records the original proposal, including Flask,

@@ -1,4 +1,6 @@
 import logging
+import os
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -7,7 +9,16 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy.exc import SQLAlchemyError
 
 from routes import api, device, pages
-from services.door_events import lifespan
+from services.door_events import lifespan as device_lifespan
+from services.overdue_billing import billing_worker
+
+
+@asynccontextmanager
+async def lifespan(app):
+    with billing_worker(os.getenv("UNISTOW_OVERDUE_BILLING") == "1"):
+        async with device_lifespan(app):
+            yield
+
 
 app = FastAPI(
     lifespan=lifespan, title="UniStow", docs_url=None, redoc_url=None, openapi_url=None

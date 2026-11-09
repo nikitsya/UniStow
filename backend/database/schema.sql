@@ -118,6 +118,10 @@ CREATE TABLE overdue_charges
     status                   TEXT        NOT NULL DEFAULT 'pending'
         CHECK (status IN ('pending', 'paid', 'failed', 'waived')),
     stripe_payment_intent_id TEXT UNIQUE,
+    request_key        TEXT UNIQUE,
+    request_params     JSONB,
+    first_requested_at TIMESTAMPTZ,
+    failure_reason     TEXT,
     paid_at                  TIMESTAMPTZ,
     created_at               TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT one_overdue_charge_per_day UNIQUE (rental_id, charge_date),
