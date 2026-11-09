@@ -48,7 +48,7 @@ class WebhookDatabaseTests(unittest.TestCase):
         token = secrets.token_hex(10)
         number = self.connection.execute(text('SELECT coalesce(max(number),0)+100 FROM lockers')).scalar_one()
         self.locker = self.connection.execute(text(
-            "INSERT INTO lockers(number,size,price_per_day_cents,is_enabled) VALUES(:number,'small',100,true) RETURNING id"),
+            "INSERT INTO lockers(number,size,price_per_day_cents,is_enabled,last_seen_at) VALUES(:number,'small',100,true,CURRENT_TIMESTAMP) RETURNING id"),
             {'number': number}).scalar_one()
         user = self.connection.execute(
             text("INSERT INTO users(email,password_hash) VALUES(:email,'test-fixture') RETURNING id"),

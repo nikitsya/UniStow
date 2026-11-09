@@ -2,9 +2,9 @@
 {% set header_title %}My rental · Locker {{ rental.number }}{% endset %}
 {% block extra_head %}
 {{ super() }}
-<script defer src="{{ url_for('static', path='js/payment.js') }}?v=5"></script>
-<script defer src="{{ url_for('static', path='js/open_locker.js') }}?v=7"></script>
-<script defer src="{{ url_for('static', path='js/live.js') }}?v=9"></script>
+<script defer src="{{ url_for('static', path='js/payment.js') }}?v=6"></script>
+<script defer src="{{ url_for('static', path='js/open_locker.js') }}?v=8"></script>
+<script defer src="{{ url_for('static', path='js/live.js') }}?v=10"></script>
 {% endblock %}
 {% block screen_content %}
 {% set collection_notice = 'Take all your belongings, then close the door to finish your rental.' %}
@@ -35,6 +35,7 @@
         {% endif %}
     </dl>
     <p class="total"><span>Total</span><strong>€{{ '%.2f' | format(rental.total_price_cents / 100) }}</strong></p>
+    <p aria-atomic="true" class="operator-help" hidden id="refresh-notice" role="status"></p>
     <div id="rental-actions">
         {% if rental.status == 'pending' %}
         <p class="operator-help" id="payment-message" role="status">Your rental starts after payment is confirmed.</p>
@@ -62,7 +63,8 @@
 
         {% elif rental.status == 'active' %}
         <p class="confirmation" data-collection-notice="{{ collection_notice }}" id="active-rental-notice"
-           role="status">{% if rental.collecting %}{{ collection_notice }}{% elif
+           role="status">{% if rental.collecting %}{{ collection_notice }}{% elif not device_online %}Your locker is
+            temporarily unavailable. Please try again shortly or contact locker support.{% elif
             door_state == 'open' %}Your locker door is
             open.{% elif rental.number == 4 and rental.payment_status == 'paid' and not can_open %}Please wait until the
             locker is ready.{% endif %}</p>

@@ -30,6 +30,7 @@ class CommandTests(unittest.TestCase):
             "INSERT INTO users(email,password_hash) VALUES ('owner@example.com','test'),('other@example.com','test')"))
         self.connection.execute(text(
             "INSERT INTO lockers(number,size,price_per_day_cents,is_enabled) VALUES(4,'small',100,true),(5,'small',100,true)"))
+        self.connection.execute(text("UPDATE lockers SET last_seen_at=CURRENT_TIMESTAMP"))
         with Session(bind=self.connection, join_transaction_mode='create_savepoint') as db:
             self.rental = reserve_locker(db, 1, 1, 2)
         self.rental_id = self.rental['id']
@@ -258,3 +259,18 @@ class CommandTests(unittest.TestCase):
         self.take()
         self.assertEqual(self.acknowledge(command_id).status_code, 409)
         self.assertEqual(self.connection.execute(text('SELECT status FROM rentals')).scalar_one(), 'active')
+
+    def test_offline_locker_cannot_be_reserved(self):
+        self.connection.execute(
+            text("UPDATE lockers SET last_seen_at=CURRENT_TIMESTAMP-INTERVAL '1 minute' WHERE number=5"))
+        response = self.client.post('/api/rentals',
+                                    json={'locker_id': 2, 'days': 1, 'overdue_consent': True},
+                                    headers={'X-UniStow-Request': '1'})
+        self.assertEqual(response.status_code, 409)
+        self.assertIn('temporarily unavailable', response.json()['detail'])
+        from services.lockers import read_lockers
+        with Session(bind=self.connection, join_transaction_mode='create_savepoint') as db:
+            self.assertEqual(read_lockers(db, 2)[0]['status'], 'offline')
+        self.connection.execute(text("UPDATE lockers SET last_seen_at=CURRENT_TIMESTAMP WHERE number=5"))
+        with Session(bind=self.connection, join_transaction_mode='create_savepoint') as db:
+            self.assertEqual(read_lockers(db, 2)[0]['status'], 'available')

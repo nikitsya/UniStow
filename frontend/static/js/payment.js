@@ -6,7 +6,7 @@ window.initialisePayment = function () {
     const cancelButton = document.querySelector('#cancel-reservation');
     const dialog = document.querySelector('#cancel-reservation-dialog');
     cancelButton.addEventListener('click', () => {
-        if (!window.paymentBusy) dialog.showModal();
+        if (!window.paymentBusy && !window.rentalUnavailable) dialog.showModal();
     });
     document.querySelector('#keep-reservation').addEventListener('click', () => dialog.close());
     document.querySelector('#confirm-cancellation').addEventListener('click', async () => {
@@ -28,12 +28,12 @@ window.initialisePayment = function () {
                 return;
             }
             const result = await response.json();
-            paymentMessage.textContent = result.detail || 'Could not cancel the reservation. Please try again.';
+            paymentMessage.textContent = 'We couldn’t cancel your reservation. Please try again shortly.';
         } catch {
             paymentMessage.textContent = 'Refresh the page to check whether your reservation was cancelled.';
         } finally {
             window.paymentBusy = false;
-            payButton.disabled = cancelButton.disabled = false;
+            payButton.disabled = cancelButton.disabled = Boolean(window.rentalUnavailable);
         }
     });
     payButton.addEventListener('click', async () => {
@@ -51,8 +51,7 @@ window.initialisePayment = function () {
             }
             const result = await response.json();
             if (!response.ok) {
-                paymentMessage.textContent = typeof result.detail === 'string'
-                    ? result.detail : 'Could not open checkout. Please try again.';
+                paymentMessage.textContent = 'We couldn’t open payment. Please try again shortly.';
                 return;
             }
             window.location.assign(result.url);
@@ -60,7 +59,7 @@ window.initialisePayment = function () {
             paymentMessage.textContent = 'Could not connect to checkout. Please retry this reservation.';
         } finally {
             window.paymentBusy = false;
-            payButton.disabled = cancelButton.disabled = false;
+            payButton.disabled = cancelButton.disabled = Boolean(window.rentalUnavailable);
         }
     });
 

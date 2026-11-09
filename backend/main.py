@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -34,11 +36,15 @@ async def validation_error(request: Request, exception: RequestValidationError):
     return JSONResponse(status_code=422, content={"detail": errors})
 
 
+@app.exception_handler(Exception)
 @app.exception_handler(SQLAlchemyError)
-async def database_error(request: Request, exception: SQLAlchemyError):
-    message = "The service is temporarily unavailable. Please try again shortly."
+async def service_error(request: Request, exception: Exception):
+    logging.getLogger(__name__).error("Request failed on %s (%s)", request.url.path, type(exception).__name__)
+    message = ("We can’t show your rental right now." if request.url.path.startswith("/rentals")
+               else "We can’t load this page right now. Please try again shortly.")
     if request.url.path.startswith("/api/"):
         return JSONResponse(status_code=503, content={"detail": message})
     return pages.templates.TemplateResponse(
-        request, "error.html", {"title": "UniStow", "message": message}, status_code=503
+        request, "error.html", {"title": "Please try again | UniStow", "message": message,
+                                "retry_url": request.url.path}, status_code=503
     )

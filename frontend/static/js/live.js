@@ -1,5 +1,6 @@
 (() => {
     let running = false;
+    let failures = 0;
     let lastPaymentCheck = 0;
     let relockGraceUntil = 0;
     let timer;
@@ -38,6 +39,31 @@
         }
     }
 
+    function updateAvailability(unavailable) {
+        window.rentalUnavailable = unavailable;
+        const notice = document.querySelector('#refresh-notice');
+        const message = failures >= 2
+            ? 'We can’t update this page right now. Please wait a moment and try again.' : '';
+        if (notice) {
+            notice.hidden = !message;
+            if (notice.textContent !== message) notice.textContent = message;
+        }
+        for (const id of ['pay-button', 'cancel-reservation', 'confirm-cancellation',
+            'open-locker-button', 'finish-rental-button', 'confirm-finish']) {
+            const button = document.getElementById(id);
+            if (!button) continue;
+            if (unavailable) {
+                if (!('beforeOutage' in button.dataset)) button.dataset.beforeOutage = String(button.disabled);
+                button.disabled = true;
+            } else if ('beforeOutage' in button.dataset) {
+                button.disabled = button.dataset.beforeOutage === 'true';
+                delete button.dataset.beforeOutage;
+            }
+        }
+        const activeNotice = document.querySelector('#active-rental-notice, #payment-message');
+        if (activeNotice) activeNotice.hidden = Boolean(message);
+    }
+
     async function refresh() {
         clearTimeout(timer);
         if (running) return;
@@ -60,6 +86,13 @@
             }
             if (!response.ok) throw new Error('Update unavailable');
             const fresh = parser.parseFromString(await response.text(), 'text/html');
+            const pageSection = document.querySelector('#live-rental, .home-locker-grid, #live-rentals-list');
+            const expected = pageSection?.id ? '#' + pageSection.id : '.home-locker-grid';
+            if (!fresh.querySelector(expected)) {
+                throw new Error('Page unavailable');
+            }
+            failures = 0;
+            updateAvailability(false);
             const rental = document.querySelector('#live-rental');
             if (rental) {
                 const next = fresh.querySelector('#live-rental');
@@ -96,7 +129,9 @@
                 const updatedNotice = next.querySelector('#active-rental-notice');
                 if (notice && updatedNotice && !fetchingDuringCommand && !window.lockerBusy && commandAtFetch === window.lockerCooldown) {
                     const collecting = next.dataset.collecting === '1';
-                    const keepCommand = notice.dataset.commandMessage && cooldown && doorState !== 'open' && !collecting;
+                    if (doorState === 'open' || collecting) delete notice.dataset.uncertain;
+                    const keepCommand = notice.dataset.uncertain
+                        || (notice.dataset.commandMessage && cooldown && doorState !== 'open' && !collecting);
                     if (!keepCommand) {
                         delete notice.dataset.commandMessage;
                         notice.classList.remove('unlock-warning');
@@ -119,15 +154,21 @@
                 document.querySelector('.home-locker-grid').inert = false;
                 window.updateLockerFilter();
             } else {
+                if (!fresh.querySelector('#live-rentals-list')) throw new Error('Rentals unavailable');
                 replaceIfChanged('#live-rentals-list', fresh);
             }
         } catch {
-            for (const id of ['open-locker-button', 'finish-rental-button', 'confirm-finish']) {
-                const button = document.getElementById(id);
-                if (button) button.disabled = true;
-            }
+            failures += 1;
+            updateAvailability(true);
             const grid = document.querySelector('.home-locker-grid');
-            if (grid) grid.inert = true;
+            if (grid) {
+                grid.inert = true;
+                for (const status of grid.querySelectorAll('.home-status')) {
+                    if (status.textContent !== 'Checking availability…') status.textContent = 'Checking availability…';
+                }
+                const count = document.querySelector('[data-filter="available"] span');
+                if (count) count.textContent = '—';
+            }
         } finally {
             running = false;
             timer = setTimeout(refresh, 3000);

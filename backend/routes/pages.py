@@ -106,7 +106,7 @@ def reservation(request: Request, rental_id: int, db: Annotated[Session, Depends
         "open_test": open_test, "http_ready": controller_ready and ends_at > datetime.now(timezone.utc),
         "title": "My rental | UniStow", "rental": rental,
         "ends_at": ends_at.strftime("%d %B %Y at %H:%M"),
-        "door_state": door_state,
+        "door_state": door_state, "device_online": device_online,
         "can_open": (rental["number"] == 4 and rental["status"] == "active"
                      and rental.get("payment_status") == "paid"
                      and rental["paid_until"] > datetime.now(timezone.utc)
@@ -123,7 +123,11 @@ def rental(request: Request, locker_id: int, db: Annotated[Session, Depends(get_
         raise HTTPException(status_code=404, detail="Locker not found")
     locker = lockers[0]
     if locker["status"] != "available":
-        raise HTTPException(status_code=409, detail="This locker is unavailable")
+        return templates.TemplateResponse(
+            request, "error.html", {"title": "Locker unavailable | UniStow",
+                                    "message": "This locker is temporarily unavailable. Please choose another locker.",
+                                    "retry_url": "/"}, status_code=409
+        )
     return templates.TemplateResponse(
         request, "rental.html", {"title": f"{locker['name']} | UniStow", "locker": locker}
     )

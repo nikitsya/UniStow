@@ -6,12 +6,13 @@ window.initialiseLockerActions = function () {
     const notice = document.querySelector('#active-rental-notice');
 
     function showUnlockWarning() {
-        notice.classList.add('unlock-warning');
-        notice.textContent = 'We couldn’t confirm that the locker unlocked. Please check the door.';
+        notice.dataset.uncertain = 'true';
+        notice.textContent = 'We couldn’t confirm whether the locker opened. Check the door before trying again.';
     }
 
     async function sendCommand(button, finish) {
         if (button.disabled) return;
+        delete notice.dataset.uncertain;
         window.lockerBusy = true;
         window.lockerCooldown = Date.now() + 12000;
         openButton.disabled = true;
@@ -26,7 +27,7 @@ window.initialiseLockerActions = function () {
                 method: 'POST', headers, signal: AbortSignal.timeout(8000),
             });
             const result = await response.json();
-            if (response.status === 504 && result.detail !== 'The controller did not acknowledge the test in time.') {
+            if (response.status >= 500) {
                 showUnlockWarning();
                 return;
             }
@@ -38,7 +39,8 @@ window.initialiseLockerActions = function () {
 
             notice.textContent = response.ok
                 ? 'Open the door once it unlocks.'
-                : (typeof result.detail === 'string' ? result.detail : 'Request failed. Please try again shortly.');
+                : (response.status === 401 ? 'Please sign in again to use your locker.'
+                    : 'Your locker is unavailable right now. Check the door and try again shortly.');
         } catch {
             showUnlockWarning();
         } finally {

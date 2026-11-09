@@ -3,7 +3,7 @@
 {% block body_class %}home-page{% endblock %}
 {% block extra_head %}
 <script defer src="{{ url_for('static', path='js/home.js') }}?v=5"></script>
-<script defer src="{{ url_for('static', path='js/live.js') }}?v=8"></script>
+<script defer src="{{ url_for('static', path='js/live.js') }}?v=10"></script>
 {% endblock %}
 {% block content %}
 {% set available = lockers | selectattr('status', 'equalto', 'available') | list %}
@@ -15,6 +15,7 @@
             <button aria-pressed="false" data-filter="available" type="button">Available
                 <span>{{ available | length }}</span></button>
         </div>
+        <p aria-atomic="true" class="operator-help" hidden id="refresh-notice" role="status"></p>
         <ul aria-label="Lockers" class="home-locker-grid">
             {% for locker in lockers %}
             {% set own_rental = own_rentals.get(locker.id) if own_rentals is defined else none %}
@@ -37,7 +38,7 @@
                             <span class="home-status">{% if own_rental %}Continue rental <span
                                     aria-hidden="true">{% include 'rental_arrow.svg' %}</span>{% elif locker.status == 'available' %}<span
                                     class="small-dot"></span>Available <span
-                                    aria-hidden="true">{% include 'rental_arrow.svg' %}</span>{% else %}Unavailable{% endif %}</span>
+                                    aria-hidden="true">{% include 'rental_arrow.svg' %}</span>{% elif locker.status == 'offline' %}Temporarily unavailable{% else %}Unavailable{% endif %}</span>
                             {% if own_rental or locker.status == 'available' %}
                     </a>{% else %}
 </div>{% endif %}

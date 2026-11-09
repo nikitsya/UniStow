@@ -131,3 +131,34 @@ version:
   the next full closure holds.
 - With a valid paid rental, try opening Locker 4 more than an hour after the initial token was issued and record the
   result.
+
+## Service interruptions — 9 November 2026
+
+Issue #16 adds calm status messages above rental actions. A first failed refresh
+blocks actions while retrying quietly. Repeated failures show one message.
+Locker cards show that availability is being checked until a successful refresh.
+An enabled locker with a missing or expired heartbeat is temporarily unavailable,
+and the server rejects new reservations for it.
+
+An opening with an unknown outcome tells the renter to check the door before
+trying again. This message survives background refreshes until an opening or
+collection is confirmed, or the renter explicitly makes another request.
+The browser never retries an opening automatically.
+
+Rental page failures offer a retry of the same page and a link to phone support.
+Payment and collection status still depend on confirmed server responses.
+
+### Verification
+
+- All 65 backend tests passed with local PostgreSQL enabled, including the
+  offline reservation rejection and availability recovery test.
+- Automated page tests cover database and unexpected errors, a same-page retry
+  and the support link, without exposing the exception text.
+- Chrome with a 390 × 844 viewport and simulated network failures passed the
+  brief-interruption, repeated-failure and recovery checks.
+- The same browser check confirmed that an unknown opening retains its warning
+  after refresh and sends exactly one opening request.
+- Physical-phone checks with the deployed site and an offline Pi are pending.
+
+Content follows
+the [GOV.UK service problem guidance](https://design-system.service.gov.uk/patterns/problem-with-the-service-pages/).

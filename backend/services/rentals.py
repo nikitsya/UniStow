@@ -20,7 +20,7 @@ def rental_end(starts_at: datetime, days: int) -> datetime:
 def reserve_locker(db: Session, user_id: int, locker_id: int, days: int):
     # Lock the locker row so simultaneous requests cannot both reserve it.
     locker = db.execute(text("""
-                             SELECT id, is_enabled, price_per_day_cents
+                             SELECT id, is_enabled, price_per_day_cents, last_seen_at
                              FROM lockers
                              WHERE id = :id FOR UPDATE
                              """), {"id": locker_id}).mappings().first()
@@ -57,6 +57,10 @@ def reserve_locker(db: Session, user_id: int, locker_id: int, days: int):
             db.commit()
             return dict(existing)
         raise HTTPException(status_code=409, detail="This locker is already reserved or in use.")
+
+    if (locker["last_seen_at"] is None
+            or not 0 <= (now - locker["last_seen_at"]).total_seconds() < 15):
+        raise HTTPException(status_code=409, detail="This locker is temporarily unavailable.")
 
     paid_until = rental_end(now, days)
     reserved_until = min(now + timedelta(minutes=15), paid_until)

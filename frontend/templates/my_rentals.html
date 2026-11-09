@@ -3,10 +3,11 @@
 {% block body_class %}flow-page{% endblock %}
 {% block extra_head %}
 <link href="{{ url_for('static', path='css/screens.css') }}?v=4" rel="stylesheet">
-<script defer src="{{ url_for('static', path='js/live.js') }}?v=8"></script>
+<script defer src="{{ url_for('static', path='js/live.js') }}?v=10"></script>
 {% endblock %}
 {% block content %}
 <section aria-label="My rentals" class="rental-screen">
+    <p aria-atomic="true" class="operator-help" hidden id="refresh-notice" role="status"></p>
     <div id="live-rentals-list">
         {% if user and reservations %}
         <div class="rentals-list">
