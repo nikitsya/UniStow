@@ -192,12 +192,20 @@ Two manual runs of the deployed billing worker produced the following results:
 | Second run            | Same database record, PaymentIntent and Stripe charge       |
 | Stripe reconciliation | Exactly one PaymentIntent for rental 41 and the charge date |
 
-This verifies a successful test-mode collection and duplicate protection on a
-repeat run. No real money was collected. Rental 41 remains overdue with the
-adjusted dates; automatic billing remains disabled. The next daily charge,
-completion behaviour and failure recovery have automated test coverage but
-have not yet been verified against Stripe on EC2. Renter-facing debt totals and
-payment recovery remain later work in #14.
+A second check moved the related rental dates back one further day after saving
+another snapshot on EC2. This simulated an additional missed daily deadline,
+rather than waiting for a future deadline. The worker added one EUR 1 payment
+for 8 November and preserved the existing payment for 9 November. A repeat run
+kept both database records, PaymentIntents and Stripe charges unchanged. Stripe
+confirmed exactly two successful test payments totalling EUR 2.
+
+These checks verify successful test-mode collection, catch-up for an additional
+missed day and duplicate protection on repeat runs. No real money was collected.
+Rental 41 remains overdue with the adjusted dates; automatic billing remains
+disabled. Scheduled execution at a future deadline, completion behaviour and
+failure recovery have not yet been verified against Stripe on EC2. Automated
+tests cover the deadline, completion and failure cases. Renter-facing debt totals
+and payment recovery remain later work in #14.
 
 References: [Stripe idempotent requests](https://docs.stripe.com/api/idempotent_requests)
 and [PaymentIntent confirmation](https://docs.stripe.com/api/payment_intents/confirm).
