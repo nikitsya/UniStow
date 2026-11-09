@@ -274,3 +274,15 @@ class CommandTests(unittest.TestCase):
         self.connection.execute(text("UPDATE lockers SET last_seen_at=CURRENT_TIMESTAMP WHERE number=5"))
         with Session(bind=self.connection, join_transaction_mode='create_savepoint') as db:
             self.assertEqual(read_lockers(db, 2)[0]['status'], 'available')
+
+    def test_records_explicit_payment_method_consent(self):
+        response = self.client.post('/api/rentals',
+                                    json={'locker_id': 2, 'days': 1, 'overdue_consent': True,
+                                          'payment_method_consent': True},
+                                    headers={'X-UniStow-Request': '1'})
+        self.assertEqual(response.status_code, 201)
+        rental = self.connection.execute(text(
+            "SELECT overdue_terms_version, overdue_terms_accepted_at FROM rentals WHERE id=:id"
+        ), {'id': response.json()['id']}).one()
+        self.assertEqual(rental[0], '2026-11-09')
+        self.assertIsNotNone(rental[1])

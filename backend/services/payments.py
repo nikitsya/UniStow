@@ -8,6 +8,8 @@ from fastapi import HTTPException
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from services.rentals import PAYMENT_METHOD_TERMS_VERSION
+
 
 def stripe_client():
     key = os.environ.get("STRIPE_SECRET_KEY", "")
@@ -49,7 +51,7 @@ def checkout_parameters(rental, base_url: str, now):
     expires_at = now + timedelta(minutes=31)
     if expires_at >= rental["paid_until"]:
         raise HTTPException(status_code=409, detail="Too close to the rental deadline to start checkout.")
-    return {
+    params = {
         "mode": "payment", "payment_method_types": ["card"],
         "branding_settings": {"display_name": "UniStow"},
         "client_reference_id": str(rental["id"]),
@@ -62,6 +64,14 @@ def checkout_parameters(rental, base_url: str, now):
         "cancel_url": f"{base_url}/rentals/{rental['id']}",
         "expires_at": int(expires_at.timestamp()),
     }
+
+    if rental.get("overdue_terms_version") == PAYMENT_METHOD_TERMS_VERSION:
+        params["customer_creation"] = "always"
+        params["payment_intent_data"] = {
+            "setup_future_usage": "off_session",
+            "metadata": {"rental_id": str(rental["id"])},
+        }
+    return params
 
 
 def create_checkout(db: Session, rental_id: int, user_id: int):

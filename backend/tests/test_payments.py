@@ -27,6 +27,11 @@ class PaymentSettingsTests(unittest.TestCase):
         self.assertEqual(params['payment_method_types'], ['card'])
         self.assertEqual(params['metadata'], {'rental_id': '7'})
         self.assertEqual(params['expires_at'], int((now + timedelta(minutes=31)).timestamp()))
+        self.assertNotIn('payment_intent_data', params)
+        rental['overdue_terms_version'] = '2026-11-09'
+        params = checkout_parameters(rental, 'http://127.0.0.1:8000', now)
+        self.assertEqual(params['customer_creation'], 'always')
+        self.assertEqual(params['payment_intent_data']['setup_future_usage'], 'off_session')
         rental['paid_until'] = now + timedelta(minutes=20)
         with self.assertRaises(HTTPException):
             checkout_parameters(rental, 'http://127.0.0.1:8000', now)

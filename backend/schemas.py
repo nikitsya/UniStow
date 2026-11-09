@@ -19,6 +19,7 @@ class RentalRequest(BaseModel):
     locker_id: int = Field(gt=0, strict=True)
     days: int = Field(ge=1, le=4, strict=True)
     overdue_consent: bool = Field(strict=True)
+    payment_method_consent: bool = Field(default=False, strict=True)
 
     @field_validator("overdue_consent")
     @classmethod

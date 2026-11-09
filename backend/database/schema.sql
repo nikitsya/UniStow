@@ -91,6 +91,10 @@ CREATE TABLE payments
     checkout_session_id TEXT UNIQUE,
     status              TEXT        NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'expired')),
     payment_intent_id   TEXT UNIQUE,
+    stripe_customer_id       TEXT,
+    stripe_payment_method_id TEXT,
+    payment_method_saved_at  TIMESTAMPTZ,
+
     confirmed_at        TIMESTAMPTZ,
     created_at          TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

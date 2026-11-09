@@ -56,7 +56,7 @@ def create_rental(details: RentalRequest, request: Request,
     user = current_user(db, request)
     if user is None:
         raise HTTPException(status_code=401, detail="Please sign in.")
-    return reserve_locker(db, user["id"], details.locker_id, details.days)
+    return reserve_locker(db, user["id"], details.locker_id, details.days, details.payment_method_consent)
 
 
 @router.post("/register", status_code=201, dependencies=[Depends(check_browser_request)])

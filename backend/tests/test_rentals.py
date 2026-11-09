@@ -43,7 +43,7 @@ class RentalAccessTests(unittest.TestCase):
         self.assertEqual(self.client.post('/api/rentals', json=body).status_code, 403)
         with patch('routes.api.reserve_locker', return_value={'id': 1, 'status': 'pending'}) as reserve:
             self.assertEqual(self.client.post('/api/rentals', json=body, headers=headers).status_code, 201)
-            self.assertEqual(reserve.call_args.args[1:], (1, 4, 2))
+            self.assertEqual(reserve.call_args.args[1:], (1, 4, 2, False))
             body['overdue_consent'] = False
             self.assertEqual(self.client.post('/api/rentals', json=body, headers=headers).status_code, 422)
             self.assertEqual(reserve.call_count, 1)

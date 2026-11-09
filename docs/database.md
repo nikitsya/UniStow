@@ -52,8 +52,23 @@ until collection and completion. The server saves the terms version and consent 
 `overdue_charges` allows one record per rental and local charge date, with statuses
 `pending`, `paid`, `failed` or `waived`.
 
-Automatic charging, payment-method setup and a scheduled task to mark rentals overdue
-remain to be added. A failed charge must not release the locker.
+New reservations that explicitly authorise payment-method storage use terms version
+`2026-11-09`. The checkbox starts unchecked and its agreement covers Stripe storage and the agreed
+EUR 1 charges for that rental. The server records the version and acceptance time.
+Requests without payment-method consent retain version `2026-10-25`.
+
+For new consenting reservations, Checkout creates a Stripe Customer and requests
+`setup_future_usage=off_session`. After a verified test payment, the server checks
+the PaymentIntent and its attached card PaymentMethod, then saves
+`stripe_customer_id`, `stripe_payment_method_id` and `payment_method_saved_at`
+on the rental's payment record. Card details stay in Stripe. Each rental has its
+own Customer created by Checkout. Retries reuse the saved Checkout parameters
+and idempotency key.
+
+Existing reservations and Checkout requests retain their original consent and
+parameters. To exercise the new flow, create a new reservation and accept the
+updated agreement. Automatic daily charges and scheduling are the next stage
+of issue #14.
 
 ## Initial setup
 
@@ -67,7 +82,32 @@ docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v O
 This adds nine lockers with only Locker 4 enabled. Repeating it leaves existing records
 unchanged. It does not reset availability or change existing locker settings.
 
-Migrations are manual; restarting Docker does not apply SQL changes. The repository
-currently contains only migration `001_add_lockers.sql`. Device and payment tables are
-already in the current schema. An older database needs a migration based on its existing
+Apply `002_save_payment_method.sql` to an existing database before starting the
+updated application. From the project folder, for the local Docker database:
+
+```sh
+docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1' < backend/database/migrations/002_save_payment_method.sql
+```
+
+For EC2, use `docker compose --env-file .env.production -f compose.production.yaml`
+in the same command. Back up the database first. The migration adds nullable
+columns and supports repeated execution.
+
+Migrations are manual; restarting Docker does not apply SQL changes. Device and
+payment tables are already in the current schema. An older database needs a migration based on its existing
 structure; do not rerun the initial schema or delete its volume to update it.
+
+## Saved payment method verification
+
+On 9 November 2026, all 70 automated backend tests passed against local
+PostgreSQL. Stripe responses were mocked. Checks cover consent-gated Checkout
+parameters, verified method storage, duplicate events, lookup failure and retry,
+a mismatched Customer, and legacy single-payment behaviour.
+
+A real Stripe test-mode Checkout is still pending. Create a new reservation with
+the updated agreement, complete Checkout using a Stripe test card and verify that
+the payment record contains the Customer ID, PaymentMethod ID and saved timestamp.
+Confirm that the rental activates and that a repeated reconciliation preserves
+the timestamp. Never include card details or secret keys in test evidence.
+
+See [Stripe's documentation on saving payment details during payment](https://docs.stripe.com/payments/checkout/save-during-payment).

@@ -46,7 +46,8 @@ if (form) {
                 headers: {'Content-Type': 'application/json', 'X-UniStow-Request': '1'},
                 body: JSON.stringify({
                     locker_id: Number(form.dataset.lockerId),
-                    days: Number(daysInput.value), overdue_consent: consent.checked
+                    days: Number(daysInput.value), overdue_consent: consent.checked,
+                    payment_method_consent: consent.checked
                 }),
             });
             if (response.status === 401) {

@@ -6,6 +6,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from services.payments import owned_rental, stripe_client
+from services.rentals import PAYMENT_METHOD_TERMS_VERSION
 
 CHECKOUT_EVENTS = {
     "checkout.session.completed", "checkout.session.expired",
@@ -33,9 +34,35 @@ def retrieve_checkout(session_id: str):
         raise HTTPException(status_code=503, detail="Payment verification is temporarily unavailable.") from None
 
 
+def saved_payment_method(checkout, rental):
+    try:
+        intent = stripe_client().v1.payment_intents.retrieve(
+            checkout["payment_intent"], {"expand": ["payment_method"]}
+        ).to_dict()
+    except stripe.StripeError:
+        raise HTTPException(503, "Payment verification is temporarily unavailable.") from None
+    method = intent.get("payment_method")
+    customer = checkout.get("customer")
+    if (intent.get("id") != checkout["payment_intent"]
+            or intent.get("livemode") is not False
+            or intent.get("status") != "succeeded"
+            or intent.get("amount") != rental["total_price_cents"]
+            or intent.get("currency") != "eur"
+            or intent.get("setup_future_usage") != "off_session"
+            or not isinstance(customer, str) or not customer.startswith("cus_")
+            or intent.get("customer") != customer
+            or not isinstance(method, dict)
+            or method.get("livemode") is not False
+            or method.get("type") != "card"
+            or method.get("customer") != customer
+            or not isinstance(method.get("id"), str) or not method["id"].startswith("pm_")):
+        raise HTTPException(409, "The saved payment method needs review.")
+    return {"customer": customer, "method": method["id"]}
+
+
 def apply_checkout(db: Session, checkout, event=None):
     payment = db.execute(text("""
-                              SELECT payments.rental_id, rentals.locker_id
+                              SELECT payments.rental_id, payments.checkout_params, rentals.locker_id
                               FROM payments
                                        JOIN rentals ON rentals.id = payments.rental_id
                               WHERE checkout_session_id = :session
@@ -70,6 +97,11 @@ def apply_checkout(db: Session, checkout, event=None):
     if checkout.get("status") == "complete" and checkout.get("payment_status") == "paid":
         if rental["status"] == "cancelled" or not checkout.get("payment_intent"):
             raise HTTPException(status_code=409, detail="This payment needs review before activation.")
+        saved = None
+        if (rental["overdue_terms_version"] == PAYMENT_METHOD_TERMS_VERSION
+                and payment["checkout_params"].get("payment_intent_data", {}).get(
+                    "setup_future_usage") == "off_session"):
+            saved = saved_payment_method(checkout, rental)
         db.execute(text("""
                         UPDATE payments
                         SET status            = 'paid',
@@ -77,6 +109,14 @@ def apply_checkout(db: Session, checkout, event=None):
                             confirmed_at      = COALESCE(confirmed_at, CURRENT_TIMESTAMP)
                         WHERE rental_id = :id
                         """), {"id": rental["id"], "intent": checkout["payment_intent"]})
+        if saved:
+            db.execute(text("""
+                            UPDATE payments
+                            SET stripe_customer_id       = :customer,
+                                stripe_payment_method_id = :method,
+                                payment_method_saved_at  = COALESCE(payment_method_saved_at, CURRENT_TIMESTAMP)
+                            WHERE rental_id = :id
+                            """), {"id": rental["id"], **saved})
         db.execute(text("""
                         UPDATE rentals
                         SET status = CASE

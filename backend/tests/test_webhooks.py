@@ -7,6 +7,7 @@ import time
 import unittest
 from unittest.mock import patch
 
+import stripe
 from fastapi.testclient import TestClient
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -143,3 +144,71 @@ class WebhookDatabaseTests(unittest.TestCase):
         self.checkout.update(payment_status='unpaid', payment_intent=None)
         self.assertEqual(self.send_event().status_code, 200)
         self.assertEqual(self.status(), 'pending')
+
+    def prepare_saved_method(self):
+        self.connection.execute(text("""
+                                     UPDATE rentals
+                                     SET overdue_terms_version='2026-11-09'
+                                     WHERE id = :id
+                                     """), {'id': self.rental['id']})
+        self.connection.execute(text("""
+                                     UPDATE payments
+                                     SET checkout_params='{"payment_intent_data":{"setup_future_usage":"off_session"}}'
+                                     WHERE rental_id = :id
+                                     """), {'id': self.rental['id']})
+        self.checkout['customer'] = 'cus_test'
+        return {
+            'id': self.checkout['payment_intent'], 'livemode': False,
+            'status': 'succeeded', 'amount': 200, 'currency': 'eur',
+            'setup_future_usage': 'off_session', 'customer': 'cus_test',
+            'payment_method': {'id': 'pm_test', 'type': 'card', 'livemode': False, 'customer': 'cus_test'},
+        }
+
+    def test_saves_verified_method_and_preserves_timestamp_on_retry(self):
+        intent = self.prepare_saved_method()
+        with patch('services.payment_confirmation.stripe_client') as client:
+            client.return_value.v1.payment_intents.retrieve.return_value.to_dict.return_value = intent
+            self.assertEqual(self.send_event().status_code, 200)
+            saved = self.connection.execute(text(
+                "SELECT stripe_customer_id,stripe_payment_method_id,payment_method_saved_at FROM payments WHERE rental_id=:id"
+            ), {'id': self.rental['id']}).one()
+            self.assertEqual(saved[:2], ('cus_test', 'pm_test'))
+            self.assertIsNotNone(saved[2])
+            self.assertEqual(self.send_event().status_code, 200)
+            self.assertEqual(self.send_event('again').status_code, 200)
+            current = self.connection.execute(text(
+                "SELECT payment_method_saved_at FROM payments WHERE rental_id=:id"
+            ), {'id': self.rental['id']}).scalar_one()
+            self.assertEqual(saved[2], current)
+            self.assertEqual(self.status(), 'active')
+
+    def test_rejects_wrong_customer_without_recording_method(self):
+        intent = self.prepare_saved_method()
+        intent['payment_method']['customer'] = 'cus_someone_else'
+        with patch('services.payment_confirmation.stripe_client') as client:
+            client.return_value.v1.payment_intents.retrieve.return_value.to_dict.return_value = intent
+            self.assertEqual(self.send_event().status_code, 409)
+        self.assertEqual(self.status(), 'pending')
+        self.assertIsNone(self.connection.execute(text(
+            "SELECT stripe_payment_method_id FROM payments WHERE rental_id=:id"
+        ), {'id': self.rental['id']}).scalar_one())
+
+    def test_method_lookup_timeout_can_be_retried(self):
+        intent = self.prepare_saved_method()
+        with patch('services.payment_confirmation.stripe_client') as client:
+            retrieve = client.return_value.v1.payment_intents.retrieve
+            retrieve.side_effect = stripe.APIConnectionError('test timeout')
+            self.assertEqual(self.send_event().status_code, 503)
+            self.assertEqual(self.status(), 'pending')
+            retrieve.side_effect = None
+            retrieve.return_value.to_dict.return_value = intent
+            self.assertEqual(self.send_event().status_code, 200)
+            self.assertEqual(self.status(), 'active')
+
+    def test_old_consent_keeps_single_payment_behaviour(self):
+        with patch('services.payment_confirmation.stripe_client') as client:
+            self.assertEqual(self.send_event().status_code, 200)
+            client.assert_not_called()
+        self.assertIsNone(self.connection.execute(text(
+            "SELECT stripe_payment_method_id FROM payments WHERE rental_id=:id"
+        ), {'id': self.rental['id']}).scalar_one())

@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 IRELAND = ZoneInfo("Europe/Dublin")
 TERMS_VERSION = "2026-10-25"
+PAYMENT_METHOD_TERMS_VERSION = "2026-11-09"
 
 
 def rental_end(starts_at: datetime, days: int) -> datetime:
@@ -17,7 +18,7 @@ def rental_end(starts_at: datetime, days: int) -> datetime:
     return datetime.combine(final_date, time(18), tzinfo=IRELAND)
 
 
-def reserve_locker(db: Session, user_id: int, locker_id: int, days: int):
+def reserve_locker(db: Session, user_id: int, locker_id: int, days: int, payment_method_consent: bool = False):
     # Lock the locker row so simultaneous requests cannot both reserve it.
     locker = db.execute(text("""
                              SELECT id, is_enabled, price_per_day_cents, last_seen_at
@@ -74,6 +75,6 @@ def reserve_locker(db: Session, user_id: int, locker_id: int, days: int):
                              """), {"user_id": user_id, "locker_id": locker_id, "days": days,
                                     "reserved_until": reserved_until, "now": now, "paid_until": paid_until,
                                     "total": locker["price_per_day_cents"] * days,
-                                    "terms": TERMS_VERSION}).mappings().one()
+                                    "terms": PAYMENT_METHOD_TERMS_VERSION if payment_method_consent else TERMS_VERSION}).mappings().one()
     db.commit()
     return dict(rental)
