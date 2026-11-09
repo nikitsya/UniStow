@@ -172,8 +172,32 @@ confirmation responses, the creation retry window, declines, processing payments
 legacy consent, completion races and reconciliation after completion. Migration
 003 was applied twice locally to verify repeatability.
 
-Live Stripe test-mode verification is pending. The new worker has not been enabled
-on EC2. Renter-facing debt totals and payment recovery remain later work in #14.
+### EC2 Stripe test-mode verification on 9 November 2026
+
+Commit `5e1d586` and migration 003 were deployed to EC2. The application passed
+its health check and the public site returned HTTP 200. Automatic billing remains
+disabled (`UNISTOW_OVERDUE_BILLING=0`).
+
+Rental 41 had a confirmed payment, saved payment method and the new consent.
+Its original rental record was backed up on EC2 before the related rental dates
+were moved back one day, making one EUR 1 charge due on 9 November at 18:00 Dublin
+time. The controller was not operated during this billing check.
+
+Two manual runs of the deployed billing worker produced the following results:
+
+| Check                 | Result                                                      |
+|-----------------------|-------------------------------------------------------------|
+| First run             | One charge record, amount 100 cents, status `paid`          |
+| Stripe result         | `succeeded`, amount received 100 cents, `livemode=false`    |
+| Second run            | Same database record, PaymentIntent and Stripe charge       |
+| Stripe reconciliation | Exactly one PaymentIntent for rental 41 and the charge date |
+
+This verifies a successful test-mode collection and duplicate protection on a
+repeat run. No real money was collected. Rental 41 remains overdue with the
+adjusted dates; automatic billing remains disabled. The next daily charge,
+completion behaviour and failure recovery have automated test coverage but
+have not yet been verified against Stripe on EC2. Renter-facing debt totals and
+payment recovery remain later work in #14.
 
 References: [Stripe idempotent requests](https://docs.stripe.com/api/idempotent_requests)
 and [PaymentIntent confirmation](https://docs.stripe.com/api/payment_intents/confirm).
