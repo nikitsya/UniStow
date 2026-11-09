@@ -38,7 +38,7 @@
                             <span class="home-status">{% if own_rental %}Continue rental <span
                                     aria-hidden="true">{% include 'rental_arrow.svg' %}</span>{% elif locker.status == 'available' %}<span
                                     class="small-dot"></span>Available <span
-                                    aria-hidden="true">{% include 'rental_arrow.svg' %}</span>{% elif locker.status == 'offline' %}Temporarily unavailable{% else %}Unavailable{% endif %}</span>
+                                    aria-hidden="true">{% include 'rental_arrow.svg' %}</span>{% else %}Unavailable{% endif %}</span>
                             {% if own_rental or locker.status == 'available' %}
                     </a>{% else %}
 </div>{% endif %}
