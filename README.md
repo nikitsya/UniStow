@@ -22,6 +22,31 @@ until Stripe payment is reconciled; checkout has its own expiry. Rental status, 
 and availability update automatically while the page is visible. A closed door reading
 does not prove that the latch is locked.
 
+## Project images
+
+The [initial prototype](docs/images/prototype/initial-prototype/) contains
+fully AI-generated concept visualisations. The
+[physical prototype](docs/images/prototype/physical-prototype/) contains edited
+versions of the author's own photographs of the real UniStow prototype. AI
+generated the university canteen backgrounds and retouched perspective, lighting,
+lettering and small hardware details for presentation. The canteen setting is
+illustrative.
+
+- [Closed locker](docs/images/prototype/physical-prototype/unistow-prototype-closed-ai-background.png).
+- [Open locker](docs/images/prototype/physical-prototype/unistow-prototype-open-ai-background.png).
+- [Servo and door sensor](docs/images/prototype/physical-prototype/unistow-prototype-mechanism-ai-background.png).
+
+The [future UniStow prototype](docs/images/prototype/future-prototype/unistow-future-prototype.png)
+is an AI-generated concept based on the physical prototype. It shows a sage-grey
+metal locker bank on a white background, with compartment 04 open, concealed
+electronics, a raised metal latch arm and a thin door. It illustrates a proposed
+future design; the QR patterns in the image are illustrative.
+
+Other images are grouped into [deployment evidence](docs/images/deployment/),
+[hardware screenshots](docs/images/hardware/) and
+[testing screenshots](docs/images/testing/). See the
+[AI assistance log](docs/AI_Chat_Log.md) for the image-editing record.
+
 ## Current stack
 
 | Part              | Technology                                                |

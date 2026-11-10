@@ -138,7 +138,7 @@ On 6 November 2026, the EC2 console showed three inbound rules for
 and 443 and restricts SSH (TCP port 22) to a single IPv4 address (`/32`).
 The group has no inbound rule for PostgreSQL (5432) or FastAPI (8000).
 
-![EC2 inbound rules showing public HTTP and HTTPS and SSH restricted to one IPv4 address](../docs/images/unistow-ec2-inbound-rules.png)
+![EC2 inbound rules showing public HTTP and HTTPS and SSH restricted to one IPv4 address](../docs/images/deployment/unistow-ec2-inbound-rules.png)
 
 ## Storage encryption
 
@@ -147,7 +147,7 @@ root volume attached to `unistow-server` at `/dev/sda1` in `eu-north-1`.
 The volume uses the AWS-managed EBS key (`aws/ebs`). This provides encryption
 at rest for the PostgreSQL data stored on that disk.
 
-![EC2 volume encryption details showing Encrypted and the aws/ebs key alias](../docs/images/unistow-ebs-encryption.png)
+![EC2 volume encryption details showing Encrypted and the aws/ebs key alias](../docs/images/deployment/unistow-ebs-encryption.png)
 
 ## Backups and updates
 
