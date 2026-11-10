@@ -146,7 +146,11 @@ def process_event(db: Session, event):
         return
     # Retrieve current state so delayed or reordered events cannot undo a payment.
     checkout = retrieve_checkout(event["data"]["object"]["id"])
-    apply_checkout(db, checkout, event)
+    if checkout.get("metadata", {}).get("overdue_payment_id"):
+        from services.overdue_payments import apply_recovery
+        apply_recovery(db, checkout)
+    else:
+        apply_checkout(db, checkout, event)
 
 
 def reconcile_rental(db: Session, rental_id: int, user_id: int):

@@ -427,3 +427,7 @@
 .flow-page .finish-dialog-actions .back-button:focus-visible {
     font-weight: 700;
 }
+
+.flow-page #pay-outstanding-button {
+    margin-bottom: 12px;
+}

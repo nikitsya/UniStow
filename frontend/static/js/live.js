@@ -49,7 +49,7 @@
             if (notice.textContent !== message) notice.textContent = message;
         }
         for (const id of ['pay-button', 'cancel-reservation', 'confirm-cancellation',
-            'open-locker-button', 'finish-rental-button', 'confirm-finish']) {
+            'open-locker-button', 'finish-rental-button', 'confirm-finish', 'pay-outstanding-button']) {
             const button = document.getElementById(id);
             if (!button) continue;
             if (unavailable) {
@@ -70,10 +70,11 @@
         if (document.hidden) return;
         running = true;
         try {
-            if (document.querySelector('#pay-button') && !window.paymentBusy
+            if (document.querySelector('#pay-button, #pay-outstanding-button') && !window.paymentBusy
                 && Date.now() - lastPaymentCheck > 10000) {
                 lastPaymentCheck = Date.now();
                 await window.checkRentalPayment?.();
+                await window.checkOutstandingPayment?.();
             }
             const fetchingDuringCommand = window.lockerBusy;
             const commandAtFetch = window.lockerCooldown;
@@ -101,6 +102,7 @@
                     replaceIfChanged(`#live-rental ${selector}`, fresh);
                 }
                 const actionsChanged = rental.dataset.status !== next.dataset.status
+                    || document.querySelector('#pay-outstanding-button')?.textContent !== next.querySelector('#pay-outstanding-button')?.textContent
                     || Boolean(document.querySelector('#pay-button')) !== Boolean(next.querySelector('#pay-button'))
                     || Boolean(document.querySelector('#open-locker-button')) !== Boolean(next.querySelector('#open-locker-button'));
                 if (actionsChanged && !window.paymentBusy && !window.lockerBusy) {
@@ -110,6 +112,7 @@
                     rental.dataset.status = next.dataset.status;
                     if (justPaid) showPaymentConfirmation();
                     window.initialisePayment();
+                    window.initialiseOutstandingPayment?.();
                     window.initialiseLockerActions();
                 }
                 const doorState = next.dataset.doorState;
@@ -127,12 +130,12 @@
                 }
                 const notice = document.querySelector('#active-rental-notice');
                 const updatedNotice = next.querySelector('#active-rental-notice');
-                if (notice && updatedNotice && !fetchingDuringCommand && !window.lockerBusy && commandAtFetch === window.lockerCooldown) {
+                if (notice && updatedNotice && !window.paymentBusy && !fetchingDuringCommand && !window.lockerBusy && commandAtFetch === window.lockerCooldown) {
                     const collecting = next.dataset.collecting === '1';
                     if (doorState === 'open' || collecting) delete notice.dataset.uncertain;
                     const keepCommand = notice.dataset.uncertain
                         || (notice.dataset.commandMessage && cooldown && doorState !== 'open' && !collecting);
-                    if (!keepCommand) {
+                    if (!keepCommand && Date.now() >= Number(notice.dataset.paymentMessageUntil || 0)) {
                         delete notice.dataset.commandMessage;
                         notice.classList.remove('unlock-warning');
                         const message = Date.now() < relockGraceUntil && !collecting

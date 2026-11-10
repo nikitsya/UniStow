@@ -200,3 +200,53 @@ This screenshot confirms the paid-charge presentation. It does not verify the
 processing or failed-payment presentation, a physical-phone layout, or automatic
 execution at the next daily deadline. Those distinctions are covered separately
 in the [billing verification notes](database.md#rental-payment-summary).
+
+## Why Finish rental remains available with unpaid charges
+
+During the failed-payment test on 10 November 2026, my first idea was to disable
+Finish rental until the outstanding charge had been paid. This appeared to be
+consistent with preventing further use of a locker when payment was incomplete.
+
+On reflection, finishing a rental serves a different purpose: it allows the
+renter to collect their belongings and release the locker. Blocking that action
+could leave important belongings inaccessible because a card was declined, a
+bank was unavailable or the renter could not complete payment at that moment.
+It could also create a cycle in which the renter cannot end the rental, so more
+daily charges accumulate while they are trying to resolve the payment problem.
+
+I therefore chose to keep collection and payment settlement separate. The
+renter can use Finish rental, collect their belongings and close the door.
+Confirmed completion stops new daily charges. It does not waive or erase any
+existing unpaid charge: that balance remains associated with the rental and
+can be settled separately through Pay outstanding.
+
+The intended message explains both actions in ordinary language: the extra-day
+payment did not go through, the remaining balance needs paying, and the renter
+can still finish the rental to stop further charges. Ordinary opening remains
+restricted after the paid period; collection is still subject to ownership,
+confirmed initial payment and controller checks.
+
+This is a deliberate usability decision for UniStow, rather than a claim that
+all storage services use the same policy. It avoids using access to belongings
+as the payment-recovery mechanism while keeping the outstanding balance visible.
+The recovery button has been implemented locally. Its completed hosted Checkout
+payment flow still needs a recorded Stripe test-mode result.
+
+### Failed-payment evidence — rental 44
+
+The deployed-site screenshot below records the outcome after Stripe declined
+one EUR 1 extra-day test payment. Following deployment of `bebddb8`, two
+reconciliation passes kept the same PaymentIntent and marked the charge as
+failed. Stripe reported zero collected for that extra-day payment; no new
+PaymentIntent was created during reconciliation.
+
+The page shows **Payment incomplete**, **Extra days · unpaid EUR 1.00** and
+**Total EUR 2.00**. The total includes the original EUR 1 rental payment and the
+unpaid EUR 1 balance; it does not mean EUR 2 has been collected. Finish rental
+remains available, while ordinary opening is disabled.
+
+![Rental 44 with an unpaid extra-day charge and Finish rental still available](images/overdue-payment-declined.png)
+
+*Desktop evidence supplied on 10 November 2026, before the Pay outstanding
+button and revised failed-payment message were added. This screenshot does not
+verify successful recovery of the outstanding balance.*

@@ -242,3 +242,45 @@ Stripe test payment for its extra day. The supplied desktop screenshot confirms
 a EUR 1 rental cost, EUR 1 paid extra-day charge and EUR 2 total. See the
 [visual test evidence](usability-testing.md#extra-day-payment-summary--10-november-2026).
 A physical-phone check of the summary is still pending.
+
+### Paying an outstanding balance
+
+Migration `004_overdue_payment_recovery.sql` adds `overdue_payments`. Each row
+stores a frozen list of failed charge IDs, the server-calculated amount, durable
+Checkout parameters and the resulting Stripe session and PaymentIntent IDs.
+Only one pending recovery payment is allowed per rental.
+
+The owner can open a test-mode Stripe Checkout session from Pay outstanding,
+including after collection has completed. Pending automatic charges are not
+eligible. Before creating a replacement payment, the service verifies and
+cancels the original declined intents. An unresolved or processing original
+payment requires review instead of another collection attempt.
+
+Repeated clicks reuse the pending session. An unknown creation response reuses
+the same idempotency key for less than 23 hours; later ambiguity requires review.
+An expired unpaid session releases the pending slot for another attempt. If a
+new failed daily charge appears while Checkout is open, it is not silently added
+to that session: the button shows the existing session amount and the remaining
+balance can be paid afterwards.
+
+A signed Checkout webhook or owner-requested reconciliation retrieves Stripe's
+current state. The service verifies test mode, session identity, metadata,
+amount, currency and successful collection before marking the selected charges
+paid. Returning to the success URL alone does not clear a balance. Duplicate
+notifications cannot collect money or apply the payment twice. Original declined
+intent IDs remain on the daily charge records for audit; the successful
+replacement intent is stored in `overdue_payments`.
+
+Recovery does not reopen a completed rental, waive other debt or replace the
+saved method used for future automatic charges. Completed rentals with failed
+or pending charges remain listed in My rentals. Finish rental remains available
+under the existing ownership and controller checks.
+
+Local verification: 101 backend tests passed. A Chrome check at 390 × 844
+confirmed the layout, Finish rental dialogue, single request on double click,
+friendly checkout failure message and retry. Stripe responses were simulated
+for these recovery tests. The real hosted Checkout recovery flow is not yet
+verified, and migration 004 must be applied before deploying this feature.
+
+References: [Stripe Checkout Sessions](https://docs.stripe.com/api/checkout/sessions/create)
+and [Checkout fulfilment](https://docs.stripe.com/checkout/fulfillment).

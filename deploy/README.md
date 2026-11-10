@@ -189,3 +189,16 @@ Set `UNISTOW_OVERDUE_BILLING=1` in `.env.production` and recreate the app
 container. The default is 0. The worker runs every minute and uses a database
 lock to coordinate multiple application processes. See the
 [billing rules and verification](../docs/database.md#daily-test-billing).
+
+## Outstanding payment recovery
+
+Before deploying Pay outstanding, back up the database and apply
+`backend/database/migrations/004_overdue_payment_recovery.sql` using the
+production PostgreSQL container, as for earlier migrations. Deploy the app only
+after the migration succeeds. The migration does not change existing charges.
+
+Keep `UNISTOW_OVERDUE_BILLING=0` during manual recovery verification. The existing
+signed Stripe Checkout webhook also handles outstanding payments. Verify a
+failed test charge through Checkout, confirm its balance clears after Stripe
+confirmation and check that Finish rental stays available. A browser return URL
+alone must never mark the charge paid.

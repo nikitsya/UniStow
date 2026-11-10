@@ -1,5 +1,7 @@
 from typing import Annotated
 
+import stripe
+
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy.orm import Session
 from starlette.concurrency import run_in_threadpool
@@ -14,7 +16,32 @@ from services.payment_confirmation import cancel_pending_reservation, process_ev
 from services.payments import create_checkout
 from services.rentals import reserve_locker
 
+from services.overdue_payments import create_outstanding_checkout, reconcile_outstanding
+
 router = APIRouter(prefix="/api")
+
+
+@router.post("/rentals/{rental_id}/outstanding/checkout", dependencies=[Depends(check_browser_request)])
+def outstanding_checkout(rental_id: int, request: Request, db: Annotated[Session, Depends(get_db)]):
+    user = current_user(db, request)
+    if user is None:
+        raise HTTPException(401, "Please sign in.")
+    try:
+        return create_outstanding_checkout(db, rental_id, user["id"])
+    except (stripe.StripeError, ValueError):
+        raise HTTPException(503, "Outstanding payment is temporarily unavailable.") from None
+
+
+@router.post("/rentals/{rental_id}/outstanding/reconcile", dependencies=[Depends(check_browser_request)])
+def outstanding_reconcile(rental_id: int, request: Request, db: Annotated[Session, Depends(get_db)]):
+    user = current_user(db, request)
+    if user is None:
+        raise HTTPException(401, "Please sign in.")
+    try:
+        return reconcile_outstanding(db, rental_id, user["id"])
+    except stripe.StripeError:
+        raise HTTPException(503, "Payment verification is temporarily unavailable.") from None
+
 
 
 @router.post("/stripe/webhook")
