@@ -236,4 +236,9 @@ recovery is not included in this change.
 
 All 89 backend tests passed locally, including mixed charge statuses, waived
 amounts, completed rentals, unchanged totals without extra charges and access
-restrictions. The summary has not yet been deployed or checked on a phone.
+restrictions. The summary was deployed in release `8972ef3`, including feature
+commit `545f1d7`. On 10 November, rental 43 received one successful EUR 1
+Stripe test payment for its extra day. The supplied desktop screenshot confirms
+a EUR 1 rental cost, EUR 1 paid extra-day charge and EUR 2 total. See the
+[visual test evidence](usability-testing.md#extra-day-payment-summary--10-november-2026).
+A physical-phone check of the summary is still pending.

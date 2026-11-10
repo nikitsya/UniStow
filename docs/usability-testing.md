@@ -162,3 +162,41 @@ Payment and collection status still depend on confirmed server responses.
 
 Content follows
 the [GOV.UK service problem guidance](https://design-system.service.gov.uk/patterns/problem-with-the-service-pages/).
+
+## Extra-day payment summary — 10 November 2026
+
+### Purpose
+
+Make the total understandable by separating the original rental cost from
+extra-day charges. A renter should be able to see which charges have been paid
+and how they contribute to the total.
+
+### Deployed-site check
+
+Test rental 43 was moved into overdue status by adjusting its dates. One EUR 1
+extra-day payment was then collected manually through the billing service in
+Stripe test mode. Stripe confirmed `succeeded` with `livemode=false`; no real
+money was collected. The automatic billing worker remained disabled.
+
+The supplied desktop-browser screenshot of `unistow.app/rentals/43` shows:
+
+- **Rental cost:** EUR 1.00.
+- **Extra days · paid:** EUR 1.00.
+- **Total:** EUR 2.00, including both amounts.
+- **Payment:** Paid, alongside the separate **Overdue** rental status.
+- **Open locker:** disabled after the paid period ended.
+- **Finish rental:** available so the renter can collect their belongings.
+
+The message above the buttons explains that the paid rental period has ended
+and asks the renter to finish the rental to stop daily charges. Paying an
+extra-day charge does not mark the rental as completed.
+
+![Rental 43 showing a EUR 1 rental cost, EUR 1 paid extra-day charge and EUR 2 total](images/overdue-rental-payment-summary.png)
+
+*Evidence supplied on 10 November 2026: the deployed desktop page after one
+successful test-mode extra-day payment.*
+
+This screenshot confirms the paid-charge presentation. It does not verify the
+processing or failed-payment presentation, a physical-phone layout, or automatic
+execution at the next daily deadline. Those distinctions are covered separately
+in the [billing verification notes](database.md#rental-payment-summary).
