@@ -61,11 +61,16 @@ def accrue_charges(db, rental_id):
 
 def validate_intent(intent, charge):
     params = charge["request_params"]
+    payment_method = intent.get("payment_method")
+    if payment_method is None and intent.get("status") == "requires_payment_method":
+        # Stripe clears the selected method after a decline; verify the failed one.
+        error = intent.get("last_payment_error") or {}
+        payment_method = (error.get("payment_method") or {}).get("id")
     if (intent.get("livemode") is not False
             or not isinstance(intent.get("id"), str) or not intent["id"].startswith("pi_")
             or intent.get("amount") != 100 or intent.get("currency") != "eur"
             or intent.get("customer") != params["customer"]
-            or intent.get("payment_method") != params["payment_method"]
+            or payment_method != params["payment_method"]
             or intent.get("metadata") != params["metadata"]
             or (charge["stripe_payment_intent_id"] and intent["id"] != charge["stripe_payment_intent_id"])):
         raise ValueError("Overdue payment details do not match the saved request.")
