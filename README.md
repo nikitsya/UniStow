@@ -36,6 +36,12 @@ illustrative.
 - [Open locker](docs/images/prototype/physical-prototype/unistow-prototype-open-ai-background.png).
 - [Servo and door sensor](docs/images/prototype/physical-prototype/unistow-prototype-mechanism-ai-background.png).
 
+The [future UniStow prototype](docs/images/prototype/future-prototype/unistow-future-prototype.png)
+is an AI-generated concept based on the physical prototype. It shows a sage-grey
+metal locker bank on a white background, with compartment 04 open, concealed
+electronics, a raised metal latch arm and a thin door. It illustrates a proposed
+future design; the QR patterns in the image are illustrative.
+
 Other images are grouped into [deployment evidence](docs/images/deployment/),
 [hardware screenshots](docs/images/hardware/) and
 [testing screenshots](docs/images/testing/). See the
