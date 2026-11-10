@@ -201,9 +201,9 @@ confirmed exactly two successful test payments totalling EUR 2.
 
 These checks verify successful test-mode collection, catch-up for an additional
 missed day and duplicate protection on repeat runs. No real money was collected.
-Automatic billing remains disabled. Scheduled execution at a future deadline
-and failure recovery have not yet been verified against Stripe on EC2. Automated
-tests cover the deadline, completion and failure cases. Payment recovery remains later work in #14.
+Automatic billing was disabled during these checks. Scheduled execution and
+failure recovery had not yet been verified against Stripe on EC2 at this stage.
+Later recovery verification and worker activation are recorded below.
 
 ### Collection completion verification on 10 November 2026
 
@@ -288,7 +288,26 @@ test recovery payment receiving 100 cents, and a cancelled original declined
 intent receiving zero. The daily charge became paid without reopening the rental.
 The supplied desktop screenshots show the retained balance before payment and
 its paid state afterwards. See [the before-and-after evidence](usability-testing.md#paying-after-collection--rental-44).
-Automatic billing remains disabled; no future-deadline execution was tested.
+Automatic billing was disabled during recovery verification; no future-deadline
+execution was tested during that check.
 
 References: [Stripe Checkout Sessions](https://docs.stripe.com/api/checkout/sessions/create)
 and [Checkout fulfilment](https://docs.stripe.com/checkout/fulfillment).
+
+
+### Automatic worker activation on 10 November 2026
+
+Set `UNISTOW_OVERDUE_BILLING=1` in the private EC2 `.env.production` and
+recreated the app container. The configuration was backed up before the change.
+Stripe test-mode validation passed, the app became healthy and the public
+homepage returned HTTP 200. The running container reports the flag as 1.
+
+There were no active or overdue rentals and no pending charges when the worker
+was enabled. The four existing paid daily charges remained unchanged. The
+worker now checks every minute; eligible overdue rentals are charged according
+to the 18:00 Europe/Dublin rules above. Future deployments should preserve the
+flag in `.env.production` rather than override it with 0.
+
+Activation does not yet demonstrate a payment at a future deadline. Before
+closing issue #14, observe an eligible test rental crossing its deadline and
+confirm that subsequent automatic passes do not create a duplicate charge.
