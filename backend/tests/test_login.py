@@ -103,7 +103,8 @@ class LoginTests(unittest.TestCase):
         self.assertEqual(self.client.get(path, follow_redirects=False).status_code, 303)
 
     def test_my_rentals_requires_valid_session(self):
-        with patch('routes.pages.current_rentals', return_value=[]) as rentals:
+        with (patch('routes.pages.current_rentals', return_value=[]) as rentals,
+              patch('routes.pages.completed_rentals', return_value=[])):
             response = self.client.get('/rentals', follow_redirects=False)
             self.assertEqual(response.status_code, 303)
             self.assertEqual(response.headers['location'], '/login?my_rentals=true')

@@ -302,3 +302,39 @@ the same rental and date, provided the rental remains active or overdue.
 **Result pending:** this screenshot records only the state before the deadline.
 The after-deadline screenshot and database/Stripe checks still need to be added
 before this scenario can be marked as passed.
+
+### Recent completed rentals — issue #17
+
+I initially considered showing only the last completed rental. I chose the last
+five instead because a renter may notice a mistake later: they may have left
+belongings inside and finished the rental, remembered an earlier visit, or
+noticed that something was missing and wanted to report a possible theft.
+These are reasons to help the renter identify the relevant booking, not proof
+that a theft occurred.
+
+The renter needs a clear rental reference, locker number and completion time
+to explain the situation over the phone. Five recent entries provide useful
+context without filling My rentals with the entire history. Current rentals
+remain above the completed list, with distinct status text. Completion times
+are displayed in Europe/Dublin time, and the support link opens the existing
+phone contact page.
+
+The five-entry limit applies only to the recent-history display. Older records
+are not deleted. An authorised operator can investigate the full stored history
+through controlled database access; this change does not introduce an operator
+history interface. Completed rentals with outstanding charges remain accessible
+for payment even if they fall outside the last five. They cannot be reopened or
+finished again through the completed-rental page.
+
+Local verification uses isolated PostgreSQL fixtures: seven completed rentals
+are inserted with completion times in a different order from their IDs. Only
+the latest five appear in completion order after repeated page loads. Checks
+also cover an empty current list, restoration of the owner's session, another
+account being denied the rental details, and absence of opening and finishing
+controls on completed rentals. The existing session test is updated to isolate
+both current and completed rental queries.
+
+A local Chrome preview at 390 × 844 shows five completed entries without
+horizontal overflow. These are local checks with synthetic rentals, not an EC2
+or physical-phone acceptance result. Deployment and a signed-out/signed-in
+check on the deployed site remain to be performed.

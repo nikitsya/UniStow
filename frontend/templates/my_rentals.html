@@ -2,8 +2,8 @@
 {% set active_tab = 'rentals' %}
 {% block body_class %}flow-page{% endblock %}
 {% block extra_head %}
-<link href="{{ url_for('static', path='css/screens.css') }}?v=4" rel="stylesheet">
-<script defer src="{{ url_for('static', path='js/live.js') }}?v=10"></script>
+<link href="{{ url_for('static', path='css/screens.css') }}?v=18" rel="stylesheet">
+<script defer src="{{ url_for('static', path='js/live.js') }}?v=11"></script>
 {% endblock %}
 {% block content %}
 <section aria-label="My rentals" class="rental-screen">
@@ -13,7 +13,8 @@
         <div class="rentals-list">
             {% for reservation in reservations %}
             <a class="rental-list-link" href="{{ url_for('reservation', rental_id=reservation.id) }}">
-                <span><strong>Locker {{ reservation.number }}</strong><small>View rental and access your locker</small></span>
+                <span><strong>Locker {{ reservation.number }}</strong><small>Rental #{{ reservation.id }} · {{ reservation.status | capitalize }}</small>
+                    <small>{{ 'View outstanding payment' if reservation.status == 'completed' else 'View rental' }}</small></span>
                 <span aria-hidden="true">{% include 'rental_arrow.svg' %}</span>
             </a>
             {% endfor %}
@@ -23,6 +24,26 @@
         {% else %}
         <p class="confirmation">Sign in to view and manage your rentals.</p>
         <a class="confirm-button" href="{{ url_for('sign_in') }}">Sign in</a>
+        {% endif %}
+        {% if completed_rentals %}
+        <section aria-labelledby="completed-rentals-heading" class="completed-rentals">
+            <h2 id="completed-rentals-heading">Recently completed</h2>
+            <p class="operator-help">Your last five completed rentals. All times are Ireland time.</p>
+            <div class="rentals-list">
+                {% for rental in completed_rentals %}
+                <a class="rental-list-link" href="{{ url_for('reservation', rental_id=rental.id) }}">
+                    <span>
+                        <strong>Rental #{{ rental.id }} · Locker {{ rental.number }}</strong>
+                        <small>Completed · {{ rental.completed_on }}</small>
+                    </span>
+                    <span aria-hidden="true">{% include 'rental_arrow.svg' %}</span>
+                </a>
+                {% endfor %}
+            </div>
+            <p class="operator-help">Left something behind? <a href="{{ url_for('contact') }}">Contact locker
+                support</a>
+                and quote your rental and locker numbers.</p>
+        </section>
         {% endif %}
     </div>
 </section>

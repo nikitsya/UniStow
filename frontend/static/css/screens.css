@@ -431,3 +431,18 @@
 .flow-page #pay-outstanding-button {
     margin-bottom: 12px;
 }
+
+
+.completed-rentals {
+    margin-top: 32px;
+}
+
+.completed-rentals h2 {
+    margin: 0 0 12px;
+    font-size: 20px;
+}
+
+.completed-rentals .rental-list-link > span:first-child {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}

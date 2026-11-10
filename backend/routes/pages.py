@@ -37,6 +37,20 @@ def current_rentals(db, user):
                            """), {"user_id": user["id"]}).mappings().all() if user else []
 
 
+def completed_rentals(db, user):
+    rows = db.execute(text("""
+                           SELECT r.id, r.completed_at, l.number
+                           FROM rentals r
+                                    JOIN lockers l ON l.id = r.locker_id
+                           WHERE r.user_id = :user_id
+                             AND r.status = 'completed'
+                           ORDER BY r.completed_at DESC, r.id DESC
+                           LIMIT 5
+                           """), {"user_id": user["id"]}).mappings().all()
+    return [dict(row, completed_on=row["completed_at"].astimezone(
+        ZoneInfo("Europe/Dublin")).strftime("%d %B %Y at %H:%M")) for row in rows]
+
+
 @router.get("/")
 def home(request: Request, db: Annotated[Session, Depends(get_db)]):
     user = current_user(db, request)
@@ -51,10 +65,12 @@ def my_rentals(request: Request, db: Annotated[Session, Depends(get_db)]):
     user = current_user(db, request)
     if user is None:
         return RedirectResponse("/login?my_rentals=true", status_code=303)
-    reservations = current_rentals(db, user)
+    completed = completed_rentals(db, user)
+    completed_ids = {r["id"] for r in completed}
+    reservations = [r for r in current_rentals(db, user) if r["id"] not in completed_ids]
     return templates.TemplateResponse(
         request, "my_rentals.html", {"title": "My rentals | UniStow", "user": user,
-                                     "reservations": reservations}
+                                     "reservations": reservations, "completed_rentals": completed}
     )
 
 
