@@ -229,8 +229,8 @@ confirmed initial payment and controller checks.
 This is a deliberate usability decision for UniStow, rather than a claim that
 all storage services use the same policy. It avoids using access to belongings
 as the payment-recovery mechanism while keeping the outstanding balance visible.
-The recovery button has been implemented locally. Its completed hosted Checkout
-payment flow still needs a recorded Stripe test-mode result.
+The recovery button was subsequently deployed and verified through Stripe
+test-mode Checkout; the before-and-after evidence is recorded below.
 
 ### Failed-payment evidence — rental 44
 
@@ -250,3 +250,32 @@ remains available, while ordinary opening is disabled.
 *Desktop evidence supplied on 10 November 2026, before the Pay outstanding
 button and revised failed-payment message were added. This screenshot does not
 verify successful recovery of the outstanding balance.*
+
+### Paying after collection — rental 44
+
+On 10 November 2026, release `d006a3c` and migration 004 were deployed. The
+renter completed rental 44 before paying the outstanding EUR 1. The first
+screenshot confirms that completion did not remove the debt: the page showed
+Completed, Payment incomplete and Extra days · unpaid EUR 1.00. It retained
+Pay outstanding EUR 1.00 and explained that the rental had ended but the balance
+still needed paying.
+
+![Completed rental 44 retaining its unpaid balance and Pay outstanding button](images/completed-rental-outstanding-balance.png)
+
+The renter then paid through hosted Stripe Checkout. On return, the page kept
+the rental Completed, changed Payment to Paid and Extra days to paid, and removed
+the payment button. Total remained EUR 2.00: the original EUR 1 rental cost plus
+the now-paid EUR 1 extra-day charge.
+
+![Completed rental 44 after the outstanding extra-day payment succeeded](images/completed-rental-balance-paid.png)
+
+Read-only verification against EC2 and Stripe confirmed one recovery record,
+marked paid, and a successful test-mode recovery PaymentIntent with 100 cents
+received. The original declined PaymentIntent was cancelled with zero received.
+The daily charge was marked paid and the rental remained completed. No new
+payment was created by this verification, and no real money was collected.
+
+These desktop screenshots demonstrate the chosen separation of collection and
+payment settlement: belongings can be collected first, the debt remains visible,
+and payment can be completed afterwards. They do not demonstrate automatic
+billing at a future deadline or a physical-phone check of the recovery flow.

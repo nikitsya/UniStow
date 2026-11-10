@@ -279,8 +279,16 @@ under the existing ownership and controller checks.
 Local verification: 101 backend tests passed. A Chrome check at 390 × 844
 confirmed the layout, Finish rental dialogue, single request on double click,
 friendly checkout failure message and retry. Stripe responses were simulated
-for these recovery tests. The real hosted Checkout recovery flow is not yet
-verified, and migration 004 must be applied before deploying this feature.
+for these local recovery tests.
+
+Release `d006a3c` and migration 004 were deployed on 10 November 2026. The renter
+completed rental 44 before paying its outstanding EUR 1 through hosted Stripe
+Checkout. Read-only checks confirmed one paid recovery record, one successful
+test recovery payment receiving 100 cents, and a cancelled original declined
+intent receiving zero. The daily charge became paid without reopening the rental.
+The supplied desktop screenshots show the retained balance before payment and
+its paid state afterwards. See [the before-and-after evidence](usability-testing.md#paying-after-collection--rental-44).
+Automatic billing remains disabled; no future-deadline execution was tested.
 
 References: [Stripe Checkout Sessions](https://docs.stripe.com/api/checkout/sessions/create)
 and [Checkout fulfilment](https://docs.stripe.com/checkout/fulfillment).
