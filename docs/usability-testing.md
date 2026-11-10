@@ -299,9 +299,21 @@ day, Extra days · paid EUR 1.00 and a total of EUR 2.00. Subsequent automatic
 passes should retain the same charge without collecting a second payment for
 the same rental and date, provided the rental remains active or overdue.
 
-**Result pending:** this screenshot records only the state before the deadline.
-The after-deadline screenshot and database/Stripe checks still need to be added
-before this scenario can be marked as passed.
+### After the automatic billing deadline — rental 45
+
+The deployed page for the same reservation now shows **Overdue**, **Payment · Paid**,
+**Extra days · paid EUR 1.00** and **Total EUR 2.00**. The original rental cost
+remains EUR 1.00. This matches the expected renter-facing result after the
+10 November 2026 deadline at 18:00 Europe/Dublin. At capture, the door state
+was Unknown and both locker controls were unavailable.
+
+![Rental 45 after its deadline, showing a paid extra day and a total of EUR 2.00](images/testing/rental-45-after-automatic-deadline.png)
+
+A read-only Stripe sandbox search on the evening of 10 November matched
+rental ID 45 and charge date 2026-11-10. It returned exactly one PaymentIntent,
+created at 18:00:31 UTC, with status `succeeded` and 100 euro cents received.
+The remaining check for issue #14 is the corresponding daily charge record
+on EC2 after successive worker passes.
 
 ### Recent completed rentals — issue #17
 

@@ -12,3 +12,4 @@ hardware
 **/*.key
 **/device_config.json
 .local-postgres*
+.local-mqtt/

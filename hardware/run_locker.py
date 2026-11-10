@@ -76,8 +76,10 @@ def load_config():
             or url.username or url.password or url.query or url.fragment
             or not isinstance(key, str) or not key.strip()):
         raise ValueError('Invalid device configuration.')
-    pubnub = config.get('pubnub')
-    return server, key, pubnub if isinstance(pubnub, dict) else {}
+    mqtt = config.get('mqtt', {})
+    if mqtt and (not mqtt.get('host') or not mqtt.get('password')):
+        raise ValueError('Set the MQTT host and device password.')
+    return server, key, mqtt
 
 
 def communicate(server, key, shared, lock, commands, collections, finishing, stop):
@@ -137,7 +139,7 @@ def main():
     from gpiozero.pins.pigpio import PiGPIOFactory
 
     try:
-        server, key, pubnub = load_config()
+        server, key, mqtt = load_config()
     except (OSError, ValueError, KeyError, TypeError, AttributeError):
         print('Check device_config.json beside this script.')
         return
@@ -161,19 +163,10 @@ def main():
             worker = Thread(target=communicate,
                             args=(server, key, shared, lock, commands, collections, finishing, stop), daemon=True)
             worker.start()
-            automatic = pubnub.get('renew_token') is True
-            if automatic:
-                from renew_token import renew_tokens
-                Thread(target=renew_tokens, args=(server, key, stop), daemon=True).start()
-            if automatic or pubnub.get('token'):
-                controller_id = str(uuid4()) if pubnub.get('open_locker') is True else None
-                from publish_door import report_changes
-                publisher = Thread(target=report_changes,
-                                   args=(shared, lock, stop, build_opener(NoRedirects()), controller_id), daemon=True)
+            if mqtt:
+                from locker_mqtt import run
+                publisher = Thread(target=run, args=(mqtt, shared, lock, commands, stop), daemon=True)
                 publisher.start()
-                if controller_id or pubnub.get('open_test') is True:
-                    from probe_ping import listen_commands
-                    Thread(target=listen_commands, args=(stop, controller_id, commands), daemon=True).start()
             print('Controller started. Close the door to prepare the latch.')
             last_command = None
             collection_command = None

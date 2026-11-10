@@ -1,197 +1,141 @@
-"""Receive read-only door telemetry for the physical locker."""
+"""Exchange short-lived Locker 4 messages with the self-hosted MQTT broker."""
+import json
 import logging
 import os
 from contextlib import asynccontextmanager
-from threading import Event, Lock, Thread
-from time import monotonic, time
+from threading import Event, Lock
+from time import time
 from uuid import UUID, uuid4
 
+import paho.mqtt.client as mqtt
 from fastapi import HTTPException
-from pubnub.callbacks import SubscribeCallback
-from pubnub.enums import PNStatusCategory
-from pubnub.pnconfiguration import PNConfiguration
-from pubnub.pubnub import PubNub
 
-from services.pubnub_tokens import COMMANDS as COMMAND_CHANNEL, EVENTS as CHANNEL, READER, REFRESH_SECONDS, LockerTokens
-
+EVENTS = 'unistow/locker-4/events'
+COMMANDS = 'unistow/locker-4/commands'
 log = logging.getLogger('uvicorn.error')
 
 
 def fresh_reading(timestamp):
-    # Allow a small clock difference between PubNub and the local server.
     return -1 <= time() - timestamp < 15
 
 
-class DoorEvents(SubscribeCallback):
-    def __init__(self, probe_enabled=False):
-        self.probe_enabled = probe_enabled
-        self.probe_id = None
-        self.probe_started = 0
+class DoorEvents:
+    def __init__(self):
         self.lock = Lock()
-        self.pending_tests = {}
-        self.timetoken = 0
+        self.timestamp = 0
         self.state = None
         self.controller = None
-        self.pending_opens = {}
+        self.pending = {}
 
-    def status(self, client, status):
-        if status.category == PNStatusCategory.PNConnectedCategory:
-            log.info('Listening on %s', CHANNEL)
-            if self.probe_enabled and self.probe_id is None:
-                self.probe_id = str(uuid4())
-                self.probe_started = monotonic()
-                payload = {'type': 'ping', 'id': self.probe_id}
-                log.info('Sending locker ping %s', self.probe_id)
-                client.publish().channel(COMMAND_CHANNEL).message(payload).should_store(False).pn_async(
-                    self.ping_published
-                )
-        elif status.is_error():
-            log.warning('Door subscription: %s', status.category.name)
+    def connected(self, client, userdata, flags, reason_code, properties):
+        if reason_code.is_failure:
+            log.warning('MQTT broker refused the server connection: %s', reason_code)
+            return
+        client.subscribe(EVENTS, qos=0)
 
-    def ping_published(self, result, status):
-        if status.is_error():
-            log.warning('Locker ping publish failed: HTTP %s', status.status_code)
+    def disconnected(self, client, userdata, flags, reason_code, properties):
+        with self.lock:
+            self.timestamp = 0
+            self.controller = None
+            self.state = None
+
+    def message(self, client, userdata, event):
+        if event.topic != EVENTS or event.retain:
+            return
+        try:
+            data = json.loads(event.payload)
+        except (UnicodeDecodeError, ValueError):
+            return
+        if not isinstance(data, dict):
+            return
+        kind = data.get('type')
+        if kind in ('test_open_ack', 'open_ack'):
+            command_id = data.get('id')
+            if isinstance(command_id, str):
+                with self.lock:
+                    received = self.pending.get((kind, command_id))
+                    if received:
+                        received.set()
+            return
+        state, stamp = data.get('door_state'), data.get('observed_at')
+        if state not in ('open', 'closed') or not isinstance(stamp, (int, float)) or not fresh_reading(stamp):
+            return
+        controller = data.get('controller_id')
+        try:
+            ready = data.get('ready') is True and isinstance(controller, str) and str(UUID(controller)) == controller
+        except ValueError:
+            ready = False
+        with self.lock:
+            if stamp > self.timestamp:
+                self.timestamp = stamp
+                self.state = state
+                self.controller = controller if ready else None
+
+    def ready_controller(self):
+        with self.lock:
+            return self.controller if fresh_reading(self.timestamp) else None
+
+    def latest(self, last_heartbeat):
+        with self.lock:
+            if last_heartbeat and last_heartbeat.timestamp() >= self.timestamp:
+                return None
+            return self.state if fresh_reading(self.timestamp) else None
 
     def test_open(self, client, expires_at):
         command_id = str(uuid4())
         payload = {'type': 'test_open', 'id': command_id, 'expires_at': expires_at}
-        self.send_and_wait(client, payload, self.pending_tests, 'The controller did not acknowledge the test in time.')
+        self.send_and_wait(client, payload, 'The controller did not acknowledge the test in time.')
         return {'status': 'test_acknowledged', 'command_id': command_id}
 
     def open(self, client, command_id, expires_at, controller_id):
         payload = {'type': 'open', 'id': command_id, 'expires_at': expires_at, 'controller_id': controller_id}
-        self.send_and_wait(client, payload, self.pending_opens, 'Delivery is uncertain. Check the locker.')
+        self.send_and_wait(client, payload, 'Delivery is uncertain. Check the locker.')
         return {'status': 'opening', 'command_id': command_id}
 
-    def send_and_wait(self, client, payload, pending, timeout_message):
-        command_id = payload['id']
+    def send_and_wait(self, client, payload, timeout_message):
+        key = (payload['type'] + '_ack', payload['id'])
         received = Event()
         with self.lock:
-            pending[command_id] = received
+            self.pending[key] = received
         try:
-            client.publish().channel(COMMAND_CHANNEL).message(payload).should_store(False).pn_async(
-                self.ping_published
-            )
+            receipt = client.publish(COMMANDS, json.dumps(payload), qos=0, retain=False)
+            if receipt.rc != mqtt.MQTT_ERR_SUCCESS:
+                raise HTTPException(503, 'The locker broker is unavailable.')
             if not received.wait(max(0, min(5, payload['expires_at'] - time()))):
                 raise HTTPException(504, timeout_message)
         finally:
             with self.lock:
-                pending.pop(command_id, None)
-
-    def message(self, client, event):
-        if event.channel != CHANNEL or event.publisher != 'unistow-locker-4':
-            return
-        if isinstance(event.message, dict) and event.message.get('type') in ('test_open_ack', 'open_ack'):
-            command_id = event.message.get('id')
-            if isinstance(command_id, str):
-                with self.lock:
-                    pending = self.pending_tests if event.message['type'] == 'test_open_ack' else self.pending_opens
-                    received = pending.get(command_id)
-                    if received:
-                        received.set()
-            return
-        if isinstance(event.message, dict) and event.message.get('type') == 'pong':
-            if self.probe_started and event.message.get('id') == self.probe_id:
-                log.info('Locker 4 pong %s (%.2f s)', self.probe_id, monotonic() - self.probe_started)
-                self.probe_started = 0
-            return
-        if not isinstance(event.message, dict) or event.message.get('door_state') not in ('open', 'closed'):
-            return
-        stamp = int(event.timetoken)
-        if not fresh_reading(stamp / 10_000_000):
-            return
-        with self.lock:
-            if stamp <= self.timetoken:
-                return
-            self.timetoken = stamp
-            self.state = event.message['door_state']
-            self.controller = None
-            controller = event.message.get('controller_id')
-            if event.message.get('ready') is True and isinstance(controller, str):
-                try:
-                    if str(UUID(controller)) == controller:
-                        self.controller = controller
-                except ValueError:
-                    pass
-        log.info('Locker 4 door via PubNub: %s', event.message['door_state'])
-
-    def ready_controller(self):
-        with self.lock:
-            if fresh_reading(self.timetoken / 10_000_000):
-                return self.controller
-        return None
-
-    def latest(self, last_heartbeat):
-        with self.lock:
-            timestamp = self.timetoken / 10_000_000
-            if last_heartbeat and last_heartbeat.timestamp() >= timestamp:
-                return None
-            if fresh_reading(timestamp):
-                return self.state
-        return None
-
-
-def renew_reader(reader, issuer, stopped):
-    while not stopped.is_set():
-        try:
-            reader.set_token(issuer.reader())
-            # Subscribing again reconnects the native SDK with its current cursor.
-            reader.subscribe().channels(CHANNEL).execute()
-            log.info('Renewed the Locker 4 server token.')
-            delay = REFRESH_SECONDS
-        except Exception:
-            log.warning('Locker 4 server token renewal failed. Retrying in 30 seconds.')
-            delay = 30
-        stopped.wait(delay)
+                self.pending.pop(key, None)
 
 
 @asynccontextmanager
 async def lifespan(app):
-    subscribe_key = os.getenv('PUBNUB_SUBSCRIBE_KEY')
-    token = os.getenv('PUBNUB_READ_TOKEN')
+    host = os.getenv('MQTT_HOST')
+    physical = os.getenv('UNISTOW_MQTT_OPEN') == '1'
     test_mode = os.getenv('UNISTOW_OPEN_TEST') == '1'
-    physical = os.getenv('UNISTOW_PUBNUB_OPEN') == '1'
-    automatic = physical and bool(os.getenv('PUBNUB_SECRET_KEY'))
-    if test_mode and physical:
+    if physical and test_mode:
         raise RuntimeError('Choose either physical opening or delivery testing.')
-    if (test_mode or physical) and not (
-            subscribe_key and (automatic or token) and os.getenv('PUBNUB_PROBE_PUBLISH_KEY')):
-        raise RuntimeError('Locker command delivery requires PubNub publishing and subscription credentials.')
-    if not (subscribe_key or token):
+    if not host and not (physical or test_mode):
         yield
         return
-    if not (subscribe_key and (automatic or token)):
-        raise RuntimeError('Set both PUBNUB_SUBSCRIBE_KEY and PUBNUB_READ_TOKEN.')
-    config = PNConfiguration()
-    config.publish_key = os.getenv('PUBNUB_PROBE_PUBLISH_KEY')
-    config.subscribe_key = subscribe_key
-    config.user_id = READER
-    reader = PubNub(config)
-    issuer = LockerTokens() if automatic else None
-    stopped = Event()
-    renewal = None
+    password = os.getenv('MQTT_APP_PASSWORD')
+    if not host or not password:
+        raise RuntimeError('Set MQTT_HOST and MQTT_APP_PASSWORD for Locker 4.')
+    client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, clean_session=True)
+    client.username_pw_set('unistow-app', password)
+    client.tls_set(ca_certs=os.getenv('MQTT_CA_FILE') or None)
+    events = DoorEvents()
+    client.on_connect = events.connected
+    client.on_disconnect = events.disconnected
+    client.on_message = events.message
+    app.state.open_client = client if physical else None
+    app.state.open_test_client = client if test_mode else None
+    app.state.door_events = events
+    client.connect_async(host, int(os.getenv('MQTT_PORT', '8883')), keepalive=30)
+    client.loop_start()
     try:
-        if token:
-            reader.set_token(token)
-        events = DoorEvents(probe_enabled=bool(config.publish_key) and not (test_mode or physical))
-        app.state.open_client = reader if physical else None
-        app.state.open_test_client = reader if test_mode else None
-        app.state.door_events = events
-        reader.add_listener(events)
-        if issuer:
-            app.state.locker_tokens = issuer
-            renewal = Thread(target=renew_reader, args=(reader, issuer, stopped), daemon=True)
-            renewal.start()
-        else:
-            reader.subscribe().channels(CHANNEL).execute()
         yield
     finally:
-        app.state.door_events = None
-        app.state.open_test_client = None
-        app.state.open_client = None
-        stopped.set()
-        if renewal:
-            renewal.join()
-            app.state.locker_tokens = None
-            issuer.admin.stop()
-        reader.stop()
+        client.disconnect()
+        client.loop_stop()
+        app.state.open_client = app.state.open_test_client = app.state.door_events = None

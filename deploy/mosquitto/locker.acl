@@ -1,0 +1,7 @@
+user unistow-app
+topic write unistow/locker-4/commands
+topic read unistow/locker-4/events
+
+user unistow-locker-4
+topic read unistow/locker-4/commands
+topic write unistow/locker-4/events

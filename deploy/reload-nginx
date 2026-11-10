@@ -2,4 +2,12 @@
 set -eu
 [ "${RENEWED_LINEAGE:-}" = /etc/letsencrypt/live/unistow.app ] || exit 0
 cd /opt/unistow
-exec docker compose --env-file .env.production -f compose.production.yaml -p unistow exec -T nginx nginx -s reload
+compose() {
+    docker compose --env-file .env.production -f compose.production.yaml -p unistow "$@"
+}
+compose exec -T nginx nginx -s reload
+if [ -d /etc/unistow/mqtt ]; then
+    install -o 1883 -g 1883 -m 600 "$RENEWED_LINEAGE/privkey.pem" /etc/unistow/mqtt/server.key
+    install -o 1883 -g 1883 -m 644 "$RENEWED_LINEAGE/fullchain.pem" /etc/unistow/mqtt/server.crt
+    compose kill -s HUP mosquitto
+fi

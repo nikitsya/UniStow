@@ -8,7 +8,7 @@ StartLimitIntervalSec=0
 Type=simple
 User=nikitsya
 WorkingDirectory=/home/nikitsya/Desktop
-ExecStart=/usr/bin/python3 -u /home/nikitsya/Desktop/run_locker.py
+ExecStart=/home/nikitsya/.venvs/unistow/bin/python -u /home/nikitsya/Desktop/run_locker.py
 Restart=always
 RestartSec=5
 

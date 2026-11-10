@@ -1,6 +1,16 @@
 name: unistow
 
 services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    profiles: [ mqtt ]
+    ports:
+      - "127.0.0.1:${MQTT_PORT:-8883}:8883"
+    volumes:
+      - ./deploy/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./deploy/mosquitto/locker.acl:/mosquitto/config/locker.acl:ro
+      - ${MQTT_SECRETS_DIR:-./.local-mqtt}:/mosquitto/secrets:ro
+
   db:
     image: postgres:16
     entrypoint:
