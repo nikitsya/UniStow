@@ -104,13 +104,13 @@ With a paid, active rental, the renter tapped **Open locker**. The phone display
 
 | Raspberry Pi desktop (setup)                                      | Controller status                                                                      | Renter’s phone after tapping Open locker                                             |
 |-------------------------------------------------------------------|----------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------|
-| ![Locker scripts on the Pi desktop](images/locker-pi-desktop.png) | ![Terminal showing the locker service as inactive](images/locker-service-inactive.png) | ![Active rental showing the delivery warning](images/locker-opening-unconfirmed.png) |
+| ![Locker scripts on the Pi desktop](images/hardware/locker-pi-desktop.png) | ![Terminal showing the locker service as inactive](images/hardware/locker-service-inactive.png) | ![Active rental showing the delivery warning](images/testing/locker-opening-unconfirmed.png) |
 
 **Reconnection test passed.** After the original request expired, the renter restarted the controller on the Pi and
 confirmed the service was active. The latch stayed in place until the renter tapped **Open locker** again on the phone.
 The renter then saw the latch turn.
 
-![Pi terminal showing the locker service as active after startup](images/locker-service-active.png)
+![Pi terminal showing the locker service as active after startup](images/hardware/locker-service-active.png)
 
 ### Verification notes and remaining checks
 
@@ -191,7 +191,7 @@ The message above the buttons explains that the paid rental period has ended
 and asks the renter to finish the rental to stop daily charges. Paying an
 extra-day charge does not mark the rental as completed.
 
-![Rental 43 showing a EUR 1 rental cost, EUR 1 paid extra-day charge and EUR 2 total](images/overdue-rental-payment-summary.png)
+![Rental 43 showing a EUR 1 rental cost, EUR 1 paid extra-day charge and EUR 2 total](images/testing/overdue-rental-payment-summary.png)
 
 *Evidence supplied on 10 November 2026: the deployed desktop page after one
 successful test-mode extra-day payment.*
@@ -245,7 +245,7 @@ original EUR 1 rental payment and the
 unpaid EUR 1 balance; it does not mean EUR 2 has been collected. Finish rental
 remains available, while ordinary opening is disabled.
 
-![Rental 44 with an unpaid extra-day charge and Finish rental still available](images/overdue-payment-declined.png)
+![Rental 44 with an unpaid extra-day charge and Finish rental still available](images/testing/overdue-payment-declined.png)
 
 *Desktop evidence supplied on 10 November 2026, before the Pay outstanding
 button and revised failed-payment message were added. This screenshot does not
@@ -260,14 +260,14 @@ Completed, Payment incomplete and Extra days · unpaid EUR 1.00. It retained
 Pay outstanding EUR 1.00 and explained that the rental had ended but the balance
 still needed paying.
 
-![Completed rental 44 retaining its unpaid balance and Pay outstanding button](images/completed-rental-outstanding-balance.png)
+![Completed rental 44 retaining its unpaid balance and Pay outstanding button](images/testing/completed-rental-outstanding-balance.png)
 
 The renter then paid through hosted Stripe Checkout. On return, the page kept
 the rental Completed, changed Payment to Paid and Extra days to paid, and removed
 the payment button. Total remained EUR 2.00: the original EUR 1 rental cost plus
 the now-paid EUR 1 extra-day charge.
 
-![Completed rental 44 after the outstanding extra-day payment succeeded](images/completed-rental-balance-paid.png)
+![Completed rental 44 after the outstanding extra-day payment succeeded](images/testing/completed-rental-balance-paid.png)
 
 Read-only verification against EC2 and Stripe confirmed one recovery record,
 marked paid, and a successful test-mode recovery PaymentIntent with 100 cents
@@ -287,7 +287,7 @@ shows Tuesday 10 November at 01:27. Rental 45 is Active, Payment is Paid and the
 door is Closed. The total is EUR 1.00, with the rental ending on 10 November
 2026 at 18:00. The screenshot is preserved with its visible date and time.
 
-![Rental 45 before its automatic billing deadline, with the desktop date and time visible](images/rental-45-before-automatic-deadline.png)
+![Rental 45 before its automatic billing deadline, with the desktop date and time visible](images/testing/rental-45-before-automatic-deadline.png)
 
 The automatic test billing worker had been enabled on EC2. A preceding
 read-only database check confirmed the saved payment method, consent version
