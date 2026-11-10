@@ -1,62 +1,35 @@
 # Raspberry Pi hardware
 
-## Test a door reading through PubNub
+## Connect Locker 4 to Mosquitto
 
-Use this one-shot test on an idle Locker 4. It reads GPIO17 and publishes the
-door position to `unistow.locker-4.events`. The rental controller still uses
-the HTTP API for commands.
+The controller sends door changes and a fresh reading every five seconds to
+`unistow/locker-4/events`. It subscribes to `unistow/locker-4/commands`.
+Use the device password provisioned in the [broker setup](../deploy/README.md#self-hosted-mqtt).
+The HTTPS device key remains separate and authenticates heartbeats, collection
+polling and completion acknowledgements.
 
-1. Enable Access Manager on the PubNub keyset. From a trusted machine, grant
-   a short-lived token bound to user ID `unistow-locker-4` with write permission
-   only on `unistow.locker-4.events`. Keep the secret key on the trusted machine.
-2. On the Pi, copy `publish_door.py` beside `run_locker.py`. Add the `pubnub`
-   section from `device_config.example.json` to the private `device_config.json`.
-   Fill in the publish key, subscribe key and token. Run `chmod 600 device_config.json`.
-3. Start a subscriber on the events channel with a separate read token.
-   Stop the locker service with `sudo systemctl stop uniflow-locker` if it is
-   running, and close any GPIO tests. Keep pigpiod running.
-4. With the sensor contacts together, run `python3 publish_door.py` and check
-   the subscriber receives `{"door_state": "closed"}`. Separate the contacts
-   and run it again to check for `{"door_state": "open"}`. The script reads
-   the sensor once per run and leaves the servo alone.
-5. Close the door and restart the locker service if you stopped it.
+On the Pi, install Paho in a virtual environment that can import the existing
+system GPIO packages. The supplied systemd unit uses this interpreter.
 
-## Publish from the running controller
+```sh
+python3 -m venv --system-site-packages ~/.venvs/unistow
+~/.venvs/unistow/bin/python -m pip install 'paho-mqtt>=2.1,<3'
+```
 
-Copy both `run_locker.py` and `publish_door.py` to the Pi Desktop. With a
-publish token configured, the controller sends the first door reading, changes
-of state and a fresh reading every five seconds. It retries failed publishes
-after five seconds and reads the current credentials for each attempt.
-A separate thread handles publishing while GPIO and HTTP commands continue.
+Copy `run_locker.py` and `locker_mqtt.py` to the controller directory. Back up the
+private configuration and replace its old PubNub section with `mqtt` from
+`device_config.example.json`. Keep the HTTPS device key and server address.
+Set the new device password, run `chmod 600 device_config.json` and synchronise
+the Pi clock. With a private test CA, set `mqtt.ca_file` to its public
+certificate. Production uses the Pi's system trust store for `unistow.app`.
 
-## Receive the reading in local FastAPI
-
-Set `PUBNUB_SUBSCRIBE_KEY` and `PUBNUB_READ_TOKEN` in the local server
-environment before starting FastAPI. Grant the token to `unistow-mac-reader`
-with read permission on `unistow.locker-4.events`. Restart with a fresh token
-after expiry. When the server logs `Listening on unistow.locker-4.events`,
-run the sensor test on the Pi and look for `Locker 4 door via PubNub: closed`
-or `open` in the server log.
-
-The Locker 4 rental page uses the latest fresh reading from PubNub or the
-HTTP heartbeat. PubNub readings expire after 15 seconds and are held in
-memory for this local test. Command authorisation still uses the controller
-heartbeat and the database.
-
-## Check the return path with a ping
-
-Grant the Pi user read access to `unistow.locker-4.commands` alongside its
-existing write access to the events channel. Give the FastAPI reader write
-access to the commands channel alongside its existing read access to events.
-Copy `probe_ping.py` and the matching `publish_door.py` beside the controller.
-Run `python3 probe_ping.py` on the Pi while the locker service is running.
-
-After `Pi ready for ping.`, start local FastAPI with its scoped token and
-set `PUBNUB_PROBE_PUBLISH_KEY` to the keyset's publish key for that run.
-FastAPI sends one ping after subscribing. The probe replies on the events
-channel and exits. Compare the ID in the Pi's `Sent pong` line with the
-server's `Locker 4 pong` line. Restart the probe and server to repeat.
-The probe handles only ping messages and uses no GPIO pins.
+Start with `mqtt.mode` set to `test` on the Pi and select test mode on the
+server. On an active paid rental select **Test open delivery**. A matching
+acknowledgement confirms the round trip without actuating the test command.
+For a physical test, use an empty locker, set Pi mode to `physical`, switch
+the server to physical opening and restart both services. Confirm that opening,
+sensor updates and collection work together. A lost acknowledgement leaves
+delivery uncertain. Check the door before issuing a new request.
 
 ## Report the door state to UniStow
 
@@ -93,7 +66,8 @@ Stop the reporting script before running the locker test.
 
 1. Start Docker PostgreSQL and the backend on the Mac using the [README](../README.md).
 2. Stop `report_door.py` and any hardware tests on the Pi. Copy `run_locker.py`
-   beside the existing `device_config.json`, then run it in Thonny with the door closed.
+   and `locker_mqtt.py` beside the existing `device_config.json`, then run
+   `~/.venvs/unistow/bin/python run_locker.py` with the door closed.
 3. Sign in to UniStow as the owner of an active, paid rental and press **Open locker**.
    Open the door after the latch moves, then close it. After one second continuously
    closed, the controller commands the latch closed.
@@ -109,7 +83,7 @@ a closed door. Replace the Pi's `run_locker.py` and restart `uniflow-locker` to 
 Local closing continues if the Mac connection drops. Opening requests expire after
 10 seconds and are dispatched only once. Wait for the button to become available
 before requesting another opening.
-Opening is limited to the paid rental period. Overdue access needs operator assistance.
+Opening is limited to the paid rental period. An overdue renter can still request collection.
 For automatic controller startup, follow the section below.
 The sensor reports the door position, not confirmation that the latch is locked.
 
@@ -158,7 +132,7 @@ finish the rental.
 
 If the network drops, keep the script running: it retries the acknowledgement.
 If the script or Pi stops before acknowledgement, the rental stays occupied and
-needs checking by the operator. Overdue access still requires operator assistance.
+needs checking by the operator. Use the Contact page if the controller is unavailable.
 
 ## Start the controller automatically
 
@@ -200,18 +174,3 @@ Before a manual test, use `sudo systemctl stop uniflow-locker.service`.
 After stopping the test, use `sudo systemctl start uniflow-locker.service`.
 After updating the script, use `sudo systemctl restart uniflow-locker.service`.
 To remove automatic startup, use `sudo systemctl disable --now uniflow-locker.service`.
-
-## Test open command delivery from the rental page
-
-Use the same scoped tokens as the ping test. Set `open_test` to `true` in
-the Pi's private `pubnub` configuration and install the matching
-`probe_ping.py`, `publish_door.py` and `run_locker.py` before restarting the
-controller. Start local FastAPI with `UNISTOW_OPEN_TEST=1` and the PubNub
-credentials used for the ping test. Refresh the paid Locker 4 rental and
-select **Test open delivery**. The page reports success only after the Pi
-acknowledges the matching command ID. The Pi clock must be synchronised.
-
-The test command expires within ten seconds or at the rental deadline,
-whichever comes first. The controller handles it in a separate thread
-without calling the servo. To resume physical commands in this server,
-restart FastAPI without the test flag and reload the rental page.

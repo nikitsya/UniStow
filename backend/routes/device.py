@@ -37,17 +37,6 @@ def check_device_key(request: Request):
         raise HTTPException(401, "Invalid device key.")
 
 
-@router.post("/pubnub-token", dependencies=[Depends(check_device_key)])
-def device_token(request: Request):
-    issuer = getattr(request.app.state, "locker_tokens", None)
-    if issuer is None:
-        raise HTTPException(503, "Token renewal is unavailable.")
-    try:
-        return issuer.device()
-    except Exception:
-        raise HTTPException(503, "Token renewal is temporarily unavailable.") from None
-
-
 @router.post("/heartbeat", dependencies=[Depends(check_device_key)])
 def heartbeat(report: DoorReport, db: Annotated[Session, Depends(get_db)]):
     # This prototype key belongs only to the physical Locker 4.

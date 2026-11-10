@@ -13,8 +13,10 @@ See the [README](../README.md) for the current stack and startup instructions.
 - Automatic startup of pigpiod and the Pi controller.
 
 The production site runs on AWS EC2 at https://unistow.app. Nginx verifies the
-FastAPI certificate, and FastAPI verifies the PostgreSQL certificate. PubNub
-carries opening commands and door events. The Pi uses authenticated HTTPS for
+FastAPI certificate, and FastAPI verifies the PostgreSQL certificate. Eclipse Mosquitto runs on the same EC2 host.
+Two test clients exchanged a command and its acknowledgement on the broker
+over TLS. The existing application uses PubNub until the Pi is ready for the
+MQTT switch. The Pi uses authenticated HTTPS for
 heartbeats and collection acknowledgements. See the [deployment guide](../deploy/README.md)
 for the security settings and EC2 evidence.
 
@@ -32,7 +34,7 @@ Use this checklist alongside the original brief before submitting to Moodle.
 - [ ] Prepare a Fritzing sketch showing the actual Raspberry Pi, servo and door
   sensor connections. Check it against the physical wiring.
 - [ ] Record the screencast: explain the code and architecture, demonstrate the
-  deployed application and secured PubNub exchange live, and discuss known issues.
+  deployed application and secured MQTT exchange live, and discuss known issues.
 - [ ] Complete the CA cover sheet and AI usage cover sheet. Bring the
   [AI chat log](AI_Chat_Log.md) up to date.
 - [ ] Include the GitHub repository link in the submission README, verify the
@@ -44,7 +46,8 @@ Use this checklist alongside the original brief before submitting to Moodle.
 
 ## Additional prototype testing
 
-Use [issue #7](https://github.com/nikitsya/UniStow/issues/7) to record what happens
-when the Pi misses an opening request and reconnects after the command expires.
+The original PubNub work is recorded in [issue #7](https://github.com/nikitsya/UniStow/issues/7).
+Repeat the disconnected-controller test against Mosquitto and confirm an
+expired opening command cannot move the latch.
 This is a project reliability test. The assessment brief specifies a live
 demonstration of secured publish–subscribe communication.

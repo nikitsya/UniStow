@@ -13,3 +13,4 @@ hardware/device_config.json
 .env.production
 *.dump
 .local-postgres*
+.local-mqtt/

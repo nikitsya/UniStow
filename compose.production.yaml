@@ -1,6 +1,19 @@
 name: unistow
 
 services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    restart: unless-stopped
+    ports:
+      - "8883:8883"
+    volumes:
+      - ./deploy/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./deploy/mosquitto/locker.acl:/mosquitto/config/locker.acl:ro
+      - /etc/unistow/mqtt:/mosquitto/secrets:ro
+    networks:
+      mqtt:
+        aliases: [ unistow.app ]
+
   db:
     image: postgres:16
     restart: unless-stopped
@@ -39,11 +52,10 @@ services:
       POSTGRES_USER: unistow
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
       APP_BASE_URL: https://unistow.app
-      UNISTOW_PUBNUB_OPEN: ${UNISTOW_PUBNUB_OPEN:-0}
-      PUBNUB_SUBSCRIBE_KEY: ${PUBNUB_SUBSCRIBE_KEY:-}
-      PUBNUB_PROBE_PUBLISH_KEY: ${PUBNUB_PROBE_PUBLISH_KEY:-}
-      PUBNUB_SECRET_KEY: ${PUBNUB_SECRET_KEY:-}
-      PUBNUB_READ_TOKEN: ${PUBNUB_READ_TOKEN:-}
+      MQTT_HOST: unistow.app
+      MQTT_APP_PASSWORD: ${MQTT_APP_PASSWORD:?Set MQTT_APP_PASSWORD}
+      UNISTOW_MQTT_OPEN: ${UNISTOW_MQTT_OPEN:-1}
+      UNISTOW_OPEN_TEST: ${UNISTOW_OPEN_TEST:-0}
       UNISTOW_OVERDUE_BILLING: ${UNISTOW_OVERDUE_BILLING:-0}
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
@@ -55,7 +67,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    networks: [ web, database ]
+    networks: [ web, database, mqtt ]
     healthcheck:
       test: [ "CMD", ".venv/bin/python", "-c", "import ssl, urllib.request; urllib.request.urlopen('https://127.0.0.1:8000/', context=ssl.create_default_context(cafile='/run/app-tls/server.crt'), timeout=5)" ]
       interval: 30s
@@ -80,6 +92,7 @@ services:
     networks: [ web ]
 
 networks:
+  mqtt:
   web:
   database:
     internal: true

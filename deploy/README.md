@@ -1,7 +1,7 @@
 # UniStow deployment
 
 This configuration runs FastAPI, PostgreSQL 16 and Nginx on a dedicated Ubuntu EC2
-instance. Only Nginx publishes ports. PostgreSQL remains on an internal Docker
+instance. The MQTT migration adds Eclipse Mosquitto on the same host. PostgreSQL remains on an internal Docker
 network. Certbot on the host obtains and renews HTTPS certificates automatically.
 
 ## Server and DNS
@@ -15,7 +15,8 @@ The deployed application uses Stripe sandbox payments and communicates with Lock
 Keep its device key in the private production environment file.
 
 Use Ubuntu 24.04 LTS, at least 2 GiB RAM and 20 GiB storage. Allow TCP ports 80 and
-443 publicly and restrict SSH (22) to your current IP. Do not expose 5432 or 8000.
+443 publicly and restrict SSH (22) to authorised source addresses. For MQTT,
+allow TCP 8883 from the Pi network's public egress address. Do not expose 5432 or 8000.
 Keep the instance metadata service on IMDSv2. Install Docker Engine and the Compose
 plugin using Docker's official Ubuntu instructions.
 
@@ -36,6 +37,9 @@ POSTGRES_PASSWORD=
 STRIPE_SECRET_KEY=
 STRIPE_WEBHOOK_SECRET=
 UNISTOW_DEVICE_KEY=
+MQTT_APP_PASSWORD=
+UNISTOW_OPEN_TEST=1
+UNISTOW_MQTT_OPEN=0
 ```
 
 Stripe must use sandbox keys. The device key must match the physical controller.
@@ -106,6 +110,8 @@ sudo install -m 755 deploy/reload-nginx /etc/letsencrypt/renewal-hooks/deploy/re
 sudo systemctl enable --now certbot.timer
 ```
 
+Provision the [MQTT broker](#self-hosted-mqtt) before this first Compose start.
+
 ```sh
 sudo docker compose --env-file .env.production -f compose.production.yaml -p unistow up -d --build
 sudo docker compose --env-file .env.production -f compose.production.yaml -p unistow ps
@@ -140,6 +146,12 @@ The group has no inbound rule for PostgreSQL (5432) or FastAPI (8000).
 
 ![EC2 inbound rules showing public HTTP and HTTPS and SSH restricted to one IPv4 address](../docs/images/deployment/unistow-ec2-inbound-rules.png)
 
+On 10 November the console showed five IPv4 inbound rules. HTTP (80) and
+HTTPS (443) were public, and three individual /32 source addresses could use
+SSH (22). The group had no MQTT (8883) rule at the time of the screenshot.
+
+![Five inbound rules on 10 November, cropped to their types and ports](../docs/images/deployment/unistow-ec2-inbound-ports-nov-10.png)
+
 ## Storage encryption
 
 On 6 November 2026, the EC2 console showed **Encrypted** for the 20 GiB gp3
@@ -169,18 +181,88 @@ References: [Docker on Ubuntu](https://docs.docker.com/engine/install/ubuntu/),
 [Certbot renewal](https://eff-certbot.readthedocs.io/en/stable/using.html#renewing-certificates), and
 [Stripe webhooks](https://docs.stripe.com/webhooks).
 
-## Renew Locker 4 PubNub tokens
+## Self-hosted MQTT
 
-With physical opening enabled, set `PUBNUB_SECRET_KEY` in the server's private
-`.env.production` and recreate the app container. Use the same Testing keyset
-as the publish and subscribe keys. The server issues separate one-hour tokens
-for the device and the reader and refreshes its subscription after 45 minutes.
+The Compose service `mosquitto` runs Eclipse Mosquitto on EC2. Both the Pi and
+FastAPI verify the TLS certificate for `unistow.app:8883`. A network alias
+lets FastAPI reach the broker directly on the Compose network. Only the broker
+receives its private key and hashed password file. The ACL grants the app write
+access to commands and read access to events. The device has the reverse grants.
+The broker disables anonymous access, retained messages and persistent storage.
+The clients use clean sessions and QoS 0. Expired or uncertain opening commands
+are never retried automatically.
 
-Install `renew_token.py` beside `run_locker.py` on the Pi. Set
-`pubnub.renew_token` to `true` in its private device configuration and restart
-`uniflow-locker.service`. The Pi uses its existing device key and HTTPS server
-address to obtain a token at startup and renew it before expiry. Check for
-`Renewed the Locker 4 device token.` in the service journal.
+After obtaining the public certificate and before running the updated production
+Compose file, provision two different MQTT passwords using the prompts below.
+Run the `-c` command only for a new password file. To rotate an existing user,
+omit `-c`, update its client and reload the broker.
+
+```sh
+sudo install -d -o 1883 -g 1883 -m 700 /etc/unistow/mqtt
+sudo install -o 1883 -g 1883 -m 600 /etc/letsencrypt/live/unistow.app/privkey.pem /etc/unistow/mqtt/server.key
+sudo install -o 1883 -g 1883 -m 644 /etc/letsencrypt/live/unistow.app/fullchain.pem /etc/unistow/mqtt/server.crt
+sudo docker run --rm -it --user 1883:1883 -v /etc/unistow/mqtt:/keys --entrypoint mosquitto_passwd eclipse-mosquitto:2 -c /keys/passwords unistow-app
+sudo docker run --rm -it --user 1883:1883 -v /etc/unistow/mqtt:/keys --entrypoint mosquitto_passwd eclipse-mosquitto:2 /keys/passwords unistow-locker-4
+```
+
+Save the app password as `MQTT_APP_PASSWORD` in the private `.env.production`.
+Put the device password on the Pi using the [controller instructions](../hardware/README.md#connect-locker-4-to-mosquitto).
+Reinstall the updated Certbot renewal hook above so both services pick up renewed
+certificates. Add the scoped EC2 inbound rule for 8883 before the Pi test.
+The original three web services continue using their existing ports and data.
+
+Start in delivery-test mode with `UNISTOW_OPEN_TEST=1` and `UNISTOW_MQTT_OPEN=0`.
+Bring up the production Compose stack, verify the broker logs and run **Test open
+delivery** with the Pi configured for test mode. Then set
+`UNISTOW_OPEN_TEST=0` and `UNISTOW_MQTT_OPEN=1`, recreate the app, and set the
+Pi to physical mode. Check the empty-locker opening and collection cycle.
+After acceptance, revoke the retired PubNub grants and remove their credentials
+from the private configuration. HTTPS still carries heartbeats and collection.
+
+### EC2 deployment on 10 November 2026
+
+Docker Compose started `mosquitto` alongside the running `app`, `db` and
+`nginx` services. The broker uses the certificate for `unistow.app` and the
+renewal hook refreshes its copy. Two test clients on the EC2 Docker network
+verified the certificate and exchanged a test command and a matching
+acknowledgement using the app and device identities. The broker rejected
+anonymous access. The public website returned HTTP 200 after the rollout.
+
+The running web app retains its previous device connection until the Pi is
+ready. During staged setup, root-only client provisioning files are held under
+`/etc/unistow/mqtt-clients/` on EC2. Use the app credential for the private
+production environment and provision the device credential on the Pi before
+switching the application and controller together.
+
+EC2 instance metadata confirmed that UniStow had only `launch-wizard-2`
+attached. The TCP 8883 rule shown for `launch-wizard-1` applies to a separate
+security group. Confirm the authorised source in the attached group and test
+from the Pi network before demonstrating the physical locker.
+
+### Local broker check
+
+Local Compose publishes MQTT on loopback. Create the local secrets directory
+once and use two development passwords. The certificate identifies localhost.
+The production setup above uses the public domain certificate instead.
+
+```sh
+mkdir -m 700 .local-mqtt
+openssl req -x509 -newkey rsa:2048 -nodes -sha256 -days 30 -subj /CN=localhost \
+  -addext 'subjectAltName=DNS:localhost,IP:127.0.0.1' \
+  -keyout .local-mqtt/server.key -out .local-mqtt/server.crt
+docker run --rm -it -v "$PWD/.local-mqtt:/keys" --entrypoint mosquitto_passwd eclipse-mosquitto:2 -c /keys/passwords unistow-app
+docker run --rm -it -v "$PWD/.local-mqtt:/keys" --entrypoint mosquitto_passwd eclipse-mosquitto:2 /keys/passwords unistow-locker-4
+docker run --rm -v "$PWD/.local-mqtt:/keys" --entrypoint sh eclipse-mosquitto:2 -ec 'chown -R 1883:1883 /keys && chmod 600 /keys/server.key /keys/passwords'
+docker compose up -d mosquitto
+```
+
+Set `MQTT_HOST=localhost`, `MQTT_APP_PASSWORD` and the absolute path to the
+public certificate in `MQTT_CA_FILE` for the local backend. Select delivery-test
+or physical mode as above. The local TLS test on 10 November used the actual
+server and Pi MQTT code, with simulated GPIO. It received telemetry, acknowledged
+the test command without movement and acknowledged a simulated physical opening.
+The broker rejected anonymous and invalid logins and blocked each client's
+attempt to publish to the other client's topic.
 
 ## Daily overdue test billing
 

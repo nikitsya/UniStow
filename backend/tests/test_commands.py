@@ -98,7 +98,7 @@ class CommandTests(unittest.TestCase):
         return self.client.post('/api/device/commands/next', headers=self.device_headers,
                                 json={'controller_id': controller or self.controller})
 
-    def test_pubnub_open_cannot_be_repeated_or_collected_over_http(self):
+    def test_mqtt_open_cannot_be_repeated_or_collected_over_http(self):
         events = Mock()
         events.ready_controller.return_value = self.controller
         events.open.return_value = {'status': 'opening'}
@@ -193,7 +193,7 @@ class CommandTests(unittest.TestCase):
         self.assertRegex(self.client.get(f'/rentals/{self.rental_id}').text,
                          r'<button(?=[^>]*id="open-locker-button")(?=[^>]*\bdisabled\b)[^>]*>')
 
-    def test_finish_is_disabled_when_pubnub_reports_an_open_door(self):
+    def test_finish_is_disabled_when_mqtt_reports_an_open_door(self):
         events = Mock()
         events.latest.return_value = 'open'
         with patch.object(app.state, 'door_events', events, create=True):

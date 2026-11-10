@@ -56,23 +56,27 @@ Other images are grouped into [deployment evidence](docs/images/deployment/),
 | Payments          | Stripe sandbox Checkout and verified webhooks             |
 | Hardware          | Raspberry Pi 400, SG92R servo and magnetic contact sensor |
 | Hosting           | AWS EC2, Nginx and Let's Encrypt certificates             |
-| Device connection | PubNub for opening and door events, HTTPS for collection  |
+| Device connection | Eclipse Mosquitto (MQTT over TLS) for opening and telemetry, HTTPS for collection  |
 
 ```mermaid
 flowchart LR
     Browser -->|HTTPS| Proxy[Nginx on EC2]
-    Proxy --> App[FastAPI]
-    App --> DB[(PostgreSQL in Docker)]
+    Proxy -->|HTTPS| App[FastAPI]
+    App -->|TLS| DB[(PostgreSQL in Docker)]
     App -->|Checkout| Stripe[Stripe sandbox]
     Stripe -->|HTTPS webhook| Proxy
-    App <-->|Opening commands and door events| PubNub
-    PubNub <--> Pi[Raspberry Pi]
+    App <-->|MQTT over TLS| Broker[Eclipse Mosquitto on EC2]
+    Broker <-->|MQTT over TLS| Pi[Raspberry Pi]
     Pi -->|HTTPS heartbeat and collection| Proxy
     Pi --> Latch[Servo latch]
     Sensor[Door sensor] --> Pi
 ```
 
-See the [deployment guide](deploy/README.md) for Nginx configuration and certificate renewal.
+Eclipse Mosquitto now runs alongside Nginx, FastAPI and PostgreSQL on EC2.
+Two authenticated clients exchanged a test command and its acknowledgement over
+TLS on the EC2 Docker network. The diagram shows the intended Pi connection.
+The live rental application and physical controller still need to switch over
+together. See the [deployment guide](deploy/README.md#self-hosted-mqtt).
 Passwords use Argon2; session tokens are stored as hashes. Sessions last 24 hours and
 use an HttpOnly cookie, with Secure enabled on HTTPS. Rental access requires ownership
 and confirmed payment. Device requests require a separate key; commands expire and
@@ -164,9 +168,10 @@ To include database tests, start PostgreSQL and prefix the command with
 Test-mode payment-method storage and an opt-in daily EUR 1 overdue billing worker
 are implemented. Apply migrations and enable `UNISTOW_OVERDUE_BILLING=1` to run the
 worker. See the [billing instructions](docs/database.md#daily-test-billing).
-Verification through Stripe test Checkout and the renter-facing debt and failed-payment
-flow remain to be completed. Renters can call the locker operator from the public Contact page at `/contact`. See the
+Rental 44 demonstrated outstanding-balance recovery in Stripe test Checkout.
+[Rental 45](docs/usability-testing.md#after-the-automatic-billing-deadline--rental-45)
+shows the deployed page after the daily billing deadline. Renters can call the locker operator from the public Contact page at `/contact`. See the
 plan for deployment and submission tasks.
 
-The Checkpoint 1 presentation in `docs/` records the original proposal, including Flask,
+The Checkpoint 1 presentation in `docs/presentations/` records the original proposal, including Flask,
 PubNub and AWS. It is historical; this README describes the current implementation.

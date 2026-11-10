@@ -1,3 +1,4 @@
+import json
 import sys
 import unittest
 from pathlib import Path
@@ -6,70 +7,75 @@ from types import SimpleNamespace
 from unittest.mock import Mock, patch
 from uuid import uuid4
 
-from services.door_events import CHANNEL, COMMAND_CHANNEL, DoorEvents
+from fastapi import HTTPException
+from services.door_events import COMMANDS, EVENTS, DoorEvents
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'hardware'))
-from probe_ping import handle_open, open_test_ack
+from locker_mqtt import acknowledge
+
+
+def packet(data, topic=EVENTS, retain=False):
+    return SimpleNamespace(topic=topic, retain=retain, payload=json.dumps(data).encode())
 
 
 class OpenDeliveryTests(unittest.TestCase):
     def setUp(self):
-        self.payload = {'type': 'test_open', 'id': str(uuid4()), 'expires_at': 110}
-        self.event = {'i': 'unistow-mac-reader', 'c': COMMAND_CHANNEL, 'd': self.payload}
+        self.controller = str(uuid4())
+        self.command = {'type': 'open', 'id': str(uuid4()), 'controller_id': self.controller,
+                        'expires_at': time() + 9}
+        self.queue = Mock()
+        self.queue.put.side_effect = lambda item: item[3].set()
 
-    def test_accepts_each_live_test_once(self):
+    def test_physical_command_must_be_fresh_unique_and_addressed_to_this_boot(self):
         seen = {}
-        self.assertEqual(open_test_ack(self.event, seen, 100),
-                         {'type': 'test_open_ack', 'id': self.payload['id']})
-        self.assertIsNone(open_test_ack(self.event, seen, 101))
-        self.assertIsNone(open_test_ack(self.event, {}, 110))
+        for invalid in [dict(self.command, expires_at=time()), dict(self.command, controller_id=str(uuid4())),
+                        dict(self.command, id='invalid'), dict(self.command, expires_at=time() + 11)]:
+            self.assertIsNone(acknowledge(invalid, seen, 'physical', self.controller, self.queue))
+        self.assertIsNone(acknowledge(self.command, seen, 'test', self.controller, self.queue))
+        self.queue.put.assert_not_called()
+        self.assertEqual(acknowledge(self.command, seen, 'physical', self.controller, self.queue),
+                         {'id': self.command['id'], 'type': 'open_ack'})
+        self.assertIsNone(acknowledge(self.command, seen, 'physical', self.controller, self.queue))
+        self.queue.put.assert_called_once()
 
-    def test_rejects_other_publishers_channels_and_physical_commands(self):
-        for event in (dict(self.event, i='other'), dict(self.event, c=CHANNEL),
-                      dict(self.event, d=dict(self.payload, type='open'))):
-            self.assertIsNone(open_test_ack(event, {}, 100))
+    def test_matches_only_the_expected_live_acknowledgement(self):
+        events, client = DoorEvents(), Mock()
 
-    def test_only_a_fresh_open_for_this_boot_reaches_the_servo_queue_once(self):
-        controller = str(uuid4())
-        data = dict(self.payload, type='open', controller_id=controller)
-        queue = Mock()
-        queue.put.side_effect = lambda item: item[3].set()
-        seen = {}
-        with patch('probe_ping.time', return_value=100):
-            for event in (self.event, dict(self.event, d=dict(data, controller_id=str(uuid4()))),
-                          dict(self.event, d=dict(data, expires_at=100)), dict(self.event, d=data, i='other')):
-                self.assertIsNone(handle_open(event, seen, controller, queue))
-            queue.put.assert_not_called()
-            event = dict(self.event, d=data)
-            self.assertEqual(handle_open(event, seen, controller, queue), {'type': 'open_ack', 'id': data['id']})
-            self.assertIsNone(handle_open(event, seen, controller, queue))
-            queue.put.assert_called_once()
-
-    def test_matches_controller_acknowledgement(self):
-        events = DoorEvents()
-        client = Mock()
-        publish = client.publish.return_value.channel.return_value
-
-        def deliver(callback):
-            payload = publish.message.call_args.args[0]
-            ack = open_test_ack(dict(self.event, d=payload), {}, time())
-            received = events.pending_tests[payload['id']]
-            for publisher, command_id in [('other', payload['id']), ('unistow-locker-4', 'other')]:
-                events.message(client, SimpleNamespace(channel=CHANNEL, publisher=publisher,
-                                                       message=dict(ack, id=command_id)))
+        def deliver(topic, payload, qos, retain):
+            self.assertEqual((topic, qos, retain), (COMMANDS, 0, False))
+            ack = acknowledge(json.loads(payload), {}, 'test', None, self.queue)
+            received = events.pending[('test_open_ack', ack['id'])]
+            for event in [packet(ack, retain=True), packet(ack, topic=COMMANDS),
+                          packet(dict(ack, type='open_ack')), packet(dict(ack, id=str(uuid4())))]:
+                events.message(client, None, event)
                 self.assertFalse(received.is_set())
-            events.message(client, SimpleNamespace(channel=CHANNEL, publisher='unistow-locker-4', message=ack))
+            events.message(client, None, packet(ack))
+            return SimpleNamespace(rc=0)
 
-        publish.message.return_value.should_store.return_value.pn_async.side_effect = deliver
+        client.publish.side_effect = deliver
         self.assertEqual(events.test_open(client, time() + 9)['status'], 'test_acknowledged')
-        self.assertFalse(events.pending_tests)
+        self.queue.put.assert_not_called()
+        self.assertFalse(events.pending)
 
-    def test_door_reading_survives_small_clock_difference_and_expires(self):
+    def test_failed_publish_cleans_up_without_redelivery(self):
+        events, client = DoorEvents(), Mock()
+        client.publish.return_value.rc = 4
+        with self.assertRaises(HTTPException) as caught:
+            events.test_open(client, time() + 9)
+        self.assertEqual(caught.exception.status_code, 503)
+        self.assertFalse(events.pending)
+        client.publish.assert_called_once()
+
+    def test_stale_retained_and_out_of_order_readings_cannot_enable_opening(self):
         events = DoorEvents()
-        event = SimpleNamespace(channel=CHANNEL, publisher='unistow-locker-4',
-                                message={'door_state': 'closed'}, timetoken=1_000_000_000)
+        reading = dict(door_state='closed', ready=True, controller_id=self.controller, observed_at=100)
         with patch('services.door_events.time', return_value=99.95):
-            events.message(None, event)
+            events.message(None, None, packet(reading, retain=True))
+            self.assertIsNone(events.ready_controller())
+            events.message(None, None, packet(reading))
+            events.message(None, None, packet(dict(reading, ready=False, observed_at=99)))
             self.assertEqual(events.latest(None), 'closed')
+            self.assertEqual(events.ready_controller(), self.controller)
         with patch('services.door_events.time', return_value=115):
+            self.assertIsNone(events.ready_controller())
             self.assertIsNone(events.latest(None))
