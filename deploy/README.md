@@ -219,6 +219,26 @@ Pi to physical mode. Check the empty-locker opening and collection cycle.
 After acceptance, revoke the retired PubNub grants and remove their credentials
 from the private configuration. HTTPS still carries heartbeats and collection.
 
+### EC2 deployment on 10 November 2026
+
+Docker Compose started `mosquitto` alongside the running `app`, `db` and
+`nginx` services. The broker uses the certificate for `unistow.app` and the
+renewal hook refreshes its copy. Two test clients on the EC2 Docker network
+verified the certificate and exchanged a test command and a matching
+acknowledgement using the app and device identities. The broker rejected
+anonymous access. The public website returned HTTP 200 after the rollout.
+
+The running web app retains its previous device connection until the Pi is
+ready. During staged setup, root-only client provisioning files are held under
+`/etc/unistow/mqtt-clients/` on EC2. Use the app credential for the private
+production environment and provision the device credential on the Pi before
+switching the application and controller together.
+
+EC2 instance metadata confirmed that UniStow had only `launch-wizard-2`
+attached. The TCP 8883 rule shown for `launch-wizard-1` applies to a separate
+security group. Confirm the authorised source in the attached group and test
+from the Pi network before demonstrating the physical locker.
+
 ### Local broker check
 
 Local Compose publishes MQTT on loopback. Create the local secrets directory

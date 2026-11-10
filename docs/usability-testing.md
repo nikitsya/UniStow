@@ -312,8 +312,11 @@ was Unknown and both locker controls were unavailable.
 A read-only Stripe sandbox search on the evening of 10 November matched
 rental ID 45 and charge date 2026-11-10. It returned exactly one PaymentIntent,
 created at 18:00:31 UTC, with status `succeeded` and 100 euro cents received.
-The remaining check for issue #14 is the corresponding daily charge record
-on EC2 after successive worker passes.
+Read-only checks at 21:26 and 21:28 UTC found the same paid PostgreSQL row
+on EC2 and the same successful test PaymentIntent in Stripe. The worker was
+enabled and checks every minute. Both observations found one charge for this
+rental and date. This completes the deadline and duplicate-payment check for
+issue #14.
 
 ### Recent completed rentals — issue #17
 

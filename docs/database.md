@@ -310,5 +310,6 @@ flag in `.env.production` rather than override it with 0.
 [The before-and-after screenshots for rental 45](usability-testing.md#after-the-automatic-billing-deadline--rental-45)
 show the total increasing from EUR 1 to EUR 2 after the deadline. The page
 marks the extra day paid. A read-only Stripe sandbox search found one matching
-successful EUR 1 PaymentIntent. Confirm the corresponding daily charge row on
-EC2 before closing issue #14.
+successful EUR 1 PaymentIntent. At 21:26 and 21:28 UTC on 10 November, read-only checks on EC2 found
+one paid charge row for that rental and date. Both checks matched the same
+Stripe test PaymentIntent and 100 cents received. The automatic worker was enabled.

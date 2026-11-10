@@ -72,10 +72,11 @@ flowchart LR
     Sensor[Door sensor] --> Pi
 ```
 
-The diagram shows the target deployment. The website is live on EC2. The Mosquitto
-migration has passed a local TLS exchange with simulated hardware. EC2 and physical
-Pi acceptance are pending. See the [deployment guide](deploy/README.md#self-hosted-mqtt)
-for broker setup, access control and certificate renewal.
+Eclipse Mosquitto now runs alongside Nginx, FastAPI and PostgreSQL on EC2.
+Two authenticated clients exchanged a test command and its acknowledgement over
+TLS on the EC2 Docker network. The diagram shows the intended Pi connection.
+The live rental application and physical controller still need to switch over
+together. See the [deployment guide](deploy/README.md#self-hosted-mqtt).
 Passwords use Argon2; session tokens are stored as hashes. Sessions last 24 hours and
 use an HttpOnly cookie, with Secure enabled on HTTPS. Rental access requires ownership
 and confirmed payment. Device requests require a separate key; commands expire and

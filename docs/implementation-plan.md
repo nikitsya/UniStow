@@ -13,10 +13,10 @@ See the [README](../README.md) for the current stack and startup instructions.
 - Automatic startup of pigpiod and the Pi controller.
 
 The production site runs on AWS EC2 at https://unistow.app. Nginx verifies the
-FastAPI certificate, and FastAPI verifies the PostgreSQL certificate. The previous deployment
-used PubNub. The local migration uses
-Eclipse Mosquitto for opening commands and door events. Deploy the broker on EC2
-and verify it with Locker 4 before demonstrating cloud MQTT. The Pi uses authenticated HTTPS for
+FastAPI certificate, and FastAPI verifies the PostgreSQL certificate. Eclipse Mosquitto runs on the same EC2 host.
+Two test clients exchanged a command and its acknowledgement on the broker
+over TLS. The existing application uses PubNub until the Pi is ready for the
+MQTT switch. The Pi uses authenticated HTTPS for
 heartbeats and collection acknowledgements. See the [deployment guide](../deploy/README.md)
 for the security settings and EC2 evidence.
 
