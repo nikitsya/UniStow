@@ -23,9 +23,9 @@
         </div>
         <div>
             <dt>Payment</dt>
-            <dd>{{ {'paid': 'Paid', 'expired': 'Expired', 'pending': 'Awaiting payment'}.get(rental.payment_status, 'Not
-                paid') }}
-            </dd>
+            <dd>{% if billing.failed %}Payment incomplete{% elif billing.pending %}Payment processing{% else %}{{
+                {'paid': 'Paid', 'expired': 'Expired', 'pending': 'Awaiting payment'}.get(rental.payment_status, 'Not paid')
+                }}{% endif %}</dd>
         </div>
         {% if rental.status != 'pending' %}
         <div>
@@ -33,8 +33,32 @@
             <dd>{{ door_state | capitalize }}</dd>
         </div>
         {% endif %}
+        {% if billing.additional %}
+        <div>
+            <dt>Rental cost</dt>
+            <dd>€{{ '%.2f' | format(rental.total_price_cents / 100) }}</dd>
+        </div>
+        {% if billing.paid %}
+        <div>
+            <dt>Extra days · paid</dt>
+            <dd>€{{ '%.2f' | format(billing.paid / 100) }}</dd>
+        </div>
+        {% endif %}
+        {% if billing.pending %}
+        <div>
+            <dt>Extra days · processing</dt>
+            <dd>€{{ '%.2f' | format(billing.pending / 100) }}</dd>
+        </div>
+        {% endif %}
+        {% if billing.failed %}
+        <div>
+            <dt>Extra days · unpaid</dt>
+            <dd>€{{ '%.2f' | format(billing.failed / 100) }}</dd>
+        </div>
+        {% endif %}
+        {% endif %}
     </dl>
-    <p class="total"><span>Total</span><strong>€{{ '%.2f' | format(rental.total_price_cents / 100) }}</strong></p>
+    <p class="total"><span>Total</span><strong>€{{ '%.2f' | format(billing.total / 100) }}</strong></p>
     <p aria-atomic="true" class="operator-help" hidden id="refresh-notice" role="status"></p>
     <div id="rental-actions">
         {% if rental.status == 'pending' %}

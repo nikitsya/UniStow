@@ -203,8 +203,7 @@ These checks verify successful test-mode collection, catch-up for an additional
 missed day and duplicate protection on repeat runs. No real money was collected.
 Automatic billing remains disabled. Scheduled execution at a future deadline
 and failure recovery have not yet been verified against Stripe on EC2. Automated
-tests cover the deadline, completion and failure cases. Renter-facing debt totals
-and payment recovery remain later work in #14.
+tests cover the deadline, completion and failure cases. Payment recovery remains later work in #14.
 
 ### Collection completion verification on 10 November 2026
 
@@ -222,3 +221,19 @@ completed rentals accrue no new charges.
 
 References: [Stripe idempotent requests](https://docs.stripe.com/api/idempotent_requests)
 and [PaymentIntent confirmation](https://docs.stripe.com/api/payment_intents/confirm).
+
+### Rental payment summary
+
+The rental page includes recorded extra-day charges in its total. Where extra
+charges exist, it shows the original rental cost and separate amounts for paid,
+processing and unpaid extra days. Waived charges are excluded. The summary
+remains visible after completion and refreshes with the existing live page
+updates. It does not estimate days for which the worker has not created a record.
+
+Pending charges display Payment processing; failed charges display Payment
+incomplete. Neither is presented as successfully collected money. Payment
+recovery is not included in this change.
+
+All 89 backend tests passed locally, including mixed charge statuses, waived
+amounts, completed rentals, unchanged totals without extra charges and access
+restrictions. The summary has not yet been deployed or checked on a phone.

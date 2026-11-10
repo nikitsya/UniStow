@@ -88,6 +88,20 @@ def reservation(request: Request, rental_id: int, db: Annotated[Session, Depends
     if user is None:
         return RedirectResponse(f"/login?rental_id={rental_id}", status_code=303)
     rental = owned_rental(db, rental_id, user["id"])
+    charges = db.execute(text("""
+        SELECT status, COALESCE(SUM(amount_cents), 0) AS amount
+        FROM overdue_charges
+        WHERE rental_id = :id AND status <> 'waived'
+        GROUP BY status
+    """), {"id": rental_id}).mappings().all()
+    additional = {row["status"]: row["amount"] for row in charges}
+    billing = {
+        "paid": additional.get("paid", 0),
+        "pending": additional.get("pending", 0),
+        "failed": additional.get("failed", 0),
+        "additional": sum(additional.values()),
+        "total": rental["total_price_cents"] + sum(additional.values()),
+    }
     ends_at = rental["paid_until"].astimezone(ZoneInfo("Europe/Dublin"))
     last_seen = rental.get("last_seen_at")
     device_online = last_seen is not None and 0 <= (
@@ -104,7 +118,7 @@ def reservation(request: Request, rental_id: int, db: Annotated[Session, Depends
     open_ready = bool(events.ready_controller()) if physical else controller_ready
     return templates.TemplateResponse(request, "reservation.html", {
         "open_test": open_test, "http_ready": controller_ready,
-        "title": "My rental | UniStow", "rental": rental,
+        "title": "My rental | UniStow", "rental": rental, "billing": billing,
         "ends_at": ends_at.strftime("%d %B %Y at %H:%M"),
         "door_state": door_state, "device_online": device_online,
         "can_open": (rental["number"] == 4 and rental["status"] == "active"

@@ -293,6 +293,42 @@ class CommandTests(unittest.TestCase):
         self.assertEqual(self.connection.execute(text('SELECT status FROM rentals')).scalar_one(), 'completed')
         self.assertEqual(self.finish().status_code, 409)
 
+    def test_rental_summary_separates_paid_pending_failed_and_waived_charges(self):
+        self.connection.execute(text("""
+            INSERT INTO overdue_charges
+                (rental_id, charge_date, status, stripe_payment_intent_id, paid_at)
+            VALUES
+                (:id, CURRENT_DATE - 3, 'paid', 'pi_summary', clock_timestamp()),
+                (:id, CURRENT_DATE - 2, 'pending', NULL, NULL),
+                (:id, CURRENT_DATE - 1, 'failed', NULL, NULL),
+                (:id, CURRENT_DATE, 'waived', NULL, NULL)
+        """), {'id': self.rental_id})
+        page = self.client.get(f'/rentals/{self.rental_id}').text
+        self.assertIn('Payment incomplete', page)
+        for label in ('Extra days · paid', 'Extra days · processing', 'Extra days · unpaid'):
+            self.assertIn(label, page)
+        self.assertIn('<span>Total</span><strong>€5.00</strong>', page)
+        self.connection.execute(text("UPDATE overdue_charges SET status='waived' WHERE status='failed'"))
+        page = self.client.get(f'/rentals/{self.rental_id}').text
+        self.assertIn('Payment processing', page)
+        self.assertNotIn('Extra days · unpaid', page)
+        self.assertIn('<span>Total</span><strong>€4.00</strong>', page)
+        self.connection.execute(text("UPDATE overdue_charges SET status='waived' WHERE status='pending'"))
+        self.connection.execute(text("UPDATE rentals SET status='completed', completed_at=clock_timestamp()"))
+        page = self.client.get(f'/rentals/{self.rental_id}').text
+        self.assertIn('Rental completed.', page)
+        self.assertIn('Extra days · paid', page)
+        self.assertNotIn('Payment processing', page)
+        self.assertIn('<span>Total</span><strong>€3.00</strong>', page)
+        self.client.cookies.set('unistow_session', 'session-2')
+        self.assertEqual(self.client.get(f'/rentals/{self.rental_id}').status_code, 404)
+
+    def test_rental_without_extra_charges_keeps_original_total(self):
+        page = self.client.get(f'/rentals/{self.rental_id}').text
+        self.assertNotIn('Extra days ·', page)
+        self.assertNotIn('<dt>Rental cost</dt>', page)
+        self.assertIn('<span>Total</span><strong>€2.00</strong>', page)
+
     def test_ordinary_open_cannot_complete_rental(self):
         command_id = self.open().json()['command_id']
         self.take()

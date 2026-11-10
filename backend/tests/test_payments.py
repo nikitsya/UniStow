@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 from unittest.mock import Mock, patch
 
 from fastapi import HTTPException
+from sqlalchemy import text
 
 import test_login
 from services.payments import checkout_parameters, stripe_client
@@ -38,7 +39,17 @@ class PaymentSettingsTests(unittest.TestCase):
 
 
 class CheckoutAccessTests(unittest.TestCase):
-    setUp = test_login.LoginTests.setUp
+    def setUp(self):
+        test_login.LoginTests.setUp(self)
+        with self.engine.begin() as connection:
+            connection.execute(text("""
+                CREATE TABLE overdue_charges (
+                    rental_id INTEGER NOT NULL,
+                    status TEXT NOT NULL,
+                    amount_cents INTEGER NOT NULL
+                )
+            """))
+
     tearDown = test_login.LoginTests.tearDown
     register = test_login.LoginTests.register
     login = test_login.LoginTests.login
