@@ -240,8 +240,8 @@ reconciliation passes kept the same PaymentIntent and marked the charge as
 failed. Stripe reported zero collected for that extra-day payment; no new
 PaymentIntent was created during reconciliation.
 
-The page shows **Payment incomplete**, **Extra days · unpaid EUR 1.00** and
-**Total EUR 2.00**. The total includes the original EUR 1 rental payment and the
+The page shows **Payment incomplete**, **Extra days · unpaid EUR 1.00** and **Total EUR 2.00**. The total includes the
+original EUR 1 rental payment and the
 unpaid EUR 1 balance; it does not mean EUR 2 has been collected. Finish rental
 remains available, while ordinary opening is disabled.
 

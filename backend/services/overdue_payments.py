@@ -3,7 +3,6 @@ import os
 from datetime import timedelta
 from uuid import uuid4
 
-import stripe
 from fastapi import HTTPException
 from sqlalchemy import text
 
@@ -51,13 +50,19 @@ def apply_recovery(db, checkout):
                 raise HTTPException(409, 'Outstanding charges changed; payment needs review.')
             # Preserve original declined intents for audit; the recovery owns the successful intent.
             db.execute(text("""
-                UPDATE overdue_charges SET status='paid', paid_at=clock_timestamp(), failure_reason=NULL
-                WHERE id = ANY(:ids)
-            """), {'ids': payment['charge_ids']})
+                            UPDATE overdue_charges
+                            SET status='paid',
+                                paid_at=clock_timestamp(),
+                                failure_reason=NULL
+                            WHERE id = ANY (:ids)
+                            """), {'ids': payment['charge_ids']})
             db.execute(text("""
-                UPDATE overdue_payments SET status='paid', payment_intent_id=:intent,
-                    paid_at=clock_timestamp() WHERE id=:id
-            """), {'id': recovery_id, 'intent': intent['id']})
+                            UPDATE overdue_payments
+                            SET status='paid',
+                                payment_intent_id=:intent,
+                                paid_at=clock_timestamp()
+                            WHERE id = :id
+                            """), {'id': recovery_id, 'intent': intent['id']})
     elif checkout.get('status') == 'expired' and checkout.get('payment_status') == 'unpaid':
         db.execute(text("UPDATE overdue_payments SET status='expired' WHERE id=:id AND status='pending'"),
                    {'id': recovery_id})
@@ -68,9 +73,12 @@ def apply_recovery(db, checkout):
 def reconcile_outstanding(db, rental_id, user_id):
     owned_rental(db, rental_id, user_id)
     payments = db.execute(text("""
-        SELECT checkout_session_id FROM overdue_payments
-        WHERE rental_id=:id AND status='pending' AND checkout_session_id IS NOT NULL
-    """), {'id': rental_id}).scalars().all()
+                               SELECT checkout_session_id
+                               FROM overdue_payments
+                               WHERE rental_id = :id
+                                 AND status = 'pending'
+                                 AND checkout_session_id IS NOT NULL
+                               """), {'id': rental_id}).scalars().all()
     for session_id in payments:
         apply_recovery(db, stripe_client().v1.checkout.sessions.retrieve(session_id).to_dict())
     return {'status': 'checked'}
@@ -85,8 +93,12 @@ def create_outstanding_checkout(db, rental_id, user_id):
     now = db.scalar(text('SELECT clock_timestamp()'))
     if not payment:
         charges = db.execute(text("""
-            SELECT * FROM overdue_charges WHERE rental_id=:id AND status='failed' ORDER BY id FOR UPDATE
-        """), {'id': rental_id}).mappings().all()
+                                  SELECT *
+                                  FROM overdue_charges
+                                  WHERE rental_id = :id
+                                    AND status = 'failed'
+                                  ORDER BY id FOR UPDATE
+                                  """), {'id': rental_id}).mappings().all()
         if not charges:
             raise HTTPException(409, 'There is no unpaid balance to collect.')
         # Cancel declined intents before a replacement can collect the same debt.
@@ -117,17 +129,20 @@ def create_outstanding_checkout(db, rental_id, user_id):
             'client_reference_id': recovery_id, 'metadata': metadata,
             'payment_intent_data': {'metadata': metadata},
             'line_items': [{'price_data': {'currency': 'eur', 'unit_amount': amount,
-                                         'product_data': {'name': f'UniStow rental {rental_id} — outstanding extra days'}},
+                                           'product_data': {
+                                               'name': f'UniStow rental {rental_id} — outstanding extra days'}},
                             'quantity': 1}],
             'success_url': f'{base}/rentals/{rental_id}?outstanding_returned=1',
             'cancel_url': f'{base}/rentals/{rental_id}',
             'expires_at': int((now + timedelta(minutes=31)).timestamp()),
         }
         payment = db.execute(text("""
-            INSERT INTO overdue_payments(id,rental_id,charge_ids,amount_cents,checkout_params)
-            VALUES(:id,:rental,CAST(:charges AS jsonb),:amount,CAST(:params AS jsonb)) RETURNING *
-        """), {'id': recovery_id, 'rental': rental_id, 'charges': json.dumps([c['id'] for c in charges]),
-               'amount': amount, 'params': json.dumps(params)}).mappings().one()
+                                  INSERT INTO overdue_payments(id, rental_id, charge_ids, amount_cents, checkout_params)
+                                  VALUES (:id, :rental, CAST(:charges AS jsonb), :amount, CAST(:params AS jsonb))
+                                  RETURNING *
+                                  """),
+                             {'id': recovery_id, 'rental': rental_id, 'charges': json.dumps([c['id'] for c in charges]),
+                              'amount': amount, 'params': json.dumps(params)}).mappings().one()
     payment = dict(payment)
     db.commit()
     if payment['checkout_session_id']:

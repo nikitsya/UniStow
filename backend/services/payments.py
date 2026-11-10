@@ -91,7 +91,8 @@ def create_checkout(db: Session, rental_id: int, user_id: int):
         params = checkout_parameters(rental, base_url, now)
         payment = db.execute(text("""
                                   INSERT INTO payments (rental_id, request_key, checkout_params)
-                                  VALUES (:id, :key, CAST(:params AS jsonb)) RETURNING *
+                                  VALUES (:id, :key, CAST(:params AS jsonb))
+                                  RETURNING *
                                   """),
                              {"id": rental_id, "key": str(uuid4()), "params": json.dumps(params)}).mappings().one()
     payment = dict(payment)

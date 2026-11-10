@@ -43,20 +43,22 @@ class CheckoutAccessTests(unittest.TestCase):
         test_login.LoginTests.setUp(self)
         with self.engine.begin() as connection:
             connection.execute(text("""
-                CREATE TABLE overdue_charges (
-                    rental_id INTEGER NOT NULL,
-                    status TEXT NOT NULL,
-                    amount_cents INTEGER NOT NULL
-                )
-            """))
+                                    CREATE TABLE overdue_charges
+                                    (
+                                        rental_id    INTEGER NOT NULL,
+                                        status       TEXT    NOT NULL,
+                                        amount_cents INTEGER NOT NULL
+                                    )
+                                    """))
 
             connection.execute(text("""
-                CREATE TABLE overdue_payments (
-                    rental_id INTEGER NOT NULL,
-                    status TEXT NOT NULL,
-                    amount_cents INTEGER NOT NULL
-                )
-            """))
+                                    CREATE TABLE overdue_payments
+                                    (
+                                        rental_id    INTEGER NOT NULL,
+                                        status       TEXT    NOT NULL,
+                                        amount_cents INTEGER NOT NULL
+                                    )
+                                    """))
 
     tearDown = test_login.LoginTests.tearDown
     register = test_login.LoginTests.register

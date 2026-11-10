@@ -88,7 +88,9 @@ def apply_checkout(db: Session, checkout, event=None):
     if event:
         inserted = db.execute(text("""
                                    INSERT INTO payment_events (event_id, event_type, checkout_session_id)
-                                   VALUES (:id, :type, :session) ON CONFLICT (event_id) DO NOTHING RETURNING event_id
+                                   VALUES (:id, :type, :session)
+                                   ON CONFLICT (event_id) DO NOTHING
+                                   RETURNING event_id
                                    """), {"id": event["id"], "type": event["type"], "session": checkout["id"]}).first()
         if not inserted:
             db.commit()
@@ -131,7 +133,8 @@ def apply_checkout(db: Session, checkout, event=None):
                                   UPDATE payments
                                   SET status = 'expired'
                                   WHERE rental_id = :id
-                                    AND status != 'paid' RETURNING rental_id
+                                    AND status != 'paid'
+                                  RETURNING rental_id
                                   """), {"id": rental["id"]}).first()
         if expired:
             db.execute(text("UPDATE rentals SET status = 'cancelled' WHERE id = :id AND status = 'pending'"),

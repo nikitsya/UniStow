@@ -85,18 +85,18 @@ CREATE INDEX rentals_user_id_idx ON rentals (user_id);
 -- Save the request before calling Stripe so retries cannot create a second checkout.
 CREATE TABLE payments
 (
-    rental_id           INTEGER PRIMARY KEY REFERENCES rentals (id) ON DELETE RESTRICT,
-    request_key         TEXT        NOT NULL UNIQUE,
-    checkout_params     JSONB       NOT NULL,
-    checkout_session_id TEXT UNIQUE,
-    status              TEXT        NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'expired')),
-    payment_intent_id   TEXT UNIQUE,
+    rental_id                INTEGER PRIMARY KEY REFERENCES rentals (id) ON DELETE RESTRICT,
+    request_key              TEXT        NOT NULL UNIQUE,
+    checkout_params          JSONB       NOT NULL,
+    checkout_session_id      TEXT UNIQUE,
+    status                   TEXT        NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'expired')),
+    payment_intent_id        TEXT UNIQUE,
     stripe_customer_id       TEXT,
     stripe_payment_method_id TEXT,
     payment_method_saved_at  TIMESTAMPTZ,
 
-    confirmed_at        TIMESTAMPTZ,
-    created_at          TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+    confirmed_at             TIMESTAMPTZ,
+    created_at               TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE payment_events
@@ -118,10 +118,10 @@ CREATE TABLE overdue_charges
     status                   TEXT        NOT NULL DEFAULT 'pending'
         CHECK (status IN ('pending', 'paid', 'failed', 'waived')),
     stripe_payment_intent_id TEXT UNIQUE,
-    request_key        TEXT UNIQUE,
-    request_params     JSONB,
-    first_requested_at TIMESTAMPTZ,
-    failure_reason     TEXT,
+    request_key              TEXT UNIQUE,
+    request_params           JSONB,
+    first_requested_at       TIMESTAMPTZ,
+    failure_reason           TEXT,
     paid_at                  TIMESTAMPTZ,
     created_at               TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT one_overdue_charge_per_day UNIQUE (rental_id, charge_date),
@@ -146,19 +146,20 @@ CREATE TABLE locker_commands
 );
 CREATE INDEX locker_commands_locker_created_idx ON locker_commands (locker_id, created_at);
 
-CREATE TABLE overdue_payments (
-    id TEXT PRIMARY KEY,
-    rental_id INTEGER NOT NULL REFERENCES rentals(id),
-    charge_ids JSONB NOT NULL,
-    amount_cents INTEGER NOT NULL CHECK (amount_cents > 0),
-    checkout_params JSONB NOT NULL,
+CREATE TABLE overdue_payments
+(
+    id                  TEXT PRIMARY KEY,
+    rental_id           INTEGER     NOT NULL REFERENCES rentals (id),
+    charge_ids          JSONB       NOT NULL,
+    amount_cents        INTEGER     NOT NULL CHECK (amount_cents > 0),
+    checkout_params     JSONB       NOT NULL,
     checkout_session_id TEXT UNIQUE,
-    payment_intent_id TEXT UNIQUE,
-    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'expired')),
-    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    paid_at TIMESTAMPTZ
+    payment_intent_id   TEXT UNIQUE,
+    status              TEXT        NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'expired')),
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    paid_at             TIMESTAMPTZ
 );
-CREATE UNIQUE INDEX one_pending_overdue_payment ON overdue_payments(rental_id)
+CREATE UNIQUE INDEX one_pending_overdue_payment ON overdue_payments (rental_id)
     WHERE status = 'pending';
 
 COMMIT;

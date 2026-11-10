@@ -256,13 +256,14 @@ class CommandTests(unittest.TestCase):
 
     def test_overdue_rental_can_finish_but_cannot_open_normally(self):
         self.connection.execute(text("""
-            UPDATE rentals SET status='overdue',
-                starts_at=starts_at-INTERVAL '4 days',
-                paid_until=paid_until-INTERVAL '4 days',
-                reserved_until=reserved_until-INTERVAL '4 days',
-                created_at=created_at-INTERVAL '4 days',
-                overdue_terms_accepted_at=overdue_terms_accepted_at-INTERVAL '4 days'
-        """))
+                                     UPDATE rentals
+                                     SET status='overdue',
+                                         starts_at=starts_at - INTERVAL '4 days',
+                                         paid_until=paid_until - INTERVAL '4 days',
+                                         reserved_until=reserved_until - INTERVAL '4 days',
+                                         created_at=created_at - INTERVAL '4 days',
+                                         overdue_terms_accepted_at=overdue_terms_accepted_at - INTERVAL '4 days'
+                                     """))
         page = self.client.get(f'/rentals/{self.rental_id}').text
         self.assertIn('Finish your rental to stop daily charges.', page)
         self.assertRegex(page, r'<button(?=[^>]*id="open-locker-button")(?=[^>]*\bdisabled\b)[^>]*>')
@@ -295,14 +296,13 @@ class CommandTests(unittest.TestCase):
 
     def test_rental_summary_separates_paid_pending_failed_and_waived_charges(self):
         self.connection.execute(text("""
-            INSERT INTO overdue_charges
-                (rental_id, charge_date, status, stripe_payment_intent_id, paid_at)
-            VALUES
-                (:id, CURRENT_DATE - 3, 'paid', 'pi_summary', clock_timestamp()),
-                (:id, CURRENT_DATE - 2, 'pending', NULL, NULL),
-                (:id, CURRENT_DATE - 1, 'failed', NULL, NULL),
-                (:id, CURRENT_DATE, 'waived', NULL, NULL)
-        """), {'id': self.rental_id})
+                                     INSERT INTO overdue_charges
+                                         (rental_id, charge_date, status, stripe_payment_intent_id, paid_at)
+                                     VALUES (:id, CURRENT_DATE - 3, 'paid', 'pi_summary', clock_timestamp()),
+                                            (:id, CURRENT_DATE - 2, 'pending', NULL, NULL),
+                                            (:id, CURRENT_DATE - 1, 'failed', NULL, NULL),
+                                            (:id, CURRENT_DATE, 'waived', NULL, NULL)
+                                     """), {'id': self.rental_id})
         page = self.client.get(f'/rentals/{self.rental_id}').text
         self.assertIn('Payment incomplete', page)
         for label in ('Extra days · paid', 'Extra days · processing', 'Extra days · unpaid'):

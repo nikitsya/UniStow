@@ -70,8 +70,9 @@ def reserve_locker(db: Session, user_id: int, locker_id: int, days: int, payment
                                                   paid_until, total_price_cents, overdue_terms_version,
                                                   overdue_terms_accepted_at, created_at)
                              VALUES (:user_id, :locker_id, 'pending', :days, :reserved_until, :now,
-                                     :paid_until, :total, :terms, :now, :now) RETURNING id, user_id, locker_id, status, prepaid_days, total_price_cents,
-                  reserved_until, paid_until
+                                     :paid_until, :total, :terms, :now, :now)
+                             RETURNING id, user_id, locker_id, status, prepaid_days, total_price_cents,
+                                 reserved_until, paid_until
                              """), {"user_id": user_id, "locker_id": locker_id, "days": days,
                                     "reserved_until": reserved_until, "now": now, "paid_until": paid_until,
                                     "total": locker["price_per_day_cents"] * days,

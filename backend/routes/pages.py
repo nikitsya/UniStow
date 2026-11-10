@@ -27,12 +27,13 @@ def current_rentals(db, user):
                                     JOIN lockers ON lockers.id = rentals.locker_id
                            WHERE user_id = :user_id
                              AND (status IN ('active', 'overdue')
-                               OR (status = 'completed' AND EXISTS (
-                                   SELECT 1 FROM overdue_charges c
-                                   WHERE c.rental_id = rentals.id AND c.status IN ('failed', 'pending')))
+                               OR (status = 'completed' AND EXISTS (SELECT 1
+                                                                    FROM overdue_charges c
+                                                                    WHERE c.rental_id = rentals.id
+                                                                      AND c.status IN ('failed', 'pending')))
                                OR (status = 'pending'
-                               AND (reserved_until > CURRENT_TIMESTAMP
-                                   OR EXISTS (SELECT 1 FROM payments WHERE payments.rental_id = rentals.id))))
+                                   AND (reserved_until > CURRENT_TIMESTAMP
+                                       OR EXISTS (SELECT 1 FROM payments WHERE payments.rental_id = rentals.id))))
                            ORDER BY rentals.id DESC
                            """), {"user_id": user["id"]}).mappings().all() if user else []
 
@@ -113,11 +114,12 @@ def reservation(request: Request, rental_id: int, db: Annotated[Session, Depends
         return RedirectResponse(f"/login?rental_id={rental_id}", status_code=303)
     rental = owned_rental(db, rental_id, user["id"])
     charges = db.execute(text("""
-        SELECT status, COALESCE(SUM(amount_cents), 0) AS amount
-        FROM overdue_charges
-        WHERE rental_id = :id AND status <> 'waived'
-        GROUP BY status
-    """), {"id": rental_id}).mappings().all()
+                              SELECT status, COALESCE(SUM(amount_cents), 0) AS amount
+                              FROM overdue_charges
+                              WHERE rental_id = :id
+                                AND status <> 'waived'
+                              GROUP BY status
+                              """), {"id": rental_id}).mappings().all()
     additional = {row["status"]: row["amount"] for row in charges}
     billing = {
         "paid": additional.get("paid", 0),
@@ -127,8 +129,11 @@ def reservation(request: Request, rental_id: int, db: Annotated[Session, Depends
         "total": rental["total_price_cents"] + sum(additional.values()),
     }
     billing["checkout_amount"] = db.scalar(text("""
-        SELECT amount_cents FROM overdue_payments WHERE rental_id=:id AND status='pending'
-    """), {"id": rental_id}) or billing["failed"]
+                                                SELECT amount_cents
+                                                FROM overdue_payments
+                                                WHERE rental_id = :id
+                                                  AND status = 'pending'
+                                                """), {"id": rental_id}) or billing["failed"]
     ends_at = rental["paid_until"].astimezone(ZoneInfo("Europe/Dublin"))
     last_seen = rental.get("last_seen_at")
     device_online = last_seen is not None and 0 <= (

@@ -186,7 +186,7 @@ time. The controller was not operated during this billing check.
 Two manual runs of the deployed billing worker produced the following results:
 
 | Check                 | Result                                                      |
-| --------------------- | ----------------------------------------------------------- |
+|-----------------------|-------------------------------------------------------------|
 | First run             | One charge record, amount 100 cents, status `paid`          |
 | Stripe result         | `succeeded`, amount received 100 cents, `livemode=false`    |
 | Second run            | Same database record, PaymentIntent and Stripe charge       |
@@ -293,7 +293,6 @@ execution was tested during that check.
 
 References: [Stripe Checkout Sessions](https://docs.stripe.com/api/checkout/sessions/create)
 and [Checkout fulfilment](https://docs.stripe.com/checkout/fulfillment).
-
 
 ### Automatic worker activation on 10 November 2026
 

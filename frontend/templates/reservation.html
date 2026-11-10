@@ -27,8 +27,10 @@
         <div>
             <dt>Payment</dt>
             <dd>{% if billing.failed %}Payment incomplete{% elif billing.pending %}Payment processing{% else %}{{
-                {'paid': 'Paid', 'expired': 'Expired', 'pending': 'Awaiting payment'}.get(rental.payment_status, 'Not paid')
-                }}{% endif %}</dd>
+                {'paid': 'Paid', 'expired': 'Expired', 'pending': 'Awaiting payment'}.get(rental.payment_status, 'Not
+                paid')
+                }}{% endif %}
+            </dd>
         </div>
         {% if rental.status in ('active', 'overdue') %}
         <div>
@@ -90,24 +92,29 @@
 
         {% elif rental.status in ('active', 'overdue') %}
         <p class="confirmation" data-collection-notice="{{ collection_notice }}" id="active-rental-notice"
-           role="status">{% if rental.collecting %}{{ collection_notice }}{% elif billing.failed %}Your extra-day payment didn’t go through. Please pay the remaining
-            €{{ '%.2f' | format(billing.failed / 100) }}. You can still finish your rental to stop further charges.{% elif not device_online %}Your locker is
+           role="status">{% if rental.collecting %}{{ collection_notice }}{% elif billing.failed %}Your extra-day
+            payment didn’t go through. Please pay the remaining
+            €{{ '%.2f' | format(billing.failed / 100) }}. You can still finish your rental to stop further charges.{%
+            elif not device_online %}Your locker is
             temporarily unavailable. Please try again shortly or contact locker support.{% elif
             door_state == 'open' %}Your locker door is
             open.{% elif rental.status == 'overdue' %}Your paid rental period has ended.
-            Finish your rental to stop daily charges.{% elif rental.number == 4 and rental.payment_status == 'paid' and not can_open %}Please wait until the
+            Finish your rental to stop daily charges.{% elif rental.number == 4 and rental.payment_status == 'paid' and
+            not can_open %}Please wait until the
             locker is ready.{% endif %}</p>
         {% elif rental.status == 'completed' %}
-        <p class="confirmation" id="completed-rental-notice">{% if billing.failed %}Your rental has ended. Please pay the
-            remaining €{{ '%.2f' | format(billing.failed / 100) }} for extra days.{% else %}Rental completed. Thank you for collecting your belongings.{% endif %}</p>
+        <p class="confirmation" id="completed-rental-notice">{% if billing.failed %}Your rental has ended. Please pay
+            the
+            remaining €{{ '%.2f' | format(billing.failed / 100) }} for extra days.{% else %}Rental completed. Thank you
+            for collecting your belongings.{% endif %}</p>
         {% elif rental.status == 'cancelled' %}
         <p class="confirmation">This reservation has been cancelled. You can choose an available locker again.</p>
         {% endif %}
         {% if billing.failed %}
-        <button class="confirm-button" id="pay-outstanding-button" type="button"
-                data-checkout-url="{{ url_for('outstanding_checkout', rental_id=rental.id) }}"
-                data-login-url="{{ url_for('sign_in') }}?rental_id={{ rental.id }}"
-                data-reconcile-url="{{ url_for('outstanding_reconcile', rental_id=rental.id) }}">
+        <button class="confirm-button" data-checkout-url="{{ url_for('outstanding_checkout', rental_id=rental.id) }}" data-login-url="{{ url_for('sign_in') }}?rental_id={{ rental.id }}"
+                data-reconcile-url="{{ url_for('outstanding_reconcile', rental_id=rental.id) }}"
+                id="pay-outstanding-button"
+                type="button">
             Pay outstanding €{{ '%.2f' | format(billing.checkout_amount / 100) }}
         </button>
         {% endif %}

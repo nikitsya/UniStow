@@ -57,7 +57,8 @@ def heartbeat(report: DoorReport, db: Annotated[Session, Depends(get_db)]):
                                  last_seen_at  = CURRENT_TIMESTAMP,
                                  device_ready  = :ready,
                                  controller_id = :controller
-                             WHERE number = 4 RETURNING number
+                             WHERE number = 4
+                             RETURNING number
                              """), {"state": report.door_state, "ready": report.ready,
                                     "controller": str(
                                         report.controller_id) if report.controller_id else None}).scalar_one_or_none()

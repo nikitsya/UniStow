@@ -44,15 +44,20 @@ class OverdueBillingTests(unittest.TestCase):
             connection.execute(text("INSERT INTO users(email,password_hash) VALUES('test@example.com','test')"))
             connection.execute(text("INSERT INTO lockers(number,size,price_per_day_cents) VALUES(4,'small',100)"))
             connection.execute(text("""
-                INSERT INTO rentals(user_id,locker_id,status,prepaid_days,reserved_until,starts_at,paid_until,
-                    total_price_cents,overdue_terms_version,overdue_terms_accepted_at,created_at)
-                VALUES(1,1,'active',1,:reserved,:start,:end,100,'2026-11-09',:start,:start)
-            """), {'start': start, 'reserved': start + timedelta(minutes=15), 'end': rental_end(start, 1)})
+                                    INSERT INTO rentals(user_id, locker_id, status, prepaid_days, reserved_until,
+                                                        starts_at, paid_until,
+                                                        total_price_cents, overdue_terms_version,
+                                                        overdue_terms_accepted_at, created_at)
+                                    VALUES (1, 1, 'active', 1, :reserved, :start, :end, 100, '2026-11-09', :start,
+                                            :start)
+                                    """),
+                               {'start': start, 'reserved': start + timedelta(minutes=15), 'end': rental_end(start, 1)})
             connection.execute(text("""
-                INSERT INTO payments(rental_id,request_key,checkout_params,status,stripe_customer_id,
-                    stripe_payment_method_id,payment_method_saved_at)
-                VALUES(1,'checkout','{}','paid','cus_test','pm_test',clock_timestamp())
-            """))
+                                    INSERT INTO payments(rental_id, request_key, checkout_params, status,
+                                                         stripe_customer_id,
+                                                         stripe_payment_method_id, payment_method_saved_at)
+                                    VALUES (1, 'checkout', '{}', 'paid', 'cus_test', 'pm_test', clock_timestamp())
+                                    """))
         self.intents = {}
         self.keys = {}
         self.collected = 0
@@ -136,6 +141,7 @@ class OverdueBillingTests(unittest.TestCase):
         def lost(params, options):
             self.create_intent(params, options)
             raise stripe.APIConnectionError('lost response')
+
         self.client.v1.payment_intents.create.side_effect = lost
         self.run_pass()
         self.assertEqual(self.collected, 0)
@@ -148,6 +154,7 @@ class OverdueBillingTests(unittest.TestCase):
         def lost(key, params, options):
             self.confirm_intent(key, params, options)
             raise stripe.APIConnectionError('lost response')
+
         self.client.v1.payment_intents.confirm.side_effect = lost
         self.run_pass()
         self.run_pass()
@@ -159,7 +166,8 @@ class OverdueBillingTests(unittest.TestCase):
         self.client.v1.payment_intents.create.side_effect = stripe.APIConnectionError('lost')
         self.run_pass()
         with self.db.begin() as connection:
-            connection.execute(text("UPDATE overdue_charges SET first_requested_at=clock_timestamp()-INTERVAL '25 hours'"))
+            connection.execute(
+                text("UPDATE overdue_charges SET first_requested_at=clock_timestamp()-INTERVAL '25 hours'"))
         calls = self.client.v1.payment_intents.create.call_count
         self.run_pass()
         self.assertEqual(self.client.v1.payment_intents.create.call_count, calls)
@@ -169,8 +177,10 @@ class OverdueBillingTests(unittest.TestCase):
         def complete(params, options):
             result = self.create_intent(params, options)
             with self.db.begin() as connection:
-                connection.execute(text("UPDATE rentals SET status='completed',completed_at=clock_timestamp() WHERE id=1"))
+                connection.execute(
+                    text("UPDATE rentals SET status='completed',completed_at=clock_timestamp() WHERE id=1"))
             return result
+
         self.client.v1.payment_intents.create.side_effect = complete
         self.run_pass()
         self.assertEqual(self.collected, 0)
@@ -204,6 +214,7 @@ class OverdueBillingTests(unittest.TestCase):
         def decline(key, params, options):
             self.intents[key]['status'] = 'requires_payment_method'
             raise stripe.CardError('Declined', 'payment_method', 'card_declined')
+
         self.client.v1.payment_intents.confirm.side_effect = decline
         self.run_pass()
         self.run_pass()
@@ -215,6 +226,7 @@ class OverdueBillingTests(unittest.TestCase):
             result = self.create_intent(params, options).to_dict()
             result['livemode'] = True
             return self.response(result)
+
         self.client.v1.payment_intents.create.side_effect = invalid
         self.run_pass()
         self.assertEqual(self.collected, 0)
@@ -224,9 +236,15 @@ class OverdueBillingTests(unittest.TestCase):
         start = datetime.now(IRELAND).replace(hour=12, minute=0, second=0, microsecond=0) - timedelta(days=4)
         with self.db.begin() as connection:
             connection.execute(text("""
-                UPDATE rentals SET starts_at=:start,created_at=:start,overdue_terms_accepted_at=:start,
-                    reserved_until=:reserved,paid_until=:end WHERE id=1
-            """), {'start': start, 'reserved': start + timedelta(minutes=15), 'end': rental_end(start, 1)})
+                                    UPDATE rentals
+                                    SET starts_at=:start,
+                                        created_at=:start,
+                                        overdue_terms_accepted_at=:start,
+                                        reserved_until=:reserved,
+                                        paid_until=:end
+                                    WHERE id = 1
+                                    """),
+                               {'start': start, 'reserved': start + timedelta(minutes=15), 'end': rental_end(start, 1)})
         self.run_pass()
         self.run_pass()
         self.assertGreaterEqual(len(self.rows()), 4)

@@ -10,7 +10,7 @@ LOCKER_QUERY = """
                       lockers.last_seen_at,
                       lockers.is_enabled,
                       (lockers.last_seen_at > CURRENT_TIMESTAMP - INTERVAL '15 seconds'
-                          AND lockers.last_seen_at <= CURRENT_TIMESTAMP) AS device_online,
+                          AND lockers.last_seen_at <= CURRENT_TIMESTAMP)                                                   AS device_online,
                       lockers.is_enabled AND NOT EXISTS (SELECT 1
                                                          FROM rentals
                                                          WHERE rentals.locker_id = lockers.id

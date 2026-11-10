@@ -29,10 +29,15 @@ def accrue_charges(db, rental_id):
     locker_id = db.scalar(text("SELECT locker_id FROM rentals WHERE id=:id"), {"id": rental_id})
     db.execute(text("SELECT id FROM lockers WHERE id=:id FOR UPDATE"), {"id": locker_id})
     rental = db.execute(text("""
-        SELECT r.*, p.stripe_customer_id, p.stripe_payment_method_id,
-               p.payment_method_saved_at, p.status AS payment_status
-        FROM rentals r JOIN payments p ON p.rental_id=r.id WHERE r.id=:id
-    """), {"id": rental_id}).mappings().one()
+                             SELECT r.*,
+                                    p.stripe_customer_id,
+                                    p.stripe_payment_method_id,
+                                    p.payment_method_saved_at,
+                                    p.status AS payment_status
+                             FROM rentals r
+                                      JOIN payments p ON p.rental_id = r.id
+                             WHERE r.id = :id
+                             """), {"id": rental_id}).mappings().one()
     now = db.scalar(text("SELECT clock_timestamp()"))
     if (rental["status"] not in ("active", "overdue") or rental["paid_until"] > now
             or rental["payment_status"] != "paid"
@@ -52,10 +57,10 @@ def accrue_charges(db, rental_id):
                          "overdue_request": request_key},
         }
         db.execute(text("""
-            INSERT INTO overdue_charges(rental_id,charge_date,request_key,request_params)
-            VALUES(:rental,:day,:key,CAST(:params AS jsonb))
-            ON CONFLICT (rental_id,charge_date) DO NOTHING
-        """), {"rental": rental_id, "day": day, "key": request_key, "params": json.dumps(params)})
+                        INSERT INTO overdue_charges(rental_id, charge_date, request_key, request_params)
+                        VALUES (:rental, :day, :key, CAST(:params AS jsonb))
+                        ON CONFLICT (rental_id,charge_date) DO NOTHING
+                        """), {"rental": rental_id, "day": day, "key": request_key, "params": json.dumps(params)})
     db.commit()
 
 
@@ -78,10 +83,12 @@ def validate_intent(intent, charge):
 
 def save_status(db, charge_id, status, reason=None):
     db.execute(text("""
-        UPDATE overdue_charges SET status=:status, failure_reason=:reason,
-            paid_at=CASE WHEN :status='paid' THEN COALESCE(paid_at,clock_timestamp()) ELSE NULL END
-        WHERE id=:id
-    """), {"id": charge_id, "status": status, "reason": reason})
+                    UPDATE overdue_charges
+                    SET status=:status,
+                        failure_reason=:reason,
+                        paid_at=CASE WHEN :status = 'paid' THEN COALESCE(paid_at, clock_timestamp()) ELSE NULL END
+                    WHERE id = :id
+                    """), {"id": charge_id, "status": status, "reason": reason})
     db.commit()
 
 
@@ -104,9 +111,10 @@ def process_charge(db, charge_id, client):
             save_status(db, charge_id, "failed", "Unconfirmed payment creation needs operator review.")
             return
         db.execute(text("""
-            UPDATE overdue_charges SET first_requested_at=COALESCE(first_requested_at,clock_timestamp())
-            WHERE id=:id
-        """), {"id": charge_id})
+                        UPDATE overdue_charges
+                        SET first_requested_at=COALESCE(first_requested_at, clock_timestamp())
+                        WHERE id = :id
+                        """), {"id": charge_id})
         db.commit()
         # Creation never collects money. A lost response can safely reuse this key.
         intent = client.v1.payment_intents.create(
@@ -152,17 +160,25 @@ def run_billing_once(database=engine):
         try:
             with Session(bind=connection) as db:
                 rentals = db.scalars(text("""
-                    SELECT r.id FROM rentals r JOIN payments p ON p.rental_id=r.id
-                    WHERE r.status IN ('active','overdue') AND r.paid_until<=clock_timestamp()
-                      AND p.status='paid' AND p.payment_method_saved_at IS NOT NULL
-                      AND r.overdue_terms_version=:version ORDER BY r.id
-                """), {"version": PAYMENT_METHOD_TERMS_VERSION}).all()
+                                          SELECT r.id
+                                          FROM rentals r
+                                                   JOIN payments p ON p.rental_id = r.id
+                                          WHERE r.status IN ('active', 'overdue')
+                                            AND r.paid_until <= clock_timestamp()
+                                            AND p.status = 'paid'
+                                            AND p.payment_method_saved_at IS NOT NULL
+                                            AND r.overdue_terms_version = :version
+                                          ORDER BY r.id
+                                          """), {"version": PAYMENT_METHOD_TERMS_VERSION}).all()
                 for rental_id in rentals:
                     accrue_charges(db, rental_id)
                 charges = db.scalars(text("""
-                    SELECT id FROM overdue_charges
-                    WHERE status='pending' AND request_key IS NOT NULL ORDER BY charge_date,id
-                """)).all()
+                                          SELECT id
+                                          FROM overdue_charges
+                                          WHERE status = 'pending'
+                                            AND request_key IS NOT NULL
+                                          ORDER BY charge_date, id
+                                          """)).all()
                 for charge_id in charges:
                     try:
                         process_charge(db, charge_id, client)

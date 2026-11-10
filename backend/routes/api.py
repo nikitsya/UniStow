@@ -1,7 +1,6 @@
 from typing import Annotated
 
 import stripe
-
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy.orm import Session
 from starlette.concurrency import run_in_threadpool
@@ -12,11 +11,10 @@ from database import get_db
 from schemas import Login, Registration, RentalRequest
 from services.commands import authorised_locker, record_command, request_open
 from services.lockers import read_lockers
+from services.overdue_payments import create_outstanding_checkout, reconcile_outstanding
 from services.payment_confirmation import cancel_pending_reservation, process_event, reconcile_rental, verify_event
 from services.payments import create_checkout
 from services.rentals import reserve_locker
-
-from services.overdue_payments import create_outstanding_checkout, reconcile_outstanding
 
 router = APIRouter(prefix="/api")
 
@@ -41,7 +39,6 @@ def outstanding_reconcile(rental_id: int, request: Request, db: Annotated[Sessio
         return reconcile_outstanding(db, rental_id, user["id"])
     except stripe.StripeError:
         raise HTTPException(503, "Payment verification is temporarily unavailable.") from None
-
 
 
 @router.post("/stripe/webhook")

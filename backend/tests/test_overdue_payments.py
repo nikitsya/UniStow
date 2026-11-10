@@ -19,10 +19,11 @@ class OutstandingPaymentTests(unittest.TestCase):
     def setUp(self):
         test_commands.CommandTests.setUp(self)
         self.connection.execute(text("""
-            INSERT INTO overdue_charges(rental_id,charge_date,status,stripe_payment_intent_id,request_params)
-            VALUES(:id,CURRENT_DATE,'failed','pi_declined',
-                '{"customer":"cus_test","payment_method":"pm_test","metadata":{}}')
-        """), {'id': self.rental_id})
+                                     INSERT INTO overdue_charges(rental_id, charge_date, status,
+                                                                 stripe_payment_intent_id, request_params)
+                                     VALUES (:id, CURRENT_DATE, 'failed', 'pi_declined',
+                                             '{"customer":"cus_test","payment_method":"pm_test","metadata":{}}')
+                                     """), {'id': self.rental_id})
         self.db = Session(bind=self.connection, join_transaction_mode='create_savepoint')
         self.addCleanup(self.db.close)
         self.client_stripe = Mock()
@@ -138,9 +139,9 @@ class OutstandingPaymentTests(unittest.TestCase):
     def test_new_failed_day_is_not_added_to_an_existing_checkout(self):
         create_outstanding_checkout(self.db, self.rental_id, 1)
         self.connection.execute(text("""
-            INSERT INTO overdue_charges(rental_id,charge_date,status)
-            VALUES(:id,CURRENT_DATE+1,'failed')
-        """), {'id': self.rental_id})
+                                     INSERT INTO overdue_charges(rental_id, charge_date, status)
+                                     VALUES (:id, CURRENT_DATE + 1, 'failed')
+                                     """), {'id': self.rental_id})
         page = self.client.get(f'/rentals/{self.rental_id}').text
         self.assertIn('Pay outstanding €1.00', page)
         self.pay()
@@ -161,7 +162,8 @@ class OutstandingPaymentTests(unittest.TestCase):
             create_outstanding_checkout(self.db, self.rental_id, 1)
         self.client_stripe.v1.checkout.sessions.create.side_effect = self.create
         create_outstanding_checkout(self.db, self.rental_id, 1)
-        self.assertEqual(self.client_stripe.v1.checkout.sessions.create.call_args.kwargs['options']['idempotency_key'], saved[0])
+        self.assertEqual(self.client_stripe.v1.checkout.sessions.create.call_args.kwargs['options']['idempotency_key'],
+                         saved[0])
         self.assertEqual(self.db.scalar(text('SELECT count(*) FROM overdue_payments')), 1)
 
     def test_recovery_webhook_routes_to_outstanding_payment(self):

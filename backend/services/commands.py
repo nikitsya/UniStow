@@ -24,7 +24,7 @@ def authorised_locker(db, rental_id, user_id, *, action="open"):
                               AND r.starts_at <= :now
                               AND (:finishing OR r.paid_until > :now)
                             """), {'id': rental_id, 'user': user_id, 'now': now,
-                                     'finishing': action == 'finish'}).scalar_one_or_none()
+                                   'finishing': action == 'finish'}).scalar_one_or_none()
     if not valid:
         if action == 'finish':
             raise HTTPException(409, 'Collection requires an unfinished, paid rental.')
@@ -90,7 +90,8 @@ def take_command(db, controller_id, supports_finish=False):
                                 AND p.status = 'paid'
                                 AND r.starts_at <= :now
                                 AND (c.action = 'finish' OR r.paid_until > :now)
-                              ORDER BY c.created_at LIMIT 1
+                              ORDER BY c.created_at
+                              LIMIT 1
                               '''), {'locker': locker['id'], 'controller': controller_id, 'now': now,
                                      'supports_finish': supports_finish,
                                      'door_closed': locker['door_state'] == 'closed'}).mappings().first()
@@ -114,9 +115,9 @@ def complete_collection(db, command_id, controller_id):
                               FROM locker_commands
                               WHERE id = :id
                                 AND controller_id = :controller
-                                AND action ='finish'
+                                AND action = 'finish'
                                 AND dispatched_at IS NOT NULL FOR
-                              UPDATE
+                                  UPDATE
                               """), {'id': command_id, 'controller': controller_id}).mappings().first()
     if command is None:
         raise HTTPException(409, 'No matching collection command.')
