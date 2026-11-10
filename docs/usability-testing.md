@@ -338,3 +338,17 @@ A local Chrome preview at 390 × 844 shows five completed entries without
 horizontal overflow. These are local checks with synthetic rentals, not an EC2
 or physical-phone acceptance result. Deployment and a signed-out/signed-in
 check on the deployed site remain to be performed.
+
+### Make completed history informational rather than actionable
+
+After checking the history on a phone, the renter found that clickable completed
+entries suggested there was still something to manage. Their detail pages also
+showed the current door state, which is not historical evidence about that rental.
+
+Completed entries now use muted grey, non-clickable summaries with the rental
+reference, locker number and completion time. They have no arrow or hover effect.
+The support link remains available for forgotten belongings or later concerns.
+Only an outstanding payment has a separate actionable link. Existing completed
+rental detail URLs no longer display the door state, and rental details link back
+to My rentals. Future email confirmations will complement these references;
+they do not remove the need to identify a recent rental on the website.

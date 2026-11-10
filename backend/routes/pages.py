@@ -67,7 +67,11 @@ def my_rentals(request: Request, db: Annotated[Session, Depends(get_db)]):
         return RedirectResponse("/login?my_rentals=true", status_code=303)
     completed = completed_rentals(db, user)
     completed_ids = {r["id"] for r in completed}
-    reservations = [r for r in current_rentals(db, user) if r["id"] not in completed_ids]
+    current = current_rentals(db, user)
+    outstanding_ids = {r["id"] for r in current if r["status"] == "completed"}
+    for rental in completed:
+        rental["has_outstanding"] = rental["id"] in outstanding_ids
+    reservations = [r for r in current if r["id"] not in completed_ids]
     return templates.TemplateResponse(
         request, "my_rentals.html", {"title": "My rentals | UniStow", "user": user,
                                      "reservations": reservations, "completed_rentals": completed}

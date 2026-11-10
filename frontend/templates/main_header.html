@@ -2,7 +2,8 @@
     <a aria-label="UniStow home" class="home-brand" href="{{ url_for('home') }}"><img
             alt="" height="36" src="{{ url_for('static', path='unistow.svg') }}" width="32">UniStow</a>
     {% if not active_tab %}
-    <a aria-label="Back to lockers" class="account-menu header-account" href="{{ url_for('home') }}">
+    <a aria-label="{{ header_back_label | default('Back to lockers') }}" class="account-menu header-account"
+       href="{{ header_back_url | default(url_for('home')) }}">
         <svg aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24">
             <path d="m14 6-6 6 6 6M8 12h12"/>
         </svg>

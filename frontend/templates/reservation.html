@@ -1,4 +1,6 @@
 {% extends "screen.html" %}
+{% set header_back_url = url_for('my_rentals') %}
+{% set header_back_label = 'Back to my rentals' %}
 {% set header_title %}My rental · Locker {{ rental.number }}{% endset %}
 {% block extra_head %}
 {{ super() }}
@@ -28,7 +30,7 @@
                 {'paid': 'Paid', 'expired': 'Expired', 'pending': 'Awaiting payment'}.get(rental.payment_status, 'Not paid')
                 }}{% endif %}</dd>
         </div>
-        {% if rental.status != 'pending' %}
+        {% if rental.status in ('active', 'overdue') %}
         <div>
             <dt>Door</dt>
             <dd>{{ door_state | capitalize }}</dd>
@@ -138,5 +140,5 @@
         {% endif %}
     </div>
 </div>
-<a class="back-button" href="{{ url_for('home') }}">Back to lockers</a>
+<a class="back-button" href="{{ url_for('my_rentals') }}">Back to my rentals</a>
 {% endblock screen_content %}

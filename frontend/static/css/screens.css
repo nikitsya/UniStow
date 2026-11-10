@@ -442,7 +442,26 @@
     font-size: 20px;
 }
 
-.completed-rentals .rental-list-link > span:first-child {
-    min-width: 0;
+.completed-rental-summary {
+    padding: 20px;
+    border-radius: 14px;
+    background: #eeefeb;
+    color: #505c55;
     overflow-wrap: anywhere;
+}
+
+.completed-rental-summary strong {
+    display: block;
+    font-size: 18px;
+}
+
+.completed-rental-summary small {
+    display: block;
+    margin-top: 6px;
+    line-height: 1.5;
+}
+
+.completed-rental-summary a {
+    display: inline-block;
+    margin-top: 12px;
 }
