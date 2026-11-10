@@ -1,6 +1,7 @@
 .idea/
 /local-docs/
 .DS_Store
+~$*.pptx
 .venv/
 __pycache__/
 *.py[cod]

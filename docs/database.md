@@ -72,7 +72,8 @@ updated agreement. Daily test billing is available as an opt-in worker described
 ## Initial setup
 
 Docker runs `schema.sql` only when initialising an empty database volume. It creates
-tables without inserting lockers. For a new database, run this from the project folder:
+tables without inserting lockers. Production Compose then runs the locker seed
+automatically. For a new local database, run this from the project folder:
 
 ```sh
 docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1' < backend/database/migrations/001_add_lockers.sql
@@ -103,11 +104,10 @@ PostgreSQL. Stripe responses were mocked. Checks cover consent-gated Checkout
 parameters, verified method storage, duplicate events, lookup failure and retry,
 a mismatched Customer, and legacy single-payment behaviour.
 
-A real Stripe test-mode Checkout is still pending. Create a new reservation with
-the updated agreement, complete Checkout using a Stripe test card and verify that
-the payment record contains the Customer ID, PaymentMethod ID and saved timestamp.
-Confirm that the rental activates and that a repeated reconciliation preserves
-the timestamp. Never include card details or secret keys in test evidence.
+On EC2, the payment records for rentals 41 and 45 contained the Stripe Customer
+ID, PaymentMethod ID and saved timestamp. Rental 45 subsequently incurred one
+successful EUR 1 sandbox charge at its actual deadline. See the
+[deadline check](usability-testing.md#after-the-automatic-billing-deadline--rental-45).
 
 See [Stripe's documentation on saving payment details during payment](https://docs.stripe.com/payments/checkout/save-during-payment).
 
@@ -175,8 +175,8 @@ legacy consent, completion races and reconciliation after completion. Migration
 ### EC2 Stripe test-mode verification on 9 November 2026
 
 Commit `5e1d586` and migration 003 were deployed to EC2. The application passed
-its health check and the public site returned HTTP 200. Automatic billing remains
-disabled (`UNISTOW_OVERDUE_BILLING=0`).
+its health check and the public site returned HTTP 200. Automatic billing was
+disabled for that test (`UNISTOW_OVERDUE_BILLING=0`).
 
 Rental 41 had a confirmed payment, saved payment method and the new consent.
 Its original rental record was backed up on EC2 before the related rental dates
@@ -215,8 +215,8 @@ The user completed rental 41 through Finish rental. The EC2 database recorded
 Two further manual billing runs left both existing charge records unchanged.
 Stripe still contained the same two successful test PaymentIntents, totalling
 EUR 2, with no additional payment for rental 41. Automatic billing remained
-disabled. This verifies repeat runs after completion; a later daily deadline
-has not yet been observed on EC2. The automated tests separately verify that
+disabled during this check. The subsequent scheduled run for rental 45 is
+recorded below. The automated tests separately verify that
 completed rentals accrue no new charges.
 
 References: [Stripe idempotent requests](https://docs.stripe.com/api/idempotent_requests)

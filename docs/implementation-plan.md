@@ -14,10 +14,10 @@ See the [README](../README.md) for the current stack and startup instructions.
 
 The production site runs on AWS EC2 at https://unistow.app. Nginx verifies the
 FastAPI certificate, and FastAPI verifies the PostgreSQL certificate. Eclipse Mosquitto runs on the same EC2 host.
-Two test clients exchanged a command and its acknowledgement on the broker
-over TLS. The existing application uses PubNub until the Pi is ready for the
-MQTT switch. The Pi uses authenticated HTTPS for
-heartbeats and collection acknowledgements. See the [deployment guide](../deploy/README.md)
+The production app and Locker 4 connect to the broker over TLS. The Pi
+acknowledged a test command and resumed reporting its door state after a
+controller service restart. It uses authenticated HTTPS for heartbeats and
+collection acknowledgements. See the [deployment guide](../deploy/README.md)
 for the security settings and EC2 evidence.
 
 ## Assessment checklist
@@ -46,8 +46,7 @@ Use this checklist alongside the original brief before submitting to Moodle.
 
 ## Additional prototype testing
 
-The original PubNub work is recorded in [issue #7](https://github.com/nikitsya/UniStow/issues/7).
-Repeat the disconnected-controller test against Mosquitto and confirm an
-expired opening command cannot move the latch.
-This is a project reliability test. The assessment brief specifies a live
-demonstration of secured publish–subscribe communication.
+Repeat the [disconnected-controller test](usability-testing.md#7-november-2026--opening-locker-4-while-its-controller-was-stopped-7)
+with Mosquitto and an empty locker. Let an opening command expire while the Pi
+is offline, reconnect it and verify that the latch moves only after a fresh
+authorised request.

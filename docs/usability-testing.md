@@ -81,7 +81,7 @@ still shows it as closed.
 | Open each dialogue and inspect its initially focused button.     | Chrome checks on **Keep** and **Cancel** found no outline, border width or underline. The published stylesheet was compared with the checked version.                                                                                                                                                                                                                                                                                                                                            |
 | Leave the site open during a server restart or loss of internet. | The renter saw unsolicited red connection messages while simply viewing a page. Background updates now retry quietly on the locker list, rental list and rental detail. The last loaded content stays visible. Scripted checks exercised a connection failure and an HTTP 503 response. Background payment checks left the existing message alone. Locker controls can be disabled while their state cannot be verified. Feedback still appears if an action the renter actually requests fails. |
 
-### How the physical journey was verified
+### Physical tests on the earlier PubNub deployment
 
 1. **Read the door.** The Pi published a closed-door reading. The backend logged it and the renter saw **Closed** on the
    active rental page.
@@ -301,7 +301,7 @@ the same rental and date, provided the rental remains active or overdue.
 
 ### After the automatic billing deadline — rental 45
 
-The deployed page for the same reservation now shows **Overdue**, **Payment · Paid**,
+At the time of this screenshot the deployed page showed **Overdue**, **Payment · Paid**,
 **Extra days · paid EUR 1.00** and **Total EUR 2.00**. The original rental cost
 remains EUR 1.00. This matches the expected renter-facing result after the
 10 November 2026 deadline at 18:00 Europe/Dublin. At capture, the door state
@@ -317,6 +317,12 @@ on EC2 and the same successful test PaymentIntent in Stripe. The worker was
 enabled and checks every minute. Both observations found one charge for this
 rental and date. This completes the deadline and duplicate-payment check for
 issue #14.
+
+Later that evening, the renter reconnected the yellow lead on Locker 4.
+Mosquitto then received a fresh closed-door reading with the controller ready.
+The HTTPS collection command was dispatched at 22:45:00 Dublin time and
+PostgreSQL recorded rental 45 as completed at 22:45:09. Ordinary paid-period
+opening over MQTT needs a separate test with an active rental.
 
 ### Recent completed rentals — issue #17
 
@@ -351,8 +357,8 @@ both current and completed rental queries.
 
 A local Chrome preview at 390 × 844 shows five completed entries without
 horizontal overflow. These are local checks with synthetic rentals, not an EC2
-or physical-phone acceptance result. Deployment and a signed-out/signed-in
-check on the deployed site remain to be performed.
+or physical-phone acceptance result. The history view is included in the
+deployed release. A signed-out/signed-in check on the deployed site remains.
 
 ### Make completed history informational rather than actionable
 

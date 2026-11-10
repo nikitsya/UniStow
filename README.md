@@ -72,11 +72,12 @@ flowchart LR
     Sensor[Door sensor] --> Pi
 ```
 
-Eclipse Mosquitto now runs alongside Nginx, FastAPI and PostgreSQL on EC2.
-Two authenticated clients exchanged a test command and its acknowledgement over
-TLS on the EC2 Docker network. The diagram shows the intended Pi connection.
-The live rental application and physical controller still need to switch over
-together. See the [deployment guide](deploy/README.md#self-hosted-mqtt).
+The live rental application and Locker 4 use the Eclipse Mosquitto broker on EC2.
+On 10 November 2026 the Raspberry Pi acknowledged a test command over MQTT.
+After its controller service restarted, EC2 received the door sensor reading
+and the controller's readiness. After the prototype wiring was corrected, the Pi
+reported a closed door and PostgreSQL recorded rental 45 as completed. See the
+[deployment checks](deploy/README.md#ec2-deployment-on-10-november-2026).
 Passwords use Argon2; session tokens are stored as hashes. Sessions last 24 hours and
 use an HttpOnly cookie, with Secure enabled on HTTPS. Rental access requires ownership
 and confirmed payment. Device requests require a separate key; commands expire and
@@ -91,14 +92,7 @@ Keep `.env` out of Git; do not overwrite an existing configuration.
 Existing installations can retain their database and Docker volume by keeping
 `POSTGRES_USER`, `POSTGRES_DB` and `COMPOSE_PROJECT_NAME` set to their original values
 in `.env`. New installations default to `unistow`, which creates the container
-`unistow-db-1` and the volume `unistow_postgres_data`. If you still use
-`paybox_postgres_data`, keep `COMPOSE_PROJECT_NAME=paybox` until you have
-copied and verified the data in the new volume.
-
-The device key variable is now
-`UNISTOW_DEVICE_KEY`; retain its existing secret value when updating the name.
-After updating, restart the backend and refresh browser pages. Users will need to
-sign in again because the session cookie name has changed.
+`unistow-db-1` and the volume `unistow_postgres_data`.
 
 From the project folder, with Docker Desktop running:
 
@@ -126,8 +120,8 @@ Open `http://127.0.0.1:8000` on the Mac. In PyCharm, use a Python run configurat
 module `uvicorn`, parameters `main:app --host 0.0.0.0 --port 8000`, working directory
 `backend`, and the `backend/.venv` interpreter. Stop any existing server before starting another.
 
-The database and backend must stay running. See [Raspberry Pi setup](hardware/README.md)
-for the controller's automatic startup and local network configuration.
+For local MQTT testing, also start the [local broker](deploy/README.md#local-broker-check).
+The [deployed Raspberry Pi](hardware/README.md) connects to EC2 independently of the Mac.
 
 ## Stripe testing
 
@@ -165,13 +159,13 @@ To include database tests, start PostgreSQL and prefix the command with
 - [Database](docs/database.md), [implementation plan](docs/implementation-plan.md)
   and [AI assistance log](docs/AI_Chat_Log.md).
 
-Test-mode payment-method storage and an opt-in daily EUR 1 overdue billing worker
-are implemented. Apply migrations and enable `UNISTOW_OVERDUE_BILLING=1` to run the
-worker. See the [billing instructions](docs/database.md#daily-test-billing).
+The daily EUR 1 overdue billing worker runs on EC2 in Stripe test mode. On a new
+installation the worker is off by default. See the [billing instructions](docs/database.md#daily-test-billing).
 Rental 44 demonstrated outstanding-balance recovery in Stripe test Checkout.
 [Rental 45](docs/usability-testing.md#after-the-automatic-billing-deadline--rental-45)
 shows the deployed page after the daily billing deadline. Renters can call the locker operator from the public Contact page at `/contact`. See the
 plan for deployment and submission tasks.
 
-The Checkpoint 1 presentation in `docs/presentations/` records the original proposal, including Flask,
-PubNub and AWS. It is historical; this README describes the current implementation.
+The [November progress review](docs/presentations/UniStow-Progress-Review-2026-11-11.pptx)
+covers the deployed project. The [Checkpoint 1 slides](docs/presentations/UniStow-ICA-Checkpoint-1.pptx)
+preserve the original proposal.

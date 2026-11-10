@@ -1,8 +1,8 @@
 # UniStow deployment
 
-This configuration runs FastAPI, PostgreSQL 16 and Nginx on a dedicated Ubuntu EC2
-instance. The MQTT migration adds Eclipse Mosquitto on the same host. PostgreSQL remains on an internal Docker
-network. Certbot on the host obtains and renews HTTPS certificates automatically.
+Docker Compose runs FastAPI, PostgreSQL 16, Nginx and Eclipse Mosquitto on one
+Ubuntu EC2 instance. PostgreSQL uses an internal Docker network. Certbot renews
+the public certificate used by Nginx and Mosquitto.
 
 ## Server and DNS
 
@@ -42,6 +42,9 @@ UNISTOW_OPEN_TEST=1
 UNISTOW_MQTT_OPEN=0
 ```
 
+These flags select delivery-test mode for commissioning. The deployed Locker 4
+uses `UNISTOW_OPEN_TEST=0` and `UNISTOW_MQTT_OPEN=1`. Its production environment
+also sets `UNISTOW_OVERDUE_BILLING=1` for daily Stripe sandbox charges.
 Stripe must use sandbox keys. The device key must match the physical controller.
 The webhook signing secret must belong to the deployed endpoint, not Stripe CLI.
 
@@ -125,8 +128,8 @@ Register `https://unistow.app/api/stripe/webhook` in the Stripe sandbox with eve
 `checkout.session.completed`, `checkout.session.expired`,
 `checkout.session.async_payment_succeeded` and
 `checkout.session.async_payment_failed`. Save its signing secret and recreate the
-app container. Set the Pi's `server_url` to `https://unistow.app` when ready to
-switch control to the deployed app; retain certificate verification.
+app container. Set the Pi's `server_url` to `https://unistow.app` for HTTPS
+heartbeats and collection.
 
 ## Checks
 
@@ -148,7 +151,8 @@ The group has no inbound rule for PostgreSQL (5432) or FastAPI (8000).
 
 On 10 November the console showed five IPv4 inbound rules. HTTP (80) and
 HTTPS (443) were public, and three individual /32 source addresses could use
-SSH (22). The group had no MQTT (8883) rule at the time of the screenshot.
+SSH (22). This screenshot predates the Pi's successful TLS connection on port
+8883 later that evening.
 
 ![Five inbound rules on 10 November, cropped to their types and ports](../docs/images/deployment/unistow-ec2-inbound-ports-nov-10.png)
 
@@ -185,8 +189,8 @@ References: [Docker on Ubuntu](https://docs.docker.com/engine/install/ubuntu/),
 
 The Compose service `mosquitto` runs Eclipse Mosquitto on EC2. Both the Pi and
 FastAPI verify the TLS certificate for `unistow.app:8883`. A network alias
-lets FastAPI reach the broker directly on the Compose network. Only the broker
-receives its private key and hashed password file. The ACL grants the app write
+lets FastAPI reach the broker directly on the Compose network. The broker mounts
+a copy of the domain certificate and key, and its own hashed password file. The ACL grants the app write
 access to commands and read access to events. The device has the reverse grants.
 The broker disables anonymous access, retained messages and persistent storage.
 The clients use clean sessions and QoS 0. Expired or uncertain opening commands
@@ -207,17 +211,15 @@ sudo docker run --rm -it --user 1883:1883 -v /etc/unistow/mqtt:/keys --entrypoin
 
 Save the app password as `MQTT_APP_PASSWORD` in the private `.env.production`.
 Put the device password on the Pi using the [controller instructions](../hardware/README.md#connect-locker-4-to-mosquitto).
-Reinstall the updated Certbot renewal hook above so both services pick up renewed
-certificates. Add the scoped EC2 inbound rule for 8883 before the Pi test.
-The original three web services continue using their existing ports and data.
+Install the Certbot renewal hook above so both services pick up renewed
+certificates. Allow TCP 8883 from the Pi's network before the Pi test.
 
 Start in delivery-test mode with `UNISTOW_OPEN_TEST=1` and `UNISTOW_MQTT_OPEN=0`.
 Bring up the production Compose stack, verify the broker logs and run **Test open
 delivery** with the Pi configured for test mode. Then set
 `UNISTOW_OPEN_TEST=0` and `UNISTOW_MQTT_OPEN=1`, recreate the app, and set the
 Pi to physical mode. Check the empty-locker opening and collection cycle.
-After acceptance, revoke the retired PubNub grants and remove their credentials
-from the private configuration. HTTPS still carries heartbeats and collection.
+The Pi uses HTTPS for heartbeats and collection in both MQTT modes.
 
 ### EC2 deployment on 10 November 2026
 
@@ -228,16 +230,19 @@ verified the certificate and exchanged a test command and a matching
 acknowledgement using the app and device identities. The broker rejected
 anonymous access. The public website returned HTTP 200 after the rollout.
 
-The running web app retains its previous device connection until the Pi is
-ready. During staged setup, root-only client provisioning files are held under
-`/etc/unistow/mqtt-clients/` on EC2. Use the app credential for the private
-production environment and provision the device credential on the Pi before
-switching the application and controller together.
+The Pi then connected to `unistow.app:8883` from its own network and verified
+the TLS certificate. The app's delivery test received a matching acknowledgement
+from the Pi without actuating the latch. After the controller service restarted in
+physical mode, EC2 received a fresh `open` reading with `ready=true`. The live
+FastAPI container connected as `unistow-app` with `UNISTOW_MQTT_OPEN=1`, and
+the public site returned HTTP 200. After the prototype wiring was corrected, the
+broker received `closed` and PostgreSQL recorded rental 45 as completed at
+22:45 Dublin time. A physical opening from the website during an active paid
+rental still needs to be demonstrated with Mosquitto.
 
-EC2 instance metadata confirmed that UniStow had only `launch-wizard-2`
-attached. The TCP 8883 rule shown for `launch-wizard-1` applies to a separate
-security group. Confirm the authorised source in the attached group and test
-from the Pi network before demonstrating the physical locker.
+EC2 instance metadata identified `launch-wizard-2` as the attached security
+group. If the Pi moves to a different network, check that this group allows
+TCP 8883 from the new network's public egress address.
 
 ### Local broker check
 
@@ -279,8 +284,7 @@ Before deploying Pay outstanding, back up the database and apply
 production PostgreSQL container, as for earlier migrations. Deploy the app only
 after the migration succeeds. The migration does not change existing charges.
 
-Keep `UNISTOW_OVERDUE_BILLING=0` during manual recovery verification. The existing
-signed Stripe Checkout webhook also handles outstanding payments. Verify a
+The signed Stripe Checkout webhook also handles outstanding payments. Verify a
 failed test charge through Checkout, confirm its balance clears after Stripe
 confirmation and check that Finish rental stays available. A browser return URL
 alone must never mark the charge paid.
