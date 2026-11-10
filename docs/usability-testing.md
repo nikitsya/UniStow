@@ -279,3 +279,26 @@ These desktop screenshots demonstrate the chosen separation of collection and
 payment settlement: belongings can be collected first, the debt remains visible,
 and payment can be completed afterwards. They do not demonstrate automatic
 billing at a future deadline or a physical-phone check of the recovery flow.
+
+### Before the automatic billing deadline — rental 45
+
+The renter supplied this screenshot on 10 November 2026. The desktop menu bar
+shows Tuesday 10 November at 01:27. Rental 45 is Active, Payment is Paid and the
+door is Closed. The total is EUR 1.00, with the rental ending on 10 November
+2026 at 18:00. The screenshot is preserved with its visible date and time.
+
+![Rental 45 before its automatic billing deadline, with the desktop date and time visible](images/rental-45-before-automatic-deadline.png)
+
+The automatic test billing worker had been enabled on EC2. A preceding
+read-only database check confirmed the saved payment method, consent version
+and deadline for this rental. The deadline was left unchanged so that the next
+check can observe the passage of time rather than a manually backdated rental.
+
+Expected result after 18:00 Europe/Dublin: one EUR 1 test charge for the extra
+day, Extra days · paid EUR 1.00 and a total of EUR 2.00. Subsequent automatic
+passes should retain the same charge without collecting a second payment for
+the same rental and date, provided the rental remains active or overdue.
+
+**Result pending:** this screenshot records only the state before the deadline.
+The after-deadline screenshot and database/Stripe checks still need to be added
+before this scenario can be marked as passed.
