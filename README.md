@@ -49,14 +49,14 @@ Other images are grouped into [deployment evidence](docs/images/deployment/),
 
 ## Current stack
 
-| Part              | Technology                                                |
-|-------------------|-----------------------------------------------------------|
-| Web app           | Python, FastAPI, Jinja2, HTML, CSS and JavaScript         |
-| Database          | PostgreSQL 16 in Docker                                   |
-| Payments          | Stripe sandbox Checkout and verified webhooks             |
-| Hardware          | Raspberry Pi 400, SG92R servo and magnetic contact sensor |
-| Hosting           | AWS EC2, Nginx and Let's Encrypt certificates             |
-| Device connection | Eclipse Mosquitto (MQTT over TLS) for opening and telemetry, HTTPS for collection  |
+| Part              | Technology                                                                        |
+|-------------------|-----------------------------------------------------------------------------------|
+| Web app           | Python, FastAPI, Jinja2, HTML, CSS and JavaScript                                 |
+| Database          | PostgreSQL 16 in Docker                                                           |
+| Payments          | Stripe sandbox Checkout and verified webhooks                                     |
+| Hardware          | Raspberry Pi 400, SG92R servo and magnetic contact sensor                         |
+| Hosting           | AWS EC2, Nginx and Let's Encrypt certificates                                     |
+| Device connection | Eclipse Mosquitto (MQTT over TLS) for opening and telemetry, HTTPS for collection |
 
 ```mermaid
 flowchart LR
@@ -163,7 +163,8 @@ The daily EUR 1 overdue billing worker runs on EC2 in Stripe test mode. On a new
 installation the worker is off by default. See the [billing instructions](docs/database.md#daily-test-billing).
 Rental 44 demonstrated outstanding-balance recovery in Stripe test Checkout.
 [Rental 45](docs/usability-testing.md#after-the-automatic-billing-deadline--rental-45)
-shows the deployed page after the daily billing deadline. Renters can call the locker operator from the public Contact page at `/contact`. See the
+shows the deployed page after the daily billing deadline. Renters can call the locker operator from the public Contact
+page at `/contact`. See the
 plan for deployment and submission tasks.
 
 The [November progress review](docs/presentations/UniStow-Progress-Review-2026-11-11.pptx)

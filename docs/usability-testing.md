@@ -102,8 +102,8 @@ still shows it as closed.
 With a paid, active rental, the renter tapped **Open locker**. The phone displayed
 “Delivery is uncertain. Check the locker.” A separate check on the Pi showed the controller service was inactive.
 
-| Raspberry Pi desktop (setup)                                      | Controller status                                                                      | Renter’s phone after tapping Open locker                                             |
-|-------------------------------------------------------------------|----------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------|
+| Raspberry Pi desktop (setup)                                               | Controller status                                                                               | Renter’s phone after tapping Open locker                                                     |
+|----------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------|
 | ![Locker scripts on the Pi desktop](images/hardware/locker-pi-desktop.png) | ![Terminal showing the locker service as inactive](images/hardware/locker-service-inactive.png) | ![Active rental showing the delivery warning](images/testing/locker-opening-unconfirmed.png) |
 
 **Reconnection test passed.** After the original request expired, the renter restarted the controller on the Pi and
@@ -301,8 +301,8 @@ the same rental and date, provided the rental remains active or overdue.
 
 ### After the automatic billing deadline — rental 45
 
-At the time of this screenshot the deployed page showed **Overdue**, **Payment · Paid**,
-**Extra days · paid EUR 1.00** and **Total EUR 2.00**. The original rental cost
+At the time of this screenshot the deployed page showed **Overdue**, **Payment · Paid**, **Extra days · paid EUR 1.00**
+and **Total EUR 2.00**. The original rental cost
 remains EUR 1.00. This matches the expected renter-facing result after the
 10 November 2026 deadline at 18:00 Europe/Dublin. At capture, the door state
 was Unknown and both locker controls were unavailable.

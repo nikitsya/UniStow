@@ -210,7 +210,8 @@ sudo docker run --rm -it --user 1883:1883 -v /etc/unistow/mqtt:/keys --entrypoin
 ```
 
 Save the app password as `MQTT_APP_PASSWORD` in the private `.env.production`.
-Put the device password on the Pi using the [controller instructions](../hardware/README.md#connect-locker-4-to-mosquitto).
+Put the device password on the Pi using
+the [controller instructions](../hardware/README.md#connect-locker-4-to-mosquitto).
 Install the Certbot renewal hook above so both services pick up renewed
 certificates. Allow TCP 8883 from the Pi's network before the Pi test.
 

@@ -81,7 +81,8 @@ or after the latch has settled. The controller waits for a full second of
 continuous closed readings before lowering it again. After three failed retries
 it leaves the latch retracted for assistance. Mount the sensor so it reports
 closed only when the door is seated and the latch can clear the frame. **Finish rental** requires
-a closed door and a ready controller. Local closing continues if the network connection drops. Opening requests expire after
+a closed door and a ready controller. Local closing continues if the network connection drops. Opening requests expire
+after
 10 seconds and are dispatched only once. Wait for the button to become available
 before requesting another opening.
 Opening is limited to the paid rental period. An overdue renter can still request collection.

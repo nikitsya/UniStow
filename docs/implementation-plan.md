@@ -46,7 +46,8 @@ Use this checklist alongside the original brief before submitting to Moodle.
 
 ## Additional prototype testing
 
-Repeat the [disconnected-controller test](usability-testing.md#7-november-2026--opening-locker-4-while-its-controller-was-stopped-7)
+Repeat
+the [disconnected-controller test](usability-testing.md#7-november-2026--opening-locker-4-while-its-controller-was-stopped-7)
 with Mosquitto and an empty locker. Let an opening command expire while the Pi
 is offline, reconnect it and verify that the latch moves only after a fresh
 authorised request.

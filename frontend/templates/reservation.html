@@ -27,7 +27,8 @@
         <div>
             <dt>Payment</dt>
             <dd>{% if billing.failed %}Payment incomplete{% elif billing.pending %}Payment processing{% else %}{{
-                {'paid': 'Paid', 'expired': 'Expired', 'pending': 'Awaiting payment'}.get(rental.payment_status, 'Not paid')
+                {'paid': 'Paid', 'expired': 'Expired', 'pending': 'Awaiting payment'}.get(rental.payment_status, 'Not
+                paid')
                 }}{% endif %}
             </dd>
         </div>
@@ -110,7 +111,8 @@
         <p class="confirmation">This reservation has been cancelled. You can choose an available locker again.</p>
         {% endif %}
         {% if billing.failed %}
-        <button class="confirm-button" data-checkout-url="{{ url_for('outstanding_checkout', rental_id=rental.id) }}" data-login-url="{{ url_for('sign_in') }}?rental_id={{ rental.id }}"
+        <button class="confirm-button" data-checkout-url="{{ url_for('outstanding_checkout', rental_id=rental.id) }}"
+                data-login-url="{{ url_for('sign_in') }}?rental_id={{ rental.id }}"
                 data-reconcile-url="{{ url_for('outstanding_reconcile', rental_id=rental.id) }}"
                 id="pay-outstanding-button"
                 type="button">
