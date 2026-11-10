@@ -27,8 +27,7 @@
         <div>
             <dt>Payment</dt>
             <dd>{% if billing.failed %}Payment incomplete{% elif billing.pending %}Payment processing{% else %}{{
-                {'paid': 'Paid', 'expired': 'Expired', 'pending': 'Awaiting payment'}.get(rental.payment_status, 'Not
-                paid')
+                {'paid': 'Paid', 'expired': 'Expired', 'pending': 'Awaiting payment'}.get(rental.payment_status, 'Not paid')
                 }}{% endif %}
             </dd>
         </div>
