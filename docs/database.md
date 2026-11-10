@@ -186,7 +186,7 @@ time. The controller was not operated during this billing check.
 Two manual runs of the deployed billing worker produced the following results:
 
 | Check                 | Result                                                      |
-|-----------------------|-------------------------------------------------------------|
+| --------------------- | ----------------------------------------------------------- |
 | First run             | One charge record, amount 100 cents, status `paid`          |
 | Stripe result         | `succeeded`, amount received 100 cents, `livemode=false`    |
 | Second run            | Same database record, PaymentIntent and Stripe charge       |
@@ -201,11 +201,24 @@ confirmed exactly two successful test payments totalling EUR 2.
 
 These checks verify successful test-mode collection, catch-up for an additional
 missed day and duplicate protection on repeat runs. No real money was collected.
-Rental 41 remains overdue with the adjusted dates; automatic billing remains
-disabled. Scheduled execution at a future deadline, completion behaviour and
-failure recovery have not yet been verified against Stripe on EC2. Automated
+Automatic billing remains disabled. Scheduled execution at a future deadline
+and failure recovery have not yet been verified against Stripe on EC2. Automated
 tests cover the deadline, completion and failure cases. Renter-facing debt totals
 and payment recovery remain later work in #14.
+
+### Collection completion verification on 10 November 2026
+
+Commit `8bba849` enabled collection for overdue rentals while retaining owner,
+payment and controller checks. All 87 backend tests passed before deployment.
+The user completed rental 41 through Finish rental. The EC2 database recorded
+`completed` at 00:08:15 UTC on 10 November.
+
+Two further manual billing runs left both existing charge records unchanged.
+Stripe still contained the same two successful test PaymentIntents, totalling
+EUR 2, with no additional payment for rental 41. Automatic billing remained
+disabled. This verifies repeat runs after completion; a later daily deadline
+has not yet been observed on EC2. The automated tests separately verify that
+completed rentals accrue no new charges.
 
 References: [Stripe idempotent requests](https://docs.stripe.com/api/idempotent_requests)
 and [PaymentIntent confirmation](https://docs.stripe.com/api/payment_intents/confirm).
