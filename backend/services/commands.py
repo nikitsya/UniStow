@@ -5,7 +5,7 @@ from fastapi import HTTPException
 from sqlalchemy import text
 
 
-def authorised_locker(db, rental_id, user_id):
+def authorised_locker(db, rental_id, user_id, *, action="open"):
     rental = db.execute(text('SELECT * FROM rentals WHERE id=:id AND user_id=:user'),
                         {'id': rental_id, 'user': user_id}).mappings().first()
     if rental is None:
@@ -19,12 +19,15 @@ def authorised_locker(db, rental_id, user_id):
                                      JOIN payments p ON p.rental_id = r.id
                             WHERE r.id = :id
                               AND r.user_id = :user
-                              AND r.status = 'active'
+                              AND (r.status = 'active' OR (:finishing AND r.status = 'overdue'))
                               AND p.status = 'paid'
                               AND r.starts_at <= :now
-                              AND r.paid_until > :now
-                            """), {'id': rental_id, 'user': user_id, 'now': now}).scalar_one_or_none()
+                              AND (:finishing OR r.paid_until > :now)
+                            """), {'id': rental_id, 'user': user_id, 'now': now,
+                                     'finishing': action == 'finish'}).scalar_one_or_none()
     if not valid:
+        if action == 'finish':
+            raise HTTPException(409, 'Collection requires an unfinished, paid rental.')
         raise HTTPException(409, 'Opening requires an active, paid rental within its paid period.')
     if locker['number'] != 4 or not locker['is_enabled']:
         raise HTTPException(409, 'This locker cannot be opened remotely.')
@@ -32,7 +35,7 @@ def authorised_locker(db, rental_id, user_id):
 
 
 def request_open(db, rental_id, user_id, action="open"):
-    locker, rental, now = authorised_locker(db, rental_id, user_id)
+    locker, rental, now = authorised_locker(db, rental_id, user_id, action=action)
     if (not locker['device_ready'] or not locker['controller_id']
             or locker['last_seen_at'] is None
             or not 0 <= (now - locker['last_seen_at']).total_seconds() < 15):
@@ -50,7 +53,9 @@ def record_command(db, locker, rental, now, controller_id, action, *, dispatched
     if recent:
         raise HTTPException(409, 'An opening request was already sent. Wait before trying again.')
     command_id = str(uuid4())
-    expiry = min(now + timedelta(seconds=10), rental['paid_until'])
+    expiry = now + timedelta(seconds=10)
+    if action != 'finish':
+        expiry = min(expiry, rental['paid_until'])
     db.execute(text('''
                     INSERT INTO locker_commands(id, rental_id, locker_id, controller_id, created_at, expires_at, action,
                                                 dispatched_at)
@@ -81,10 +86,10 @@ def take_command(db, controller_id, supports_finish=False):
                                 AND (c.action = 'open' OR (:supports_finish AND :door_closed))
                                 AND c.dispatched_at IS NULL
                                 AND c.expires_at > :now
-                                AND r.status = 'active'
+                                AND (r.status = 'active' OR (c.action = 'finish' AND r.status = 'overdue'))
                                 AND p.status = 'paid'
                                 AND r.starts_at <= :now
-                                AND r.paid_until > :now
+                                AND (c.action = 'finish' OR r.paid_until > :now)
                               ORDER BY c.created_at LIMIT 1
                               '''), {'locker': locker['id'], 'controller': controller_id, 'now': now,
                                      'supports_finish': supports_finish,

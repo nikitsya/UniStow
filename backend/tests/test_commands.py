@@ -254,6 +254,45 @@ class CommandTests(unittest.TestCase):
         self.assertIn('Rental completed.', page)
         self.assertNotIn('id="finish-rental-button"', page)
 
+    def test_overdue_rental_can_finish_but_cannot_open_normally(self):
+        self.connection.execute(text("""
+            UPDATE rentals SET status='overdue',
+                starts_at=starts_at-INTERVAL '4 days',
+                paid_until=paid_until-INTERVAL '4 days',
+                reserved_until=reserved_until-INTERVAL '4 days',
+                created_at=created_at-INTERVAL '4 days',
+                overdue_terms_accepted_at=overdue_terms_accepted_at-INTERVAL '4 days'
+        """))
+        page = self.client.get(f'/rentals/{self.rental_id}').text
+        self.assertIn('Finish your rental to stop daily charges.', page)
+        self.assertRegex(page, r'<button(?=[^>]*id="open-locker-button")(?=[^>]*\bdisabled\b)[^>]*>')
+        self.assertRegex(page, r'<button(?=[^>]*id="finish-rental-button")(?![^>]*\bdisabled\b)[^>]*>')
+        self.assertEqual(self.open().status_code, 409)
+        self.assertEqual(self.finish(False).status_code, 422)
+        self.client.cookies.set('unistow_session', 'session-2')
+        self.assertEqual(self.finish().status_code, 404)
+        self.client.cookies.set('unistow_session', 'session-1')
+        self.report(ready=False)
+        self.assertEqual(self.finish().status_code, 409)
+        self.report()
+        response = self.finish()
+        self.assertEqual(response.status_code, 202, response.text)
+        command_id = response.json()['command_id']
+        self.assertIsNone(self.take().json()['command'])
+        result = self.client.post('/api/device/commands/next', headers=self.device_headers,
+                                  json={'controller_id': self.controller, 'supports_finish': True}).json()['command']
+        self.assertEqual(result['id'], command_id)
+        self.assertEqual(result['action'], 'finish')
+        self.assertGreater(result['valid_for_seconds'], 0)
+        self.assertLessEqual(result['valid_for_seconds'], 10)
+        self.report(ready=False, door='open')
+        page = self.client.get(f'/rentals/{self.rental_id}').text
+        self.assertRegex(page, r'<button(?=[^>]*id="finish-rental-button")(?=[^>]*\bdisabled\b)[^>]*>')
+        self.report(ready=False, door='closed')
+        self.assertEqual(self.acknowledge(command_id).status_code, 200)
+        self.assertEqual(self.connection.execute(text('SELECT status FROM rentals')).scalar_one(), 'completed')
+        self.assertEqual(self.finish().status_code, 409)
+
     def test_ordinary_open_cannot_complete_rental(self):
         command_id = self.open().json()['command_id']
         self.take()

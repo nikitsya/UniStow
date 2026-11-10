@@ -61,22 +61,20 @@
             </div>
         </dialog>
 
-        {% elif rental.status == 'active' %}
+        {% elif rental.status in ('active', 'overdue') %}
         <p class="confirmation" data-collection-notice="{{ collection_notice }}" id="active-rental-notice"
            role="status">{% if rental.collecting %}{{ collection_notice }}{% elif not device_online %}Your locker is
             temporarily unavailable. Please try again shortly or contact locker support.{% elif
             door_state == 'open' %}Your locker door is
-            open.{% elif rental.number == 4 and rental.payment_status == 'paid' and not can_open %}Please wait until the
+            open.{% elif rental.status == 'overdue' %}Your paid rental period has ended.
+            Finish your rental to stop daily charges.{% elif rental.number == 4 and rental.payment_status == 'paid' and not can_open %}Please wait until the
             locker is ready.{% endif %}</p>
         {% elif rental.status == 'completed' %}
         <p class="confirmation">Rental completed. Thank you for collecting your belongings.</p>
         {% elif rental.status == 'cancelled' %}
         <p class="confirmation">This reservation has been cancelled. You can choose an available locker again.</p>
-        {% elif rental.status == 'overdue' %}
-        <p class="confirmation">Your paid rental period has ended. Please <a href="{{ url_for('contact') }}">contact the
-            locker operator</a>.</p>
         {% endif %}
-        {% if rental.status == 'active' and rental.payment_status == 'paid' and rental.number == 4 %}
+        {% if rental.status in ('active', 'overdue') and rental.payment_status == 'paid' and rental.number == 4 %}
         {% set open_url = url_for('test_open_locker' if open_test else 'open_locker', rental_id=rental.id) %}
         {% set open_disabled = rental.collecting or door_state == 'open' or not can_open %}
         <button class="confirm-button" data-url="{{ open_url }}" id="open-locker-button" type="button"

@@ -103,7 +103,7 @@ def reservation(request: Request, rental_id: int, db: Annotated[Session, Depends
     physical = getattr(request.app.state, "open_client", None) is not None
     open_ready = bool(events.ready_controller()) if physical else controller_ready
     return templates.TemplateResponse(request, "reservation.html", {
-        "open_test": open_test, "http_ready": controller_ready and ends_at > datetime.now(timezone.utc),
+        "open_test": open_test, "http_ready": controller_ready,
         "title": "My rental | UniStow", "rental": rental,
         "ends_at": ends_at.strftime("%d %B %Y at %H:%M"),
         "door_state": door_state, "device_online": device_online,
