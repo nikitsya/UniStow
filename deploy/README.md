@@ -281,7 +281,7 @@ lock to coordinate multiple application processes. See the
 ## Outstanding payment recovery
 
 Before deploying Pay outstanding, back up the database and apply
-`backend/database/migrations/004_overdue_payment_recovery.sql` using the
+`database/migrations/004_overdue_payment_recovery.sql` using the
 production PostgreSQL container, as for earlier migrations. Deploy the app only
 after the migration succeeds. The migration does not change existing charges.
 

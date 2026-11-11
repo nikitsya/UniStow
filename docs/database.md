@@ -1,6 +1,6 @@
 # Database
 
-UniStow uses PostgreSQL 16. [schema.sql](../backend/database/schema.sql) defines the current tables.
+UniStow uses PostgreSQL 16. [schema.sql](../database/schema.sql) defines the current tables.
 
 | Table             | Purpose                                                                                |
 |-------------------|----------------------------------------------------------------------------------------|
@@ -76,7 +76,7 @@ tables without inserting lockers. Production Compose then runs the locker seed
 automatically. For a new local database, run this from the project folder:
 
 ```sh
-docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1' < backend/database/migrations/001_add_lockers.sql
+docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1' < database/migrations/001_add_lockers.sql
 ```
 
 This adds nine lockers with only Locker 4 enabled. Repeating it leaves existing records
@@ -86,7 +86,7 @@ Apply `002_save_payment_method.sql` to an existing database before starting the
 updated application. From the project folder, for the local Docker database:
 
 ```sh
-docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1' < backend/database/migrations/002_save_payment_method.sql
+docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1' < database/migrations/002_save_payment_method.sql
 ```
 
 For EC2, use `docker compose --env-file .env.production -f compose.production.yaml`
@@ -154,7 +154,7 @@ Back up the database and apply migration `003_overdue_billing_requests.sql`
 after `002_save_payment_method.sql`, before enabling the worker. Locally:
 
 ```sh
-docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1' < backend/database/migrations/003_overdue_billing_requests.sql
+docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1' < database/migrations/003_overdue_billing_requests.sql
 ```
 
 On EC2, use the production Compose file and environment file as for migration 002.

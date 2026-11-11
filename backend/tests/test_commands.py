@@ -24,7 +24,7 @@ class CommandTests(unittest.TestCase):
         schema = 'test_commands_' + secrets.token_hex(6)
         self.connection.exec_driver_sql(f'CREATE SCHEMA {schema}')
         self.connection.exec_driver_sql(f'SET LOCAL search_path TO {schema}')
-        source = (Path(__file__).resolve().parents[1] / 'database/schema.sql').read_text()
+        source = (Path(__file__).resolve().parents[2] / 'database/schema.sql').read_text()
         self.connection.exec_driver_sql(source.replace('BEGIN;', '').replace('COMMIT;', ''))
         self.connection.execute(text(
             "INSERT INTO users(email,password_hash) VALUES ('owner@example.com','test'),('other@example.com','test')"))

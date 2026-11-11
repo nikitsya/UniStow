@@ -6,6 +6,7 @@ WORKDIR /app/backend
 COPY backend/pyproject.toml backend/uv.lock ./
 RUN uv sync --locked --no-dev --no-install-project
 COPY backend/ ./
+COPY database/ /app/database/
 COPY frontend/ /app/frontend/
 RUN useradd --system --uid 10001 app
 USER app

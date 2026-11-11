@@ -153,7 +153,7 @@ To include database tests, start PostgreSQL and prefix the command with
 
 - `backend/main.py` — Application setup; `routes/` — Page, API and device routes.
 - `backend/auth/` — Accounts and sessions; `services/` — Rental, payment and command logic.
-- `backend/database.py` — Connection; `backend/database/` — SQL schema and migrations.
+- `backend/database.py` — Connection; `database/` — SQL schema and migrations.
 - `frontend/` — Templates, CSS and JavaScript served by FastAPI.
 - `hardware/` — Pi scripts, configuration example and systemd services.
 - [Database](docs/database.md), [implementation plan](docs/implementation-plan.md)

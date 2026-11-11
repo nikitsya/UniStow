@@ -14,6 +14,7 @@ dependencies = [
     "sqlalchemy>=2.0,<3",
     "stripe>=16.0.0",
     "uvicorn>=0.30,<1.0",
+    "starlette>=1.10.0",
 ]
 
 [dependency-groups]

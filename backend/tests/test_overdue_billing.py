@@ -38,7 +38,7 @@ class OverdueBillingTests(unittest.TestCase):
         self.db = create_engine(engine.url, connect_args=connect_args | {'options': f'-c search_path={self.schema}'})
         self.addCleanup(self.clean_database)
         with self.db.begin() as connection:
-            source = (Path(__file__).resolve().parents[1] / 'database/schema.sql').read_text()
+            source = (Path(__file__).resolve().parents[2] / 'database/schema.sql').read_text()
             connection.exec_driver_sql(source.replace('BEGIN;', '').replace('COMMIT;', ''))
             start = datetime.now(IRELAND).replace(hour=12, minute=0, second=0, microsecond=0) - timedelta(days=1)
             connection.execute(text("INSERT INTO users(email,password_hash) VALUES('test@example.com','test')"))
