@@ -42,6 +42,10 @@ metal locker bank on a white background, with compartment 04 open, concealed
 electronics, a raised metal latch arm and a thin door. It illustrates a proposed
 future design; the QR patterns in the image are illustrative.
 
+| Before · Campus canteen                                                                   | After · Proposed locker placement (AI visualisation)                                                                                              |
+|-------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------|
+| ![Canteen wall before editing](docs/images/prototype/future-prototype/canteen-before.png) | ![UniStow lockers beside the wooden partition, to the left of the painting](docs/images/prototype/future-prototype/unistow-canteen-placement.png) |
+
 Other images are grouped into [deployment evidence](docs/images/deployment/),
 [hardware screenshots](docs/images/hardware/) and
 [testing screenshots](docs/images/testing/). See the
