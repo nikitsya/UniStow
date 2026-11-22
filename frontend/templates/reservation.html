@@ -11,7 +11,11 @@
 {% endblock %}
 {% block screen_content %}
 {% set collection_notice = 'Take all your belongings, then close the door to finish your rental.' %}
+{% if rental.status == 'pending' %}
 {% include 'account_balance.html' %}
+{% else %}
+<div id="account-booking-notice" aria-live="polite"></div>
+{% endif %}
 <div data-collecting="{{ 1 if rental.collecting else 0 }}" data-door-state="{{ door_state }}"
      data-status="{{ rental.status }}" id="live-rental">
     <div class="rental-overview"><span class="detail-label">Reservation #{{ rental.id }}</span><span
