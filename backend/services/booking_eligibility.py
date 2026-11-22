@@ -14,27 +14,31 @@ def lock_rental_account(db, rental_id):
 
 def booking_eligibility(db, user_id):
     rows = db.execute(text("""
-        SELECT r.id, l.number,
-               COALESCE(SUM(c.amount_cents) FILTER (
-                   WHERE c.status = 'failed' AND NOT EXISTS (
-                       SELECT 1 FROM overdue_payments p
-                       WHERE p.rental_id = r.id AND p.status = 'pending'
-                         AND p.charge_ids @> jsonb_build_array(c.id)
-                   )), 0) AS unpaid_cents,
-               COALESCE(SUM(c.amount_cents) FILTER (
-                   WHERE c.status IN ('pending', 'review') OR EXISTS (
-                       SELECT 1 FROM overdue_payments p
-                       WHERE p.rental_id = r.id AND p.status = 'pending'
-                         AND p.charge_ids @> jsonb_build_array(c.id)
-                   )), 0) AS processing_cents
-        FROM rentals r
-        JOIN lockers l ON l.id = r.locker_id
-        JOIN overdue_charges c ON c.rental_id = r.id
-        WHERE r.user_id = :user_id AND r.status IN ('active', 'overdue', 'completed')
-          AND c.status IN ('failed', 'pending', 'review')
-        GROUP BY r.id, l.number
-        ORDER BY r.id
-    """), {'user_id': user_id}).mappings().all() if user_id is not None else []
+                           SELECT r.id,
+                                  l.number,
+                                  COALESCE(SUM(c.amount_cents) FILTER (
+                                      WHERE c.status = 'failed' AND NOT EXISTS (SELECT 1
+                                                                                FROM overdue_payments p
+                                                                                WHERE p.rental_id = r.id
+                                                                                  AND p.status = 'pending'
+                                                                                  AND p.charge_ids @> jsonb_build_array(c.id))),
+                                           0) AS unpaid_cents,
+                                  COALESCE(SUM(c.amount_cents) FILTER (
+                                      WHERE c.status IN ('pending', 'review') OR EXISTS (SELECT 1
+                                                                                         FROM overdue_payments p
+                                                                                         WHERE p.rental_id = r.id
+                                                                                           AND p.status = 'pending'
+                                                                                           AND p.charge_ids @> jsonb_build_array(c.id))),
+                                           0) AS processing_cents
+                           FROM rentals r
+                                    JOIN lockers l ON l.id = r.locker_id
+                                    JOIN overdue_charges c ON c.rental_id = r.id
+                           WHERE r.user_id = :user_id
+                             AND r.status IN ('active', 'overdue', 'completed')
+                             AND c.status IN ('failed', 'pending', 'review')
+                           GROUP BY r.id, l.number
+                           ORDER BY r.id
+                           """), {'user_id': user_id}).mappings().all() if user_id is not None else []
     unpaid = sum(row['unpaid_cents'] for row in rows)
     processing = sum(row['processing_cents'] for row in rows)
     return {'can_book': not (unpaid or processing), 'unpaid_cents': unpaid,

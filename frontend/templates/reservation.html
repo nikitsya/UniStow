@@ -14,7 +14,7 @@
 {% if rental.status == 'pending' %}
 {% include 'account_balance.html' %}
 {% else %}
-<div id="account-booking-notice" aria-live="polite"></div>
+<div aria-live="polite" id="account-booking-notice"></div>
 {% endif %}
 <div data-collecting="{{ 1 if rental.collecting else 0 }}" data-door-state="{{ door_state }}"
      data-status="{{ rental.status }}" id="live-rental">
@@ -33,7 +33,8 @@
             <dt>Payment</dt>
             <dd>{% if billing.unpaid %}Payment incomplete{% elif billing.pending or billing.recovery_pending %}Payment
                 processing{% else %}{{
-                {'paid': 'Paid', 'expired': 'Expired', 'pending': 'Awaiting payment'}.get(rental.payment_status, 'Not paid')
+                {'paid': 'Paid', 'expired': 'Expired', 'pending': 'Awaiting payment'}.get(rental.payment_status, 'Not
+                paid')
                 }}{% endif %}
             </dd>
         </div>
@@ -77,14 +78,14 @@
         <p class="operator-help">A checkout authorised before this balance appeared can still complete this rental.
             Any confirmed payment for it will be honoured. You can also cancel this reservation.</p>
         {% endif %}
-        <button class="confirm-button" data-checkout-url="{{ url_for('checkout', rental_id=rental.id) }}"
+        <button class="confirm-button" data-booking-blocked="{{ 'false' if eligibility.can_book else 'true' }}"
+                data-checkout-url="{{ url_for('checkout', rental_id=rental.id) }}"
                 data-login-url="{{ url_for('sign_in') }}?rental_id={{ rental.id }}"
                 data-reconcile-url="{{ url_for('reconcile', rental_id=rental.id) }}"
-                data-booking-blocked="{{ 'false' if eligibility.can_book else 'true' }}"
                 {{
         'disabled' if not eligibility.can_book else '' }}
-                id="pay-button" type="button">Pay €{{ '%.2f' |
-            format(rental.total_price_cents / 100) }}
+        id="pay-button" type="button">Pay €{{ '%.2f' |
+        format(rental.total_price_cents / 100) }}
         </button>
         <button class="back-button" data-url="{{ url_for('cancel_reservation', rental_id=rental.id) }}"
                 id="cancel-reservation"

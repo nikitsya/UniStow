@@ -1,10 +1,11 @@
-<div id="account-booking-notice" aria-live="polite">
+<div aria-live="polite" id="account-booking-notice">
     {% if not eligibility.can_book %}
     <section
             aria-labelledby="account-balance-heading"
             class="account-balance {{ 'account-balance--unpaid' if eligibility.unpaid_cents else 'account-balance--pending' }}"
             id="account-balance">
-        <h2 id="account-balance-heading">{% if eligibility.unpaid_cents %}Balance to settle{% else %}Payment awaiting confirmation{% endif %}</h2>
+        <h2 id="account-balance-heading">{% if eligibility.unpaid_cents %}Balance to settle{% else %}Payment awaiting
+            confirmation{% endif %}</h2>
         {% if eligibility.unpaid_cents %}
         <p>Your unpaid rental balance is <strong>€{{ '%.2f' | format(eligibility.unpaid_cents / 100) }}</strong>.
             Please settle it before starting a new rental.</p>
@@ -16,13 +17,15 @@
         <ul role="list">
             {% for balance in eligibility.rentals %}
             <li>
-                <a href="{{ url_for('reservation', rental_id=balance.id) }}">Rental #{{ balance.id }} · Locker {{ balance.number }}</a>
+                <a href="{{ url_for('reservation', rental_id=balance.id) }}">Rental #{{ balance.id }} · Locker {{
+                    balance.number }}</a>
             </li>
             {% endfor %}
         </ul>
         <p>Each payment covers the amount shown for that rental. You can still access an existing paid rental
             within its paid period, or finish a rental and collect your belongings.</p>
-        <p>If a balance looks incorrect or a payment remains unconfirmed, <a href="{{ url_for('contact') }}">contact locker support</a>
+        <p>If a balance looks incorrect or a payment remains unconfirmed, <a href="{{ url_for('contact') }}">contact
+            locker support</a>
             and quote the rental number. New rentals become available automatically once all balances are settled.</p>
     </section>
     {% endif %}

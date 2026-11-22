@@ -133,10 +133,10 @@ def reservation(request: Request, rental_id: int, db: Annotated[Session, Depends
         "total": rental["total_price_cents"] + sum(additional.values()),
     }
     billing["recovery_pending"] = db.scalar(text("""
-                                                SELECT amount_cents
-                                                FROM overdue_payments
-                                                WHERE rental_id = :id
-                                                  AND status = 'pending'
+                                                 SELECT amount_cents
+                                                 FROM overdue_payments
+                                                 WHERE rental_id = :id
+                                                   AND status = 'pending'
                                                  """), {"id": rental_id}) or 0
     billing["checkout_amount"] = billing["recovery_pending"] or billing["failed"]
     billing["unpaid"] = max(0, billing["failed"] - billing["recovery_pending"])

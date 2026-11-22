@@ -35,22 +35,35 @@ class BookingEligibilityTests(unittest.TestCase):
 
     def charge(self, status='failed', rental_id=None, day=0):
         return self.connection.scalar(text("""
-            INSERT INTO overdue_charges(rental_id, charge_date, status, stripe_payment_intent_id, paid_at)
-            VALUES (:rental, CURRENT_DATE + :day, :status, :intent,
-                    CASE WHEN :status='paid' THEN clock_timestamp() END) RETURNING id
-        """), {'rental': rental_id or self.rental_id, 'day': day, 'status': status,
-               'intent': f'pi_test_{rental_id}_{day}'})
+                                           INSERT INTO overdue_charges(rental_id, charge_date, status, stripe_payment_intent_id, paid_at)
+                                           VALUES (:rental, CURRENT_DATE + :day, :status, :intent,
+                                                   CASE WHEN :status = 'paid' THEN clock_timestamp() END)
+                                           RETURNING id
+                                           """), {'rental': rental_id or self.rental_id, 'day': day, 'status': status,
+                                                  'intent': f'pi_test_{rental_id}_{day}'})
 
     def completed_rental(self):
         return self.connection.scalar(text("""
-            INSERT INTO rentals(user_id, locker_id, status, prepaid_days, reserved_until,
-                                starts_at, paid_until, total_price_cents, overdue_terms_version,
-                                overdue_terms_accepted_at, created_at, completed_at)
-            SELECT user_id, locker_id, 'completed', prepaid_days, reserved_until,
-                   starts_at, paid_until, total_price_cents, overdue_terms_version,
-                   overdue_terms_accepted_at, created_at, clock_timestamp()
-            FROM rentals WHERE id=:id RETURNING id
-        """), {'id': self.rental_id})
+                                           INSERT INTO rentals(user_id, locker_id, status, prepaid_days, reserved_until,
+                                                               starts_at, paid_until, total_price_cents,
+                                                               overdue_terms_version,
+                                                               overdue_terms_accepted_at, created_at, completed_at)
+                                           SELECT user_id,
+                                                  locker_id,
+                                                  'completed',
+                                                  prepaid_days,
+                                                  reserved_until,
+                                                  starts_at,
+                                                  paid_until,
+                                                  total_price_cents,
+                                                  overdue_terms_version,
+                                                  overdue_terms_accepted_at,
+                                                  created_at,
+                                                  clock_timestamp()
+                                           FROM rentals
+                                           WHERE id = :id
+                                           RETURNING id
+                                           """), {'id': self.rental_id})
 
     def reserve(self):
         return self.client.post('/api/rentals', headers=self.headers,
@@ -72,7 +85,8 @@ class BookingEligibilityTests(unittest.TestCase):
         self.assertEqual(self.connection.scalar(text('SELECT count(*) FROM payments')), 1)
         page = self.client.get(f"/rentals/{pending['id']}")
         self.assertRegex(page.text, r'<button(?=[^>]*id="pay-button")(?=[^>]*\bdisabled\b)[^>]*>')
-        self.assertEqual(self.client.post(f"/api/rentals/{pending['id']}/cancel", headers=self.headers).status_code, 200)
+        self.assertEqual(self.client.post(f"/api/rentals/{pending['id']}/cancel", headers=self.headers).status_code,
+                         200)
 
     def test_pending_and_review_payments_pause_booking_without_claiming_debt(self):
         self.charge('pending')
@@ -207,13 +221,13 @@ class BookingConcurrencyTests(unittest.TestCase):
         test_overdue_billing.OverdueBillingTests.setUp(self)
         with self.db.begin() as connection:
             connection.execute(text("""
-                INSERT INTO lockers(number,size,price_per_day_cents,is_enabled,last_seen_at)
-                VALUES(5,'small',100,true,clock_timestamp())
-            """))
+                                    INSERT INTO lockers(number, size, price_per_day_cents, is_enabled, last_seen_at)
+                                    VALUES (5, 'small', 100, true, clock_timestamp())
+                                    """))
             connection.execute(text("""
-                INSERT INTO overdue_charges(rental_id,charge_date,status,stripe_payment_intent_id)
-                VALUES(1,CURRENT_DATE,'pending','pi_unconfirmed')
-            """))
+                                    INSERT INTO overdue_charges(rental_id, charge_date, status, stripe_payment_intent_id)
+                                    VALUES (1, CURRENT_DATE, 'pending', 'pi_unconfirmed')
+                                    """))
 
     def wait_for_lock(self, pid):
         deadline = time.monotonic() + 3
@@ -249,8 +263,10 @@ class BookingConcurrencyTests(unittest.TestCase):
                         self.wait_for_lock(pid[0])
                         self.assertFalse(future.done())
                         settlement.execute(text("""
-                            UPDATE overdue_charges SET status='pending',paid_at=NULL
-                        """))
+                                                UPDATE overdue_charges
+                                                SET status='pending',
+                                                    paid_at=NULL
+                                                """))
                         save_status(settlement, 1, status)
                     finally:
                         settlement.rollback()

@@ -376,51 +376,70 @@ they do not remove the need to identify a recent rental on the website.
 
 ## 22 November 2026 — Unpaid-balance restriction
 
-The author supplied three narrow-screen captures of the deployed application
-for issue #19. They replace the earlier local-preview and desktop captures.
+Four browser captures of the deployed application were refreshed on 22 November
+2026 for issue #19, using a 393 × 852 viewport. They replace the earlier supplied
+screenshots and show the revised balance notice, rental history and payment page.
 The scenario uses a synthetic completed rental (#50, Locker 5) with one failed
 EUR 1.00 charge (#84324) on the test account. Rental #51 for Locker 4 had already
 been completed by the author before the updated application was checked.
 
 ### Account balance and locker availability
 
-The home-page notice shows **Balance to settle**, EUR 1.00 unpaid and a link to **Rental #50 · Locker 5**. It explains
-the restriction on new rentals, retained
+The home-page notice shows **Balance to settle**, EUR 1.00 unpaid and a link to
+**Rental #50 · Locker 5**. The underlined, bold rental link has no list bullet or
+repeated payment caption beneath it. The notice explains the restriction on new
+rentals, retained
 paid access and collection, and how to contact support about an incorrect
 balance. The filter shows **All lockers 9** and **Available 0**. The visible
 locker cards are grey; completed debt is no longer presented as **Continue rental**.
 Existing current rentals retain their management link and normal access checks.
 
-![Author-supplied narrow-screen capture showing the unpaid Locker 5 balance and Available 0 on the home page](images/testing/unpaid-balance-ec2-lockers.png)
+![Updated home page showing the spaced balance notice, underlined rental link and Available 0](images/testing/unpaid-balance-ec2-lockers.png)
+
+The home-page content now matches the width and side padding of My rentals and
+Contact. The notice also has the same gap below the header on both pages.
+The layout check confirmed matching 544-pixel content widths in a 1512-pixel
+viewport and 320-pixel content widths in a 360-pixel viewport, without horizontal
+overflow. All four captures use the same narrow-screen viewport.
 
 ### Balance above rental history
 
-My rentals places the same pale red notice above **No current rentals** and **Recently completed**. The panel uses
-square corners and a uniform one-pixel
+My rentals places the same pale red notice above **No current rentals** and
+**Recently completed**. The panel uses square corners and a uniform one-pixel
 border. Completed rental summaries also use square corners following the
 author's visual review. Colour is accompanied by explanatory text, amounts
 and links, following the [W3C guidance on use of colour](https://www.w3.org/WAI/WCAG21/Understanding/use-of-color.html).
 A separate amber treatment is used for payments awaiting confirmation without
 a confirmed unpaid balance; that state is not shown in these captures.
 
-![Author-supplied narrow-screen capture showing the balance notice above No current rentals and Recently completed](images/testing/unpaid-balance-ec2-my-rentals.png)
+![Updated My rentals page showing the balance notice above No current rentals and Recently completed](images/testing/unpaid-balance-ec2-my-rentals.png)
+
+The separate history view shows square completed-rental cards and the shorter
+description, **Your last five completed rentals.** Rental #50 retains a
+**View outstanding payment** link; completed rentals without debt remain
+non-interactive summaries.
+
+![Updated rental history showing square cards and the outstanding-payment link for Rental 50](images/testing/unpaid-balance-ec2-rental-history.png)
 
 ### Completed rental and recovery action
 
 The detail page identifies reservation #50 as **Completed**, with a one-day
-rental ending at 18:00 on 21 November 2026. It shows **Payment incomplete**, **Rental cost EUR 1.00**, **Extra days ·
-unpaid EUR 1.00** and **Total EUR 2.00**.
+rental ending at 18:00 on 21 November 2026. It shows **Payment incomplete**,
+**Rental cost EUR 1.00**, **Extra days · unpaid EUR 1.00** and **Total EUR 2.00**.
 The original cost and unpaid amount are separate: the remaining amount requested
 by **Pay outstanding EUR 1.00** is EUR 1.00. The page explains that the rental
 has ended and links back to My rentals. It does not offer opening or collection
-controls for this completed rental.
+controls for this completed rental. The repeated account-wide balance notice
+has been removed from this detail page so that the rental information and
+recovery action appear directly below the header.
 
-![Author-supplied completed-rental detail showing EUR 1.00 unpaid, Total EUR 2.00 and Pay outstanding EUR 1.00](images/testing/unpaid-balance-ec2-rental-payment.png)
+![Updated completed-rental detail without the account banner, showing EUR 1.00 unpaid and Pay outstanding EUR 1.00](images/testing/unpaid-balance-ec2-rental-payment.png)
 
 ### EC2 check: debt on Locker 5 blocks a new Locker 4 rental
 
-All 113 backend tests passed with isolated local PostgreSQL schemas and mocked
-Stripe responses. An existing payment-summary assertion now accepts whitespace
+Earlier functional verification passed all 113 backend tests with isolated
+local PostgreSQL schemas and mocked Stripe responses. An existing payment-summary
+assertion now accepts whitespace
 between Payment and processing, matching the text rendered by the browser.
 The page tests cover completed debt on another locker, disabled cards,
 balance notice placement, pending-payment styling and availability restoration
@@ -435,7 +454,7 @@ POST to `/api/rentals` for Locker 4 returned HTTP 409 with
 details. No new rental was created. The short-lived verification session was
 removed afterwards; the author's browser session remained signed in.
 
-The supplied captures record the displayed balance, availability and payment
+The refreshed captures record the displayed balance, availability and payment
 options. This manually inserted charge has no Stripe PaymentIntent, so it tests
 restriction and presentation, not payment recovery or a real card decline.
 The visible payment button is not evidence of a successful payment. The charge
