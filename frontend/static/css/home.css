@@ -99,6 +99,10 @@
     padding: 0 28px 100px;
 }
 
+.home-content > #account-booking-notice:has(.account-balance) {
+    padding-top: 28px;
+}
+
 .home-section {
     padding: 28px 0;
     scroll-margin-top: 16px;
@@ -417,6 +421,10 @@ a.home-locker:active {
     .home-content {
         padding-left: 48px;
         padding-right: 48px;
+    }
+
+    .home-content > #account-booking-notice:has(.account-balance) {
+        padding-top: 32px;
     }
 
     .home-intro h1 br {
