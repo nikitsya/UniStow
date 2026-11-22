@@ -1,6 +1,9 @@
 <div id="account-booking-notice" aria-live="polite">
     {% if not eligibility.can_book %}
-    <section class="account-balance" id="account-balance" aria-labelledby="account-balance-heading">
+    <section
+            aria-labelledby="account-balance-heading"
+            class="account-balance {{ 'account-balance--unpaid' if eligibility.unpaid_cents else 'account-balance--pending' }}"
+            id="account-balance">
         <h2 id="account-balance-heading">{% if eligibility.unpaid_cents %}Balance to settle{% else %}Payment awaiting confirmation{% endif %}</h2>
         {% if eligibility.unpaid_cents %}
         <p>Your unpaid rental balance is <strong>€{{ '%.2f' | format(eligibility.unpaid_cents / 100) }}</strong>.

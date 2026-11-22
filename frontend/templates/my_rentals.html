@@ -21,7 +21,8 @@
             {% endfor %}
         </div>
         {% elif user %}
-        <p class="confirmation">No current rentals. Choose an available locker to get started.</p>
+        <p class="confirmation">No current rentals.{% if eligibility.can_book %} Choose an available locker to get
+            started.{% endif %}</p>
         {% else %}
         <p class="confirmation">Sign in to view and manage your rentals.</p>
         <a class="confirm-button" href="{{ url_for('sign_in') }}">Sign in</a>

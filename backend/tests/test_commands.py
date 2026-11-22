@@ -310,7 +310,7 @@ class CommandTests(unittest.TestCase):
         self.assertIn('<span>Total</span><strong>€5.00</strong>', page)
         self.connection.execute(text("UPDATE overdue_charges SET status='waived' WHERE status='failed'"))
         page = self.client.get(f'/rentals/{self.rental_id}').text
-        self.assertIn('Payment processing', page)
+        self.assertRegex(page, r'Payment\s+processing')
         self.assertNotIn('Extra days · unpaid', page)
         self.assertIn('<span>Total</span><strong>€4.00</strong>', page)
         self.connection.execute(text("UPDATE overdue_charges SET status='waived' WHERE status='pending'"))
@@ -318,7 +318,7 @@ class CommandTests(unittest.TestCase):
         page = self.client.get(f'/rentals/{self.rental_id}').text
         self.assertIn('Rental completed.', page)
         self.assertIn('Extra days · paid', page)
-        self.assertNotIn('Payment processing', page)
+        self.assertNotRegex(page, r'Payment\s+processing')
         self.assertIn('<span>Total</span><strong>€3.00</strong>', page)
         self.client.cookies.set('unistow_session', 'session-2')
         self.assertEqual(self.client.get(f'/rentals/{self.rental_id}').status_code, 404)

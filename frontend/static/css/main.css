@@ -356,7 +356,7 @@ button.back-button {
     margin: 0 0 24px;
     padding: 20px;
     border: 1px solid var(--sand);
-    border-radius: 12px;
+    border-radius: 0;
     font-size: 14px;
     line-height: 1.5;
     overflow-wrap: anywhere;
@@ -365,6 +365,21 @@ button.back-button {
 .account-balance h2 {
     margin: 0 0 12px;
     font-size: 20px;
+}
+
+.account-balance--unpaid {
+    --supporting: #754a45;
+    border-color: #d6a6a1;
+    background: #fff1ee;
+    color: #5d2e29;
+}
+
+.account-balance--unpaid h2 {
+    color: #8c2d26;
+}
+
+.account-balance--pending {
+    background: #fbf3e5;
 }
 
 .account-balance p {

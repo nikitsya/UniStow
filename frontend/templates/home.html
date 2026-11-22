@@ -6,7 +6,7 @@
 <script defer src="{{ url_for('static', path='js/live.js') }}?v=12"></script>
 {% endblock %}
 {% block content %}
-{% set available = lockers | selectattr('status', 'equalto', 'available') | list %}
+{% set available = (lockers | selectattr('status', 'equalto', 'available') | list) if eligibility.can_book else [] %}
 <div class="home-content">
     {% include 'account_balance.html' %}
     <section aria-label="Lockers" class="home-section" id="lockers">
@@ -20,14 +20,15 @@
         <ul aria-label="Lockers" class="home-locker-grid">
             {% for locker in lockers %}
             {% set own_rental = own_rentals.get(locker.id) if own_rentals is defined else none %}
-            <li data-status="{{ locker.status }}">
+            {% set can_rent = locker.status == 'available' and eligibility.can_book %}
+            <li data-status="{{ locker.status if eligibility.can_book or own_rental else 'unavailable' }}">
                 {% if own_rental %}
                 <a aria-label="Continue rental for {{ locker.name }}" class="home-locker is-owned"
                    href="{{ url_for('reservation', rental_id=own_rental.id) }}">
-                    {% elif locker.status == 'available' %}
+                    {% elif can_rent %}
                     <a aria-label="Rent {{ locker.name }}, {{ locker.size }}, €{{ '%.2f' | format(locker.price_per_day_cents / 100) }} per day"
                        class="home-locker is-available"
-                       href="{{ url_for('rental', locker_id=locker.id) if eligibility.can_book else '#account-balance' }}">
+                       href="{{ url_for('rental', locker_id=locker.id) }}">
                         {% else %}
                         <div aria-disabled="true" class="home-locker">
                             {% endif %}
@@ -37,10 +38,10 @@
                             <p class="home-price">€{{ '%.2f' | format(locker.price_per_day_cents / 100)
                                 }}<span> / day</span></p>
                             <span class="home-status">{% if own_rental %}Continue rental <span
-                                    aria-hidden="true">{% include 'rental_arrow.svg' %}</span>{% elif locker.status == 'available' %}<span
-                                    class="small-dot"></span>{{ 'Available' if eligibility.can_book else 'View account balance' }} <span
+                                    aria-hidden="true">{% include 'rental_arrow.svg' %}</span>{% elif can_rent %}<span
+                                    class="small-dot"></span>Available <span
                                     aria-hidden="true">{% include 'rental_arrow.svg' %}</span>{% else %}Unavailable{% endif %}</span>
-                            {% if own_rental or locker.status == 'available' %}
+                            {% if own_rental or can_rent %}
                     </a>{% else %}
 </div>{% endif %}
 </li>

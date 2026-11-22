@@ -181,6 +181,31 @@ Never use `docker compose down -v` on this deployment.
 After updating the source, rerun the build/start command. Database schema changes
 require explicit migrations; initialisation scripts run only on an empty volume.
 
+### Unpaid-balance rollout on 22 November 2026
+
+EC2 was updated from merged commit `5243267` with the local changes on
+`master`: clearer balance styling, unavailable booking
+cards and the associated test updates. These additional changes remain local
+for review and have not been pushed to GitHub. The release manifest at
+`/opt/unistow/release-issue19.json` records the source archive checksum and
+deployed image. The final presentation uses square corners and an equal-width
+border on all four sides, as requested by the author.
+
+The previous application image and source were retained under
+`/var/backups/unistow/issue19-20261122T023222`. A private database backup was
+copied off the server and successfully restored into a separate local database;
+that temporary database was removed after verification. A second snapshot was
+taken after stopping the app for the update. Migration
+`005_booking_balance_review.sql` was then applied to the existing database.
+
+Only the app container was recreated, followed by an Nginx configuration check
+and reload. PostgreSQL and Mosquitto continued running. The app became healthy
+and the public HTTPS endpoint returned 200. Live checks confirmed that the
+synthetic Locker 5 debt rejects a new Locker 4 reservation with HTTP 409 without
+creating a rental. See
+the [test record](../docs/usability-testing.md#ec2-check-debt-on-locker-5-blocks-a-new-locker-4-rental)
+for the fixture, screenshots and verification limits.
+
 References: [Docker on Ubuntu](https://docs.docker.com/engine/install/ubuntu/),
 [Certbot renewal](https://eff-certbot.readthedocs.io/en/stable/using.html#renewing-certificates), and
 [Stripe webhooks](https://docs.stripe.com/webhooks).

@@ -85,6 +85,29 @@ class BookingEligibilityTests(unittest.TestCase):
         page = self.client.get('/rentals').text
         self.assertIn('Payment awaiting confirmation', page)
         self.assertNotIn('Balance to settle', page)
+        self.assertIn('account-balance--pending', page)
+        self.assertNotIn('account-balance--unpaid', page)
+
+    def test_completed_debt_disables_new_lockers_and_precedes_rental_history(self):
+        self.connection.execute(
+            text("UPDATE rentals SET status='completed',completed_at=clock_timestamp(),locker_id=2"))
+        self.charge()
+        home = self.client.get('/').text
+        self.assertNotIn('Continue rental', home)
+        self.assertNotIn('home-locker is-available', home)
+        self.assertNotIn('/lockers/1/rent', home)
+        self.assertEqual(home.count('data-status="unavailable"'), 2)
+        self.assertRegex(home, r'data-filter="available"[^>]*>Available\s*<span>0</span>')
+        page = self.client.get('/rentals').text
+        self.assertIn('account-balance--unpaid', page)
+        self.assertIn(f'Rental #{self.rental_id} · Locker 5', page)
+        self.assertLess(page.index('id="account-balance"'), page.index('id="completed-rentals-heading"'))
+        self.assertNotIn('Choose an available locker to get started.', page)
+        self.connection.execute(text("UPDATE overdue_charges SET status='waived'"))
+        home = self.client.get('/').text
+        self.assertIn('home-locker is-available', home)
+        self.assertIn('/lockers/1/rent', home)
+        self.assertNotIn('account-balance--unpaid', home)
 
     def test_paid_waived_and_initial_unpaid_reservations_are_not_debt(self):
         self.charge('paid')
@@ -128,6 +151,7 @@ class BookingEligibilityTests(unittest.TestCase):
         self.db.commit()
         self.assertEqual(self.client.get('/contact').status_code, 200)
         self.assertEqual(self.client.get('/api/me').status_code, 200)
+        self.assertIn('Continue rental for Locker 4', self.client.get('/').text)
         self.assertEqual(self.finish().status_code, 202)
 
     def test_checkout_authorised_before_debt_appears_is_honoured(self):
