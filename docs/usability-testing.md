@@ -376,79 +376,57 @@ they do not remove the need to identify a recent rental on the website.
 
 ## 22 November 2026 — Unpaid-balance restriction
 
-The author supplied these two narrow-screen captures while reviewing the local
-preview for issue #19. The preview uses synthetic rental records and has Stripe
-calls disabled. The screenshots show the account notice and the payment section
-of the same Locker 4 rental page.
+The author supplied three narrow-screen captures of the deployed application
+for issue #19. They replace the earlier local-preview and desktop captures.
+The scenario uses a synthetic completed rental (#50, Locker 5) with one failed
+EUR 1.00 charge (#84324) on the test account. Rental #51 for Locker 4 had already
+been completed by the author before the updated application was checked.
 
-### Account balance and next steps
+### Account balance and locker availability
 
-The notice shows **Balance to settle** with EUR 1.00 unpaid for rental #1 and
-another EUR 1.00 awaiting confirmation for rental #3. Each entry has its own
-rental reference and link. The wording explains that new rentals are paused,
-that each payment covers its stated rental amount, and that existing paid
-access and collection remain subject to their normal checks. A support link
-provides a route for an incorrect balance or an unconfirmed payment.
+The home-page notice shows **Balance to settle**, EUR 1.00 unpaid and a link to **Rental #50 · Locker 5**. It explains
+the restriction on new rentals, retained
+paid access and collection, and how to contact support about an incorrect
+balance. The filter shows **All lockers 9** and **Available 0**. The visible
+locker cards are grey; completed debt is no longer presented as **Continue rental**.
+Existing current rentals retain their management link and normal access checks.
 
-![Account notice showing EUR 1.00 unpaid, EUR 1.00 awaiting confirmation and links to the affected rentals and support](images/testing/unpaid-balance-account-notice.png)
+![Author-supplied narrow-screen capture showing the unpaid Locker 5 balance and Available 0 on the home page](images/testing/unpaid-balance-ec2-lockers.png)
 
-### Rental cost and recovery action
+### Balance above rental history
 
-The lower section shows **Payment incomplete**, an original rental cost of
-EUR 1.00, **Extra days · unpaid EUR 1.00** and **Total EUR 2.00**. This total
-belongs to rental #1; the amount awaiting confirmation for rental #3 is listed
-separately in the account notice. The page retains **Pay outstanding EUR 1.00**
-and explains that finishing the rental stops further daily charges.
+My rentals places the same pale red notice above **No current rentals** and **Recently completed**. The panel uses
+square corners and a uniform one-pixel
+border. Completed rental summaries also use square corners following the
+author's visual review. Colour is accompanied by explanatory text, amounts
+and links, following the [W3C guidance on use of colour](https://www.w3.org/WAI/WCAG21/Understanding/use-of-color.html).
+A separate amber treatment is used for payments awaiting confirmation without
+a confirmed unpaid balance; that state is not shown in these captures.
 
-![Rental payment summary with an unpaid extra day, Pay outstanding EUR 1.00 and unavailable locker controls](images/testing/unpaid-balance-rental-payment.png)
+![Author-supplied narrow-screen capture showing the balance notice above No current rentals and Recently completed](images/testing/unpaid-balance-ec2-my-rentals.png)
 
-The preview has no fresh controller readings, so **Door** is **Unknown** and
-both **Open locker** and **Finish rental** are disabled. These captures record
-the displayed guidance and payment options. They do not verify physical
-collection, a successful Stripe payment or the automatic overdue transition;
-the sample record retains an Active label alongside its past deadline.
+### Completed rental and recovery action
 
-Separate local checks passed all 112 backend tests with PostgreSQL and mocked
-Stripe responses, including direct booking and checkout rejection, older
-balances, partial settlement, concurrent requests and preserved collection
-access with a ready controller. A browser check of a pending reservation also
-confirmed that settling all preview balances removed the notice and enabled
-its payment button without signing in again. End-to-end verification on the
-deployed site with Stripe and the physical locker remains a separate check.
+The detail page identifies reservation #50 as **Completed**, with a one-day
+rental ending at 18:00 on 21 November 2026. It shows **Payment incomplete**, **Rental cost EUR 1.00**, **Extra days ·
+unpaid EUR 1.00** and **Total EUR 2.00**.
+The original cost and unpaid amount are separate: the remaining amount requested
+by **Pay outstanding EUR 1.00** is EUR 1.00. The page explains that the rental
+has ended and links back to My rentals. It does not offer opening or collection
+controls for this completed rental.
+
+![Author-supplied completed-rental detail showing EUR 1.00 unpaid, Total EUR 2.00 and Pay outstanding EUR 1.00](images/testing/unpaid-balance-ec2-rental-payment.png)
 
 ### EC2 check: debt on Locker 5 blocks a new Locker 4 rental
-
-On 22 November, the author requested a cross-locker test and clearer balance
-presentation. A synthetic completed rental (#50, Locker 5) holds one failed
-EUR 1.00 charge (#84324) for the test account. Rental #51 for Locker 4 had
-already been completed by the author before the updated application was checked.
-
-The deployed application now shows completed rentals with debt through the
-account balance notice, rather than a **Continue rental** locker card. New
-rentals appear as grey, non-clickable **Unavailable** cards and the Available
-filter reports zero while the account is restricted. Existing current rentals
-retain their management link and normal paid-access and collection checks.
-
-At the top of My rentals, a pale red panel shows **Balance to settle**, the
-EUR 1.00 amount and a link to rental #50, Locker 5. A separate amber treatment
-is used when a payment is awaiting confirmation without a confirmed unpaid
-balance. The empty-current-rentals message no longer invites a restricted
-account to choose a new locker. Colour is accompanied by explanatory text,
-amounts and links, following
-the [W3C guidance on use of colour](https://www.w3.org/WAI/WCAG21/Understanding/use-of-color.html).
-Following the author's visual review, the panel uses square corners and a
-uniform one-pixel border instead of rounded corners and a heavier left edge.
-
-![The deployed My rentals page shows the unpaid Locker 5 balance above rental history](images/testing/unpaid-balance-ec2-my-rentals.jpg)
-
-![The deployed locker list shows unavailable cards and zero available rentals for the restricted account](images/testing/unpaid-balance-ec2-lockers.jpg)
 
 All 113 backend tests passed with isolated local PostgreSQL schemas and mocked
 Stripe responses. An existing payment-summary assertion now accepts whitespace
 between Payment and processing, matching the text rendered by the browser.
-The new page test covers completed debt on another locker, disabled cards,
+The page tests cover completed debt on another locker, disabled cards,
 balance notice placement, pending-payment styling and availability restoration
 after the test charge is waived. Existing paid-rental access remains covered.
+Earlier local browser checks also confirmed that settling all preview balances
+removed the notice and enabled payment without signing in again.
 
 Live HTTPS checks of the running EC2 application returned 200 for the home,
 My rentals and Locker 4 booking pages, each showing the Locker 5 debt. A direct
@@ -457,8 +435,10 @@ POST to `/api/rentals` for Locker 4 returned HTTP 409 with
 details. No new rental was created. The short-lived verification session was
 removed afterwards; the author's browser session remained signed in.
 
-The screenshots record desktop-browser verification. This manually inserted
-charge has no Stripe PaymentIntent, so it tests restriction and presentation,
-not payment recovery or a real card decline. It remains in place for the
-author's manual check. It must not be marked paid without a verified payment;
-an operator can remove or waive the synthetic charge when the test is finished.
+The supplied captures record the displayed balance, availability and payment
+options. This manually inserted charge has no Stripe PaymentIntent, so it tests
+restriction and presentation, not payment recovery or a real card decline.
+The visible payment button is not evidence of a successful payment. The charge
+remains in place for the author's manual check. It must not be marked paid
+without a verified payment; an operator can remove or waive the synthetic
+charge when the test is finished.

@@ -365,9 +365,9 @@ direct reservation and checkout requests, unaffected paid access and collection,
 partial and duplicate settlements, migration repeatability, account-lock races
 and a checkout authorised immediately before another rental's debt appears.
 
-The [local visual evidence for issue #19](usability-testing.md#22-november-2026--unpaid-balance-restriction)
-records the account notice, separate unpaid and unconfirmed amounts, and the
-existing recovery action on the rental page.
+The [deployed-site visual evidence for issue #19](usability-testing.md#22-november-2026--unpaid-balance-restriction)
+records the unpaid Locker 5 balance, zero available new rentals, the notice
+above rental history and the recovery action on the completed rental page.
 
 ### Automatic worker activation on 10 November 2026
 
