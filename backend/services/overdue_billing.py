@@ -10,6 +10,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from database import engine
+from services.booking_eligibility import lock_rental_account
 from services.payments import stripe_client
 from services.rentals import IRELAND, PAYMENT_METHOD_TERMS_VERSION
 
@@ -26,6 +27,7 @@ def due_dates(paid_until, now):
 
 
 def accrue_charges(db, rental_id):
+    lock_rental_account(db, rental_id)
     locker_id = db.scalar(text("SELECT locker_id FROM rentals WHERE id=:id"), {"id": rental_id})
     db.execute(text("SELECT id FROM lockers WHERE id=:id FOR UPDATE"), {"id": locker_id})
     rental = db.execute(text("""
@@ -82,17 +84,22 @@ def validate_intent(intent, charge):
 
 
 def save_status(db, charge_id, status, reason=None):
+    rental_id = db.scalar(text('SELECT rental_id FROM overdue_charges WHERE id=:id'), {'id': charge_id})
+    lock_rental_account(db, rental_id)
     db.execute(text("""
                     UPDATE overdue_charges
                     SET status=:status,
                         failure_reason=:reason,
                         paid_at=CASE WHEN :status = 'paid' THEN COALESCE(paid_at, clock_timestamp()) ELSE NULL END
                     WHERE id = :id
+                      AND status = 'pending'
                     """), {"id": charge_id, "status": status, "reason": reason})
     db.commit()
 
 
 def process_charge(db, charge_id, client):
+    rental_id = db.scalar(text('SELECT rental_id FROM overdue_charges WHERE id=:id'), {'id': charge_id})
+    lock_rental_account(db, rental_id)
     charge = db.execute(text("SELECT * FROM overdue_charges WHERE id=:id"),
                         {"id": charge_id}).mappings().one()
     if charge["status"] != "pending" or not charge["request_key"]:
@@ -108,7 +115,7 @@ def process_charge(db, charge_id, client):
             save_status(db, charge_id, "waived", "Rental completed before collection of this charge.")
             return
         if charge["first_requested_at"] and now - charge["first_requested_at"] >= RETRY_WINDOW:
-            save_status(db, charge_id, "failed", "Unconfirmed payment creation needs operator review.")
+            save_status(db, charge_id, "review", "Unconfirmed payment creation needs operator review.")
             return
         db.execute(text("""
                         UPDATE overdue_charges
@@ -121,6 +128,7 @@ def process_charge(db, charge_id, client):
             charge["request_params"], options={"idempotency_key": charge["request_key"]}
         ).to_dict()
         validate_intent(intent, charge)
+        lock_rental_account(db, rental_id)
         db.execute(text("UPDATE overdue_charges SET stripe_payment_intent_id=:intent WHERE id=:id"),
                    {"id": charge_id, "intent": intent["id"]})
         db.commit()
@@ -130,7 +138,11 @@ def process_charge(db, charge_id, client):
         validate_intent(intent, charge)
 
     # Collection completion takes the same locker lock. Recheck after the API call.
+    lock_rental_account(db, rental_id)
     db.execute(text("SELECT id FROM lockers WHERE id=:id FOR UPDATE"), {"id": locker_id})
+    if db.scalar(text('SELECT status FROM overdue_charges WHERE id=:id'), {'id': charge_id}) != 'pending':
+        db.commit()
+        return
     rental_status = db.scalar(text("SELECT status FROM rentals WHERE id=:id"), {"id": charge["rental_id"]})
     if intent["status"] == "requires_confirmation":
         if rental_status not in ("active", "overdue"):
@@ -187,7 +199,7 @@ def run_billing_once(database=engine):
                         log.warning("Overdue charge %s awaits Stripe reconciliation.", charge_id)
                     except ValueError:
                         db.rollback()
-                        save_status(db, charge_id, "failed", "Payment verification needs operator review.")
+                        save_status(db, charge_id, "review", "Payment verification needs operator review.")
                         log.error("Overdue charge %s failed verification.", charge_id)
         finally:
             connection.rollback()

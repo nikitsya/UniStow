@@ -55,6 +55,15 @@ if (form) {
                 return;
             }
             if (!response.ok) {
+                const result = await response.json();
+                if (result.detail?.code === 'account_booking_restricted') {
+                    confirmation.textContent = result.detail.message + ' ';
+                    const link = document.createElement('a');
+                    link.href = '/rentals#account-balance';
+                    link.textContent = 'View your balances and payment options';
+                    confirmation.append(link);
+                    return;
+                }
                 confirmation.textContent = response.status === 409
                     ? 'This locker is already reserved or unavailable. Please return to the locker list.'
                     : response.status === 422

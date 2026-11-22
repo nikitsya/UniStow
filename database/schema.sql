@@ -116,7 +116,7 @@ CREATE TABLE overdue_charges
     amount_cents             INTEGER     NOT NULL DEFAULT 100 CHECK (amount_cents = 100),
     currency                 TEXT        NOT NULL DEFAULT 'eur' CHECK (currency = 'eur'),
     status                   TEXT        NOT NULL DEFAULT 'pending'
-        CHECK (status IN ('pending', 'paid', 'failed', 'waived')),
+        CHECK (status IN ('pending', 'paid', 'failed', 'waived', 'review')),
     stripe_payment_intent_id TEXT UNIQUE,
     request_key              TEXT UNIQUE,
     request_params           JSONB,

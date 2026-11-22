@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from auth.sessions import current_user
 from database import get_db
+from services.booking_eligibility import booking_eligibility
 from services.lockers import read_lockers
 from services.payments import owned_rental
 
@@ -30,7 +31,7 @@ def current_rentals(db, user):
                                OR (status = 'completed' AND EXISTS (SELECT 1
                                                                     FROM overdue_charges c
                                                                     WHERE c.rental_id = rentals.id
-                                                                      AND c.status IN ('failed', 'pending')))
+                                                                      AND c.status IN ('failed', 'pending', 'review')))
                                OR (status = 'pending'
                                    AND (reserved_until > CURRENT_TIMESTAMP
                                        OR EXISTS (SELECT 1 FROM payments WHERE payments.rental_id = rentals.id))))
@@ -57,7 +58,9 @@ def home(request: Request, db: Annotated[Session, Depends(get_db)]):
     user = current_user(db, request)
     return templates.TemplateResponse(
         request, "home.html", {"title": "UniStow", "lockers": read_lockers(db), "user": user,
-                               "own_rentals": {r["locker_id"]: r for r in current_rentals(db, user)}}
+                               "eligibility": booking_eligibility(db, user['id'] if user else None),
+                               "own_rentals": {r["locker_id"]: r for r in current_rentals(db, user)
+                                               if r['status'] != 'completed'}}
     )
 
 
@@ -75,6 +78,7 @@ def my_rentals(request: Request, db: Annotated[Session, Depends(get_db)]):
     reservations = [r for r in current if r["id"] not in completed_ids]
     return templates.TemplateResponse(
         request, "my_rentals.html", {"title": "My rentals | UniStow", "user": user,
+                                     "eligibility": booking_eligibility(db, user['id']),
                                      "reservations": reservations, "completed_rentals": completed}
     )
 
@@ -123,17 +127,19 @@ def reservation(request: Request, rental_id: int, db: Annotated[Session, Depends
     additional = {row["status"]: row["amount"] for row in charges}
     billing = {
         "paid": additional.get("paid", 0),
-        "pending": additional.get("pending", 0),
+        "pending": additional.get("pending", 0) + additional.get("review", 0),
         "failed": additional.get("failed", 0),
         "additional": sum(additional.values()),
         "total": rental["total_price_cents"] + sum(additional.values()),
     }
-    billing["checkout_amount"] = db.scalar(text("""
+    billing["recovery_pending"] = db.scalar(text("""
                                                 SELECT amount_cents
                                                 FROM overdue_payments
                                                 WHERE rental_id = :id
                                                   AND status = 'pending'
-                                                """), {"id": rental_id}) or billing["failed"]
+                                                 """), {"id": rental_id}) or 0
+    billing["checkout_amount"] = billing["recovery_pending"] or billing["failed"]
+    billing["unpaid"] = max(0, billing["failed"] - billing["recovery_pending"])
     ends_at = rental["paid_until"].astimezone(ZoneInfo("Europe/Dublin"))
     last_seen = rental.get("last_seen_at")
     device_online = last_seen is not None and 0 <= (
@@ -151,6 +157,7 @@ def reservation(request: Request, rental_id: int, db: Annotated[Session, Depends
     return templates.TemplateResponse(request, "reservation.html", {
         "open_test": open_test, "http_ready": controller_ready,
         "title": "My rental | UniStow", "rental": rental, "billing": billing,
+        "eligibility": booking_eligibility(db, user['id']),
         "ends_at": ends_at.strftime("%d %B %Y at %H:%M"),
         "door_state": door_state, "device_online": device_online,
         "can_open": (rental["number"] == 4 and rental["status"] == "active"
@@ -162,7 +169,8 @@ def reservation(request: Request, rental_id: int, db: Annotated[Session, Depends
 
 @router.get("/lockers/{locker_id}/rent")
 def rental(request: Request, locker_id: int, db: Annotated[Session, Depends(get_db)]):
-    if current_user(db, request) is None:
+    user = current_user(db, request)
+    if user is None:
         return RedirectResponse(f"/login?locker_id={locker_id}", status_code=303)
     lockers = read_lockers(db, locker_id)
     if not lockers:
@@ -175,5 +183,6 @@ def rental(request: Request, locker_id: int, db: Annotated[Session, Depends(get_
                                     "retry_url": "/"}, status_code=409
         )
     return templates.TemplateResponse(
-        request, "rental.html", {"title": f"{locker['name']} | UniStow", "locker": locker}
+        request, "rental.html", {"title": f"{locker['name']} | UniStow", "locker": locker,
+                                 "eligibility": booking_eligibility(db, user['id'])}
     )

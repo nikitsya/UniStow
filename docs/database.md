@@ -294,6 +294,77 @@ execution was tested during that check.
 References: [Stripe Checkout Sessions](https://docs.stripe.com/api/checkout/sessions/create)
 and [Checkout fulfilment](https://docs.stripe.com/checkout/fulfillment).
 
+### Booking with an outstanding balance
+
+Booking eligibility is calculated from the account's current `overdue_charges`,
+across active, overdue and completed rentals. It does not depend on the five
+recently completed rentals shown in history, browser state or a stored restriction
+flag. A confirmed failed charge of any amount, including one EUR 1 day, prevents
+new reservations and initial checkout requests for an existing unpaid reservation.
+Paid and waived charges, cancelled rentals and unpaid initial reservations are
+excluded. Historical failures do not restrict an account after settlement.
+
+Pending automatic charges and `review` outcomes temporarily pause new bookings
+without being labelled unpaid debt. Failed charges included in a pending recovery
+Checkout are shown as awaiting confirmation, separately from any remaining unpaid
+amount. Cancelling or expiring an unpaid recovery restores the unpaid wording;
+verified settlement clears only the charge IDs covered by that payment. Remaining
+balances on the same rental or another rental continue to restrict booking.
+
+The home page, booking page, My rentals and individual rental pages list each
+affected rental and amount, with links to its existing recovery flow and Contact.
+The home page and rental pages refresh their notices from server state. Signing
+out, returning from Stripe or changing client-side controls cannot clear a balance.
+Signed webhooks and server reconciliation retain their amount, identity, test-mode
+and successful-payment checks. Repeated or reordered callbacks do not reapply a
+settlement or reinstate a cleared balance.
+
+Reservation creation, initial checkout authorisation, automatic charge creation
+and balance transitions all lock the account's `users` row before any locker row.
+Recovery creation and settlement follow the same order. The eligibility check and
+reservation or durable checkout insert share that transaction. A concurrent
+booking waits for settlement to commit, then reads the new balance under
+PostgreSQL's default READ COMMITTED isolation. Any future operator adjustment
+must use this same account-first lock order. Physical collection still takes only
+the locker lock; it does not waive charges or depend on booking eligibility.
+
+**Checkout already authorised:** the durable initial payment request is the
+authorisation boundary. If a balance appears after that request was committed,
+an already issued Checkout (including an in-flight creation request) may still
+complete. Its verified payment activates that reserved rental under the existing
+paid-period rules; it is not collected and then rejected because of the new debt.
+The reservation remains held until Checkout is reconciled. New requests to start
+or reopen initial checkout are blocked while the account is restricted, but
+confirmation and cancellation remain available. The pending rental page explains
+this exception. This policy avoids racing Stripe expiry against payment collection.
+
+Restriction never blocks sign-in, account pages, support, recovery payments or
+Finish rental. Another already paid rental can still open within its paid period.
+The normal ownership, controller readiness, door and overdue-access checks remain
+in force. No additional penalties, strikes or charges are introduced.
+
+For an incorrect balance or an unresolved payment, use Contact and quote the
+rental number. The operator checks the charge and Stripe references before making
+a verified correction. `review` means the result needs investigation, not a new
+collection attempt. There is no operator dashboard or automatic waiver; the
+restriction clears once all relevant records are verified as settled or corrected.
+
+Before starting this version against an existing database, back up the database
+and apply [migration 005](../database/migrations/005_booking_balance_review.sql)
+after migration 004. It adds the `review` state and reclassifies the two previous
+uncertain-failure reasons without changing amounts or confirmed declines. It is
+safe to repeat. New installations use the updated schema directly.
+
+```sh
+docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1' < database/migrations/005_booking_balance_review.sql
+```
+
+Automated tests use isolated PostgreSQL schemas and mocked Stripe responses.
+They cover a EUR 1 balance, account-wide and older debt, pending/review wording,
+direct reservation and checkout requests, unaffected paid access and collection,
+partial and duplicate settlements, migration repeatability, account-lock races
+and a checkout authorised immediately before another rental's debt appears.
+
 ### Automatic worker activation on 10 November 2026
 
 Set `UNISTOW_OVERDUE_BILLING=1` in the private EC2 `.env.production` and

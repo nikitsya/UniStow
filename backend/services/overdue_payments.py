@@ -6,6 +6,7 @@ from uuid import uuid4
 from fastapi import HTTPException
 from sqlalchemy import text
 
+from services.booking_eligibility import lock_account, lock_rental_account
 from services.overdue_billing import validate_intent
 from services.payments import owned_rental, stripe_client
 
@@ -18,6 +19,7 @@ def apply_recovery(db, checkout):
                          {'id': recovery_id}).mappings().first()
     if not payment:
         raise HTTPException(409, 'Unknown outstanding payment.')
+    lock_rental_account(db, payment['rental_id'])
     locker = db.scalar(text('SELECT locker_id FROM rentals WHERE id=:id'), {'id': payment['rental_id']})
     db.execute(text('SELECT id FROM lockers WHERE id=:id FOR UPDATE'), {'id': locker})
     payment = db.execute(text('SELECT * FROM overdue_payments WHERE id=:id FOR UPDATE'),
@@ -87,6 +89,7 @@ def reconcile_outstanding(db, rental_id, user_id):
 def create_outstanding_checkout(db, rental_id, user_id):
     client = stripe_client()
     rental = owned_rental(db, rental_id, user_id)
+    lock_account(db, user_id)
     db.execute(text('SELECT id FROM lockers WHERE id=:id FOR UPDATE'), {'id': rental['locker_id']})
     payment = db.execute(text("SELECT * FROM overdue_payments WHERE rental_id=:id AND status='pending'"),
                          {'id': rental_id}).mappings().first()
