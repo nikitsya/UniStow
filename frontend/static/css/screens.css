@@ -444,7 +444,7 @@
 
 .completed-rental-summary {
     padding: 20px;
-    border-radius: 14px;
+    border-radius: 0;
     background: #eeefeb;
     color: #505c55;
     overflow-wrap: anywhere;
