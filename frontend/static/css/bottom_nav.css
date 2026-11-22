@@ -26,7 +26,7 @@
     transition: color 180ms, background 180ms;
 }
 
-.bottom-nav a[aria-current] {
+.bottom-nav a[aria-current="page"] {
     color: var(--green);
     background: #e5ebe1;
     font-weight: 600;

@@ -457,7 +457,9 @@ removed afterwards; the author's browser session remained signed in.
 The refreshed captures record the displayed balance, availability and payment
 options. This manually inserted charge has no Stripe PaymentIntent, so it tests
 restriction and presentation, not payment recovery or a real card decline.
-The visible payment button is not evidence of a successful payment. The charge
-remains in place for the author's manual check. It must not be marked paid
-without a verified payment; an operator can remove or waive the synthetic
-charge when the test is finished.
+The visible payment button is not evidence of a successful payment.
+
+After the manual check on 22 November, synthetic charge #84324 was changed from
+`failed` to `waived` at the author's request, without recording a payment. The
+account then had no unpaid or processing balance. On EC2 the notice disappeared,
+**Available 1** returned and Locker 4 became selectable again.

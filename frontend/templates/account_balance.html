@@ -4,8 +4,8 @@
             aria-labelledby="account-balance-heading"
             class="account-balance {{ 'account-balance--unpaid' if eligibility.unpaid_cents else 'account-balance--pending' }}"
             id="account-balance">
-        <h2 id="account-balance-heading">{% if eligibility.unpaid_cents %}Balance to settle{% else %}Payment awaiting
-            confirmation{% endif %}</h2>
+        <h2 id="account-balance-heading">{{ 'Balance to settle' if eligibility.unpaid_cents
+            else 'Payment awaiting confirmation' }}</h2>
         {% if eligibility.unpaid_cents %}
         <p>Your unpaid rental balance is <strong>€{{ '%.2f' | format(eligibility.unpaid_cents / 100) }}</strong>.
             Please settle it before starting a new rental.</p>
