@@ -463,3 +463,16 @@ After the manual check on 22 November, synthetic charge #84324 was changed from
 `failed` to `waived` at the author's request, without recording a payment. The
 account then had no unpaid or processing balance. On EC2 the notice disappeared,
 **Available 1** returned and Locker 4 became selectable again.
+
+### Separate test account — 22 November 2026
+
+The account `test.unistow@example.com` was given a synthetic EUR 1.00 unpaid
+charge for completed rental #52 on Locker 5. The reservation service rejected
+a new Locker 4 rental with `account_booking_restricted` (409), and no new
+rental was created. The home page and My rentals displayed **Balance to settle**;
+the Locker 4 booking page showed the balance notice without a reservation form.
+
+The author's main account had no unpaid or processing balance and remained
+eligible to book. This confirmed that a debt on Locker 5 blocks new rentals
+of other lockers for the same account, while another account remains free
+of that balance restriction.
