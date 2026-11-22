@@ -391,16 +391,25 @@ button.back-button {
 }
 
 .account-balance ul {
-    padding-left: 20px;
+    padding: 0;
+    list-style: none;
 }
 
 .account-balance li {
     margin: 12px 0;
 }
 
-.account-balance li span {
-    display: block;
-    color: var(--supporting);
+.account-balance li a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 8px 0;
+    font-weight: 600;
+}
+
+.account-balance li a:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 4px;
 }
 
 .account-balance a {

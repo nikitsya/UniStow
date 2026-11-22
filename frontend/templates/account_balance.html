@@ -13,12 +13,10 @@
         <p>€{{ '%.2f' | format(eligibility.processing_cents / 100) }} in rental payments is awaiting confirmation.
             New rentals are paused until your balance is confirmed as settled.</p>
         {% endif %}
-        <ul>
+        <ul role="list">
             {% for balance in eligibility.rentals %}
             <li>
                 <a href="{{ url_for('reservation', rental_id=balance.id) }}">Rental #{{ balance.id }} · Locker {{ balance.number }}</a>
-                {% if balance.unpaid_cents %}<span>€{{ '%.2f' | format(balance.unpaid_cents / 100) }} unpaid · View payment options</span>{% endif %}
-                {% if balance.processing_cents %}<span>€{{ '%.2f' | format(balance.processing_cents / 100) }} awaiting confirmation</span>{% endif %}
             </li>
             {% endfor %}
         </ul>
