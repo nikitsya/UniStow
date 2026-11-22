@@ -4,13 +4,14 @@
 {% set header_title %}My rental · Locker {{ rental.number }}{% endset %}
 {% block extra_head %}
 {{ super() }}
-<script defer src="{{ url_for('static', path='js/payment.js') }}?v=6"></script>
+<script defer src="{{ url_for('static', path='js/payment.js') }}?v=7"></script>
 <script defer src="{{ url_for('static', path='js/open_locker.js') }}?v=8"></script>
-<script defer src="{{ url_for('static', path='js/live.js') }}?v=11"></script>
+<script defer src="{{ url_for('static', path='js/live.js') }}?v=12"></script>
 <script defer src="{{ url_for('static', path='js/outstanding_payment.js') }}?v=1"></script>
 {% endblock %}
 {% block screen_content %}
 {% set collection_notice = 'Take all your belongings, then close the door to finish your rental.' %}
+{% include 'account_balance.html' %}
 <div data-collecting="{{ 1 if rental.collecting else 0 }}" data-door-state="{{ door_state }}"
      data-status="{{ rental.status }}" id="live-rental">
     <div class="rental-overview"><span class="detail-label">Reservation #{{ rental.id }}</span><span
@@ -26,7 +27,8 @@
         </div>
         <div>
             <dt>Payment</dt>
-            <dd>{% if billing.failed %}Payment incomplete{% elif billing.pending %}Payment processing{% else %}{{
+            <dd>{% if billing.unpaid %}Payment incomplete{% elif billing.pending or billing.recovery_pending %}Payment
+                processing{% else %}{{
                 {'paid': 'Paid', 'expired': 'Expired', 'pending': 'Awaiting payment'}.get(rental.payment_status, 'Not paid')
                 }}{% endif %}
             </dd>
@@ -48,16 +50,16 @@
             <dd>€{{ '%.2f' | format(billing.paid / 100) }}</dd>
         </div>
         {% endif %}
-        {% if billing.pending %}
+        {% if billing.pending or billing.recovery_pending %}
         <div>
             <dt>Extra days · processing</dt>
-            <dd>€{{ '%.2f' | format(billing.pending / 100) }}</dd>
+            <dd>€{{ '%.2f' | format((billing.pending + billing.recovery_pending) / 100) }}</dd>
         </div>
         {% endif %}
-        {% if billing.failed %}
+        {% if billing.unpaid %}
         <div>
             <dt>Extra days · unpaid</dt>
-            <dd>€{{ '%.2f' | format(billing.failed / 100) }}</dd>
+            <dd>€{{ '%.2f' | format(billing.unpaid / 100) }}</dd>
         </div>
         {% endif %}
         {% endif %}
@@ -67,9 +69,16 @@
     <div id="rental-actions">
         {% if rental.status == 'pending' %}
         <p class="operator-help" id="payment-message" role="status">Your rental starts after payment is confirmed.</p>
+        {% if not eligibility.can_book and rental.payment_status == 'pending' %}
+        <p class="operator-help">A checkout authorised before this balance appeared can still complete this rental.
+            Any confirmed payment for it will be honoured. You can also cancel this reservation.</p>
+        {% endif %}
         <button class="confirm-button" data-checkout-url="{{ url_for('checkout', rental_id=rental.id) }}"
                 data-login-url="{{ url_for('sign_in') }}?rental_id={{ rental.id }}"
                 data-reconcile-url="{{ url_for('reconcile', rental_id=rental.id) }}"
+                data-booking-blocked="{{ 'false' if eligibility.can_book else 'true' }}"
+                {{
+        'disabled' if not eligibility.can_book else '' }}
                 id="pay-button" type="button">Pay €{{ '%.2f' |
             format(rental.total_price_cents / 100) }}
         </button>
@@ -91,9 +100,9 @@
 
         {% elif rental.status in ('active', 'overdue') %}
         <p class="confirmation" data-collection-notice="{{ collection_notice }}" id="active-rental-notice"
-           role="status">{% if rental.collecting %}{{ collection_notice }}{% elif billing.failed %}Your extra-day
+           role="status">{% if rental.collecting %}{{ collection_notice }}{% elif billing.unpaid %}Your extra-day
             payment didn’t go through. Please pay the remaining
-            €{{ '%.2f' | format(billing.failed / 100) }}. You can still finish your rental to stop further charges.{%
+            €{{ '%.2f' | format(billing.unpaid / 100) }}. You can still finish your rental to stop further charges.{%
             elif not device_online %}Your locker is
             temporarily unavailable. Please try again shortly or contact locker support.{% elif
             door_state == 'open' %}Your locker door is
@@ -102,9 +111,9 @@
             not can_open %}Please wait until the
             locker is ready.{% endif %}</p>
         {% elif rental.status == 'completed' %}
-        <p class="confirmation" id="completed-rental-notice">{% if billing.failed %}Your rental has ended. Please pay
+        <p class="confirmation" id="completed-rental-notice">{% if billing.unpaid %}Your rental has ended. Please pay
             the
-            remaining €{{ '%.2f' | format(billing.failed / 100) }} for extra days.{% else %}Rental completed. Thank you
+            remaining €{{ '%.2f' | format(billing.unpaid / 100) }} for extra days.{% else %}Rental completed. Thank you
             for collecting your belongings.{% endif %}</p>
         {% elif rental.status == 'cancelled' %}
         <p class="confirmation">This reservation has been cancelled. You can choose an available locker again.</p>
@@ -115,7 +124,8 @@
                 data-reconcile-url="{{ url_for('outstanding_reconcile', rental_id=rental.id) }}"
                 id="pay-outstanding-button"
                 type="button">
-            Pay outstanding €{{ '%.2f' | format(billing.checkout_amount / 100) }}
+            {{ 'Continue payment' if billing.recovery_pending else 'Pay outstanding' }} €{{ '%.2f' |
+            format(billing.checkout_amount / 100) }}
         </button>
         {% endif %}
         {% if rental.status in ('active', 'overdue') and rental.payment_status == 'paid' and rental.number == 4 %}

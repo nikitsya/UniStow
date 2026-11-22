@@ -5,6 +5,8 @@ from fastapi import HTTPException
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from services.booking_eligibility import require_booking_eligibility
+
 IRELAND = ZoneInfo("Europe/Dublin")
 TERMS_VERSION = "2026-10-25"
 PAYMENT_METHOD_TERMS_VERSION = "2026-11-09"
@@ -19,6 +21,7 @@ def rental_end(starts_at: datetime, days: int) -> datetime:
 
 
 def reserve_locker(db: Session, user_id: int, locker_id: int, days: int, payment_method_consent: bool = False):
+    require_booking_eligibility(db, user_id)
     # Lock the locker row so simultaneous requests cannot both reserve it.
     locker = db.execute(text("""
                              SELECT id, is_enabled, price_per_day_cents, last_seen_at

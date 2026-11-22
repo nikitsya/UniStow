@@ -129,6 +129,13 @@ The [deployed Raspberry Pi](hardware/README.md) connects to EC2 independently of
 
 ## Stripe testing
 
+New reservations and initial checkout requests are paused while the account has
+an unpaid extra-day balance or a payment awaiting confirmation. My rentals lists
+every affected rental, including older completed rentals, with payment and support
+links. Existing paid access and collection remain available under their normal
+checks. See the [balance restriction rules](docs/database.md#booking-with-an-outstanding-balance)
+and apply migration 005 before running this version on an existing database.
+
 Set `STRIPE_SECRET_KEY` to a sandbox key beginning with `sk_test_` in `.env`.
 Set `APP_BASE_URL` to the browser address used for checkout; the default is
 `http://127.0.0.1:8000`. Install Stripe CLI, then run from `backend/`:

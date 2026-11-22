@@ -8,6 +8,7 @@ from fastapi import HTTPException
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from services.booking_eligibility import require_booking_eligibility
 from services.rentals import PAYMENT_METHOD_TERMS_VERSION
 
 
@@ -78,6 +79,7 @@ def create_checkout(db: Session, rental_id: int, user_id: int):
     client = stripe_client()
     rental = owned_rental(db, rental_id, user_id)
     # Use the same lock order as reservation creation.
+    require_booking_eligibility(db, user_id)
     db.execute(text("SELECT id FROM lockers WHERE id = :id FOR UPDATE"), {"id": rental["locker_id"]})
     rental = owned_rental(db, rental_id, user_id)
     if rental["status"] != "pending":

@@ -8,6 +8,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 import test_commands
+from services.booking_eligibility import booking_eligibility
 from services.overdue_payments import apply_recovery, create_outstanding_checkout, reconcile_outstanding
 
 
@@ -60,13 +61,24 @@ class OutstandingPaymentTests(unittest.TestCase):
                        'currency': 'eur', 'amount_received': 100, 'metadata': self.checkout['metadata']}
 
     def test_repeated_clicks_reuse_checkout_and_paid_events_are_idempotent(self):
+        self.assertEqual(booking_eligibility(self.db, 1)['unpaid_cents'], 100)
         first = create_outstanding_checkout(self.db, self.rental_id, 1)
+        eligibility = booking_eligibility(self.db, 1)
+        self.assertEqual((eligibility['unpaid_cents'], eligibility['processing_cents']), (0, 100))
+        self.assertFalse(eligibility['can_book'])
         self.assertEqual(create_outstanding_checkout(self.db, self.rental_id, 1), first)
         self.client_stripe.v1.checkout.sessions.create.assert_called_once()
         self.client_stripe.v1.payment_intents.cancel.assert_called_once()
         self.pay()
         apply_recovery(self.db, self.checkout)
         apply_recovery(self.db, self.checkout)
+        apply_recovery(self.db, self.checkout | {'status': 'expired', 'payment_status': 'unpaid'})
+        self.assertTrue(booking_eligibility(self.db, 1)['can_book'])
+        for _ in range(2):
+            self.client.cookies.clear()
+            self.client.cookies.set('unistow_session', 'session-1')
+            self.assertNotIn('Balance to settle', self.client.get('/rentals').text)
+            self.assertIn('id="rental-form"', self.client.get('/lockers/2/rent').text)
         self.assertEqual(self.db.scalar(text('SELECT status FROM overdue_charges')), 'paid')
         self.assertEqual(self.db.scalar(text('SELECT status FROM overdue_payments')), 'paid')
         self.assertEqual(self.db.scalar(text('SELECT stripe_payment_intent_id FROM overdue_charges')), 'pi_declined')
@@ -118,6 +130,7 @@ class OutstandingPaymentTests(unittest.TestCase):
         create_outstanding_checkout(self.db, self.rental_id, 1)
         self.assertEqual(self.client.get(f'/rentals/{self.rental_id}?outstanding_returned=1').status_code, 200)
         self.assertEqual(self.db.scalar(text('SELECT status FROM overdue_charges')), 'failed')
+        self.assertFalse(booking_eligibility(self.db, 1)['can_book'])
 
     def test_unpaid_expiry_preserves_debt_and_allows_another_checkout(self):
         create_outstanding_checkout(self.db, self.rental_id, 1)
@@ -143,10 +156,12 @@ class OutstandingPaymentTests(unittest.TestCase):
                                      VALUES (:id, CURRENT_DATE + 1, 'failed')
                                      """), {'id': self.rental_id})
         page = self.client.get(f'/rentals/{self.rental_id}').text
-        self.assertIn('Pay outstanding €1.00', page)
+        self.assertIn('Continue payment €1.00', page)
         self.pay()
         apply_recovery(self.db, self.checkout)
         self.assertEqual(self.db.scalar(text("SELECT count(*) FROM overdue_charges WHERE status='failed'")), 1)
+        self.assertEqual(booking_eligibility(self.db, 1)['unpaid_cents'], 100)
+        self.assertFalse(booking_eligibility(self.db, 1)['can_book'])
 
     def test_unknown_checkout_creation_reuses_the_durable_request(self):
         import stripe
@@ -165,6 +180,40 @@ class OutstandingPaymentTests(unittest.TestCase):
         self.assertEqual(self.client_stripe.v1.checkout.sessions.create.call_args.kwargs['options']['idempotency_key'],
                          saved[0])
         self.assertEqual(self.db.scalar(text('SELECT count(*) FROM overdue_payments')), 1)
+
+    def test_settlement_leaves_another_rentals_balance_restricted(self):
+        other = self.connection.scalar(text("""
+                                            INSERT INTO rentals(user_id, locker_id, status, prepaid_days,
+                                                                reserved_until, starts_at,
+                                                                paid_until, total_price_cents, overdue_terms_version,
+                                                                overdue_terms_accepted_at, created_at, completed_at)
+                                            SELECT user_id,
+                                                   locker_id,
+                                                   'completed',
+                                                   prepaid_days,
+                                                   reserved_until,
+                                                   starts_at,
+                                                   paid_until,
+                                                   total_price_cents,
+                                                   overdue_terms_version,
+                                                   overdue_terms_accepted_at,
+                                                   created_at,
+                                                   clock_timestamp()
+                                            FROM rentals
+                                            WHERE id = :id
+                                            RETURNING id
+                                            """), {'id': self.rental_id})
+        self.connection.execute(text("""
+                                     INSERT INTO overdue_charges(rental_id, charge_date, status)
+                                     VALUES (:id, CURRENT_DATE, 'failed')
+                                     """), {'id': other})
+        create_outstanding_checkout(self.db, self.rental_id, 1)
+        self.pay()
+        apply_recovery(self.db, self.checkout)
+        eligibility = booking_eligibility(self.db, 1)
+        self.assertFalse(eligibility['can_book'])
+        self.assertEqual(eligibility['unpaid_cents'], 100)
+        self.assertEqual([r['id'] for r in eligibility['rentals']], [other])
 
     def test_recovery_webhook_routes_to_outstanding_payment(self):
         from services.payment_confirmation import process_event

@@ -94,6 +94,7 @@
             }
             failures = 0;
             updateAvailability(false);
+            replaceIfChanged('#account-booking-notice', fresh);
             const rental = document.querySelector('#live-rental');
             if (rental) {
                 const next = fresh.querySelector('#live-rental');
@@ -102,6 +103,7 @@
                     replaceIfChanged(`#live-rental ${selector}`, fresh);
                 }
                 const actionsChanged = rental.dataset.status !== next.dataset.status
+                    || document.querySelector('#pay-button')?.dataset.bookingBlocked !== next.querySelector('#pay-button')?.dataset.bookingBlocked
                     || document.querySelector('#pay-outstanding-button')?.textContent !== next.querySelector('#pay-outstanding-button')?.textContent
                     || Boolean(document.querySelector('#pay-button')) !== Boolean(next.querySelector('#pay-button'))
                     || Boolean(document.querySelector('#open-locker-button')) !== Boolean(next.querySelector('#open-locker-button'));

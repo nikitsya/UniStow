@@ -33,7 +33,8 @@ window.initialisePayment = function () {
             paymentMessage.textContent = 'Refresh the page to check whether your reservation was cancelled.';
         } finally {
             window.paymentBusy = false;
-            payButton.disabled = cancelButton.disabled = Boolean(window.rentalUnavailable);
+            cancelButton.disabled = Boolean(window.rentalUnavailable);
+            payButton.disabled = cancelButton.disabled || payButton.dataset.bookingBlocked === 'true';
         }
     });
     payButton.addEventListener('click', async () => {
@@ -51,6 +52,12 @@ window.initialisePayment = function () {
             }
             const result = await response.json();
             if (!response.ok) {
+                if (result.detail?.code === 'account_booking_restricted') {
+                    payButton.dataset.bookingBlocked = 'true';
+                    paymentMessage.textContent = result.detail.message;
+                    document.dispatchEvent(new Event('rental-updated'));
+                    return;
+                }
                 paymentMessage.textContent = 'We couldn’t open payment. Please try again shortly.';
                 return;
             }
@@ -59,7 +66,8 @@ window.initialisePayment = function () {
             paymentMessage.textContent = 'Could not connect to checkout. Please retry this reservation.';
         } finally {
             window.paymentBusy = false;
-            payButton.disabled = cancelButton.disabled = Boolean(window.rentalUnavailable);
+            cancelButton.disabled = Boolean(window.rentalUnavailable);
+            payButton.disabled = cancelButton.disabled || payButton.dataset.bookingBlocked === 'true';
         }
     });
 

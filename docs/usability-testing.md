@@ -373,3 +373,45 @@ Only an outstanding payment has a separate actionable link. Existing completed
 rental detail URLs no longer display the door state, and rental details link back
 to My rentals. Future email confirmations will complement these references;
 they do not remove the need to identify a recent rental on the website.
+
+## 22 November 2026 — Unpaid-balance restriction
+
+The author supplied these two narrow-screen captures while reviewing the local
+preview for issue #19. The preview uses synthetic rental records and has Stripe
+calls disabled. The screenshots show the account notice and the payment section
+of the same Locker 4 rental page.
+
+### Account balance and next steps
+
+The notice shows **Balance to settle** with EUR 1.00 unpaid for rental #1 and
+another EUR 1.00 awaiting confirmation for rental #3. Each entry has its own
+rental reference and link. The wording explains that new rentals are paused,
+that each payment covers its stated rental amount, and that existing paid
+access and collection remain subject to their normal checks. A support link
+provides a route for an incorrect balance or an unconfirmed payment.
+
+![Account notice showing EUR 1.00 unpaid, EUR 1.00 awaiting confirmation and links to the affected rentals and support](images/testing/unpaid-balance-account-notice.png)
+
+### Rental cost and recovery action
+
+The lower section shows **Payment incomplete**, an original rental cost of
+EUR 1.00, **Extra days · unpaid EUR 1.00** and **Total EUR 2.00**. This total
+belongs to rental #1; the amount awaiting confirmation for rental #3 is listed
+separately in the account notice. The page retains **Pay outstanding EUR 1.00**
+and explains that finishing the rental stops further daily charges.
+
+![Rental payment summary with an unpaid extra day, Pay outstanding EUR 1.00 and unavailable locker controls](images/testing/unpaid-balance-rental-payment.png)
+
+The preview has no fresh controller readings, so **Door** is **Unknown** and
+both **Open locker** and **Finish rental** are disabled. These captures record
+the displayed guidance and payment options. They do not verify physical
+collection, a successful Stripe payment or the automatic overdue transition;
+the sample record retains an Active label alongside its past deadline.
+
+Separate local checks passed all 112 backend tests with PostgreSQL and mocked
+Stripe responses, including direct booking and checkout rejection, older
+balances, partial settlement, concurrent requests and preserved collection
+access with a ready controller. A browser check of a pending reservation also
+confirmed that settling all preview balances removed the notice and enabled
+its payment button without signing in again. End-to-end verification on the
+deployed site with Stripe and the physical locker remains a separate check.

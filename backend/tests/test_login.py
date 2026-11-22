@@ -17,6 +17,11 @@ class LoginTests(unittest.TestCase):
 
     def setUp(self):
         test_registration.RegistrationTests.setUp(self)
+        eligibility = patch('routes.pages.booking_eligibility', return_value={
+            'can_book': True, 'unpaid_cents': 0, 'processing_cents': 0, 'rentals': [],
+        })
+        eligibility.start()
+        self.addCleanup(eligibility.stop)
         with self.engine.begin() as connection:
             connection.execute(text("""
                                     CREATE TABLE sessions

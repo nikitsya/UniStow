@@ -171,7 +171,7 @@ class OverdueBillingTests(unittest.TestCase):
         calls = self.client.v1.payment_intents.create.call_count
         self.run_pass()
         self.assertEqual(self.client.v1.payment_intents.create.call_count, calls)
-        self.assertTrue(all(r['status'] == 'failed' for r in self.rows()))
+        self.assertTrue(all(r['status'] == 'review' for r in self.rows()))
 
     def test_completion_between_creation_and_confirmation_stops_charge(self):
         def complete(params, options):
@@ -230,7 +230,7 @@ class OverdueBillingTests(unittest.TestCase):
         self.client.v1.payment_intents.create.side_effect = invalid
         self.run_pass()
         self.assertEqual(self.collected, 0)
-        self.assertTrue(all(r['status'] == 'failed' for r in self.rows()))
+        self.assertTrue(all(r['status'] == 'review' for r in self.rows()))
 
     def test_catches_up_missed_days_without_duplicates(self):
         start = datetime.now(IRELAND).replace(hour=12, minute=0, second=0, microsecond=0) - timedelta(days=4)
