@@ -421,6 +421,8 @@ a.home-locker:active {
     .home-content {
         padding-left: 48px;
         padding-right: 48px;
+        max-width: 640px;
+        margin: 0 auto;
     }
 
     .home-content > #account-booking-notice:has(.account-balance) {
@@ -457,8 +459,8 @@ a.home-locker:active {
     }
 
     .home-content {
-        padding-left: 16px;
-        padding-right: 16px;
+        padding-left: 20px;
+        padding-right: 20px;
     }
 
     .home-locker-grid {
