@@ -8,11 +8,14 @@ if (logoutButton) {
             const response = await fetch('/api/logout', {
                 method: 'POST', headers: {'X-UniStow-Request': '1'},
             });
-            if (!response.ok) throw new Error('Sign-out failed');
-            window.location.reload();
+            if (response.ok) {
+                window.location.reload();
+                return;
+            }
         } catch {
-            message.textContent = 'Could not sign out. Please try again.';
-            logoutButton.disabled = false;
+            // Network failures use the same feedback as unsuccessful responses.
         }
+        message.textContent = 'Could not sign out. Please try again.';
+        logoutButton.disabled = false;
     });
 }
