@@ -27,7 +27,7 @@ window.initialisePayment = function () {
                 window.location.reload();
                 return;
             }
-            const result = await response.json();
+            await response.json();
             paymentMessage.textContent = 'We couldn’t cancel your reservation. Please try again shortly.';
         } catch {
             paymentMessage.textContent = 'Refresh the page to check whether your reservation was cancelled.';
