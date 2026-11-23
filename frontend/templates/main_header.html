@@ -5,15 +5,15 @@
     <a aria-label="{{ header_back_label | default('Back to lockers') }}" class="account-menu header-account"
        href="{{ header_back_url | default(url_for('home')) }}">
         <svg aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24">
-            <path d="m14 6-6 6 6 6M8 12h12"/>
+            <path d="m14 6-6 6 6 6M8 12h12"></path>
         </svg>
     </a>
     {% else %}
     <details class="account-menu" id="account">
         <summary aria-label="Your account" class="header-account">
             <svg aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24">
-                <circle cx="12" cy="8" r="3.5"/>
-                <path d="M5 21v-3a7 7 0 0 1 14 0v3"/>
+                <circle cx="12" cy="8" r="3.5"></circle>
+                <path d="M5 21v-3a7 7 0 0 1 14 0v3"></path>
             </svg>
         </summary>
         <div aria-labelledby="account-heading" class="account-dropdown">
