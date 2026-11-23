@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Annotated
 from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import text
@@ -73,8 +73,8 @@ def my_rentals(request: Request, db: Annotated[Session, Depends(get_db)]):
     completed_ids = {r["id"] for r in completed}
     current = current_rentals(db, user)
     outstanding_ids = {r["id"] for r in current if r["status"] == "completed"}
-    for rental in completed:
-        rental["has_outstanding"] = rental["id"] in outstanding_ids
+    for completed_rental in completed:
+        completed_rental["has_outstanding"] = completed_rental["id"] in outstanding_ids
     reservations = [r for r in current if r["id"] not in completed_ids]
     return templates.TemplateResponse(
         request, "rentals/my_rentals.html", {"title": "My rentals | UniStow", "user": user,
@@ -85,7 +85,7 @@ def my_rentals(request: Request, db: Annotated[Session, Depends(get_db)]):
 
 @router.get("/contact")
 def contact(request: Request, db: Annotated[Session, Depends(get_db)]):
-    context = {"title": "Contact | UniStow"}
+    context: dict[str, object] = {"title": "Contact | UniStow"}
     try:
         context["user"] = current_user(db, request)
     except SQLAlchemyError:
@@ -102,10 +102,10 @@ def registration(request: Request):
 
 @router.get("/login")
 def sign_in(request: Request, locker_id: int | None = None, rental_id: int | None = None,
-            my_rentals: bool = False):
+            show_rentals: Annotated[bool, Query(alias="my_rentals")] = False):
     destination = (f"/rentals/{rental_id}" if rental_id is not None else
                    f"/lockers/{locker_id}/rent" if locker_id is not None else
-                   "/rentals" if my_rentals else "/")
+                   "/rentals" if show_rentals else "/")
     return templates.TemplateResponse(
         request, "account/login.html", {"title": "Sign in | UniStow", "destination": destination}
     )
@@ -116,7 +116,7 @@ def reservation(request: Request, rental_id: int, db: Annotated[Session, Depends
     user = current_user(db, request)
     if user is None:
         return RedirectResponse(f"/login?rental_id={rental_id}", status_code=303)
-    rental = owned_rental(db, rental_id, user["id"])
+    owned = owned_rental(db, rental_id, user["id"])
     charges = db.execute(text("""
                               SELECT status, COALESCE(SUM(amount_cents), 0) AS amount
                               FROM overdue_charges
@@ -130,39 +130,39 @@ def reservation(request: Request, rental_id: int, db: Annotated[Session, Depends
         "pending": additional.get("pending", 0) + additional.get("review", 0),
         "failed": additional.get("failed", 0),
         "additional": sum(additional.values()),
-        "total": rental["total_price_cents"] + sum(additional.values()),
-    }
-    billing["recovery_pending"] = db.scalar(text("""
+        "total": owned["total_price_cents"] + sum(additional.values()),
+        "recovery_pending": db.scalar(text("""
                                                  SELECT amount_cents
                                                  FROM overdue_payments
                                                  WHERE rental_id = :id
                                                    AND status = 'pending'
-                                                 """), {"id": rental_id}) or 0
+                                                 """), {"id": rental_id}) or 0,
+    }
     billing["checkout_amount"] = billing["recovery_pending"] or billing["failed"]
     billing["unpaid"] = max(0, billing["failed"] - billing["recovery_pending"])
-    ends_at = rental["paid_until"].astimezone(ZoneInfo("Europe/Dublin"))
-    last_seen = rental.get("last_seen_at")
+    ends_at = owned["paid_until"].astimezone(ZoneInfo("Europe/Dublin"))
+    last_seen = owned.get("last_seen_at")
     device_online = last_seen is not None and 0 <= (
             datetime.now(timezone.utc) - last_seen
     ).total_seconds() < 15
-    door_state = rental.get("door_state") if device_online else "unknown"
+    door_state = owned.get("door_state") if device_online else "unknown"
     events = getattr(request.app.state, "door_events", None)
-    if rental["number"] == 4 and events is not None:
+    if owned["number"] == 4 and events is not None:
         door_state = events.latest(last_seen) or door_state
     open_test = getattr(request.app.state, "open_test_client", None) is not None
-    controller_ready = device_online and rental.get("device_ready", False) and rental.get("door_state") in ("open",
+    controller_ready = device_online and owned.get("device_ready", False) and owned.get("door_state") in ("open",
                                                                                                             "closed")
     physical = getattr(request.app.state, "open_client", None) is not None
-    open_ready = bool(events.ready_controller()) if physical else controller_ready
+    open_ready = (events is not None and bool(events.ready_controller())) if physical else controller_ready
     return templates.TemplateResponse(request, "rentals/reservation.html", {
         "open_test": open_test, "http_ready": controller_ready,
-        "title": "My rental | UniStow", "rental": rental, "billing": billing,
+        "title": "My rental | UniStow", "rental": owned, "billing": billing,
         "eligibility": booking_eligibility(db, user['id']),
         "ends_at": ends_at.strftime("%d %B %Y at %H:%M"),
         "door_state": door_state, "device_online": device_online,
-        "can_open": (rental["number"] == 4 and rental["status"] == "active"
-                     and rental.get("payment_status") == "paid"
-                     and rental["paid_until"] > datetime.now(timezone.utc)
+        "can_open": (owned["number"] == 4 and owned["status"] == "active"
+                     and owned.get("payment_status") == "paid"
+                     and owned["paid_until"] > datetime.now(timezone.utc)
                      and (open_test or open_ready)),
     })
 
