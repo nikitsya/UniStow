@@ -6,6 +6,24 @@
 <script defer src="{{ url_for('static', path='js/live.js') }}?v=12"></script>
 {% endblock %}
 {% block content %}
+{% macro locker_content(locker, own_rental, can_rent) %}
+<span aria-hidden="true" class="door-vents"></span>
+<span aria-hidden="true" class="door-handle"></span>
+<div class="locker-label">
+    <h3>{{ locker.name }}</h3>
+    <span>{{ locker.size }}</span>
+</div>
+<p class="home-price">€{{ '%.2f' | format(locker.price_per_day_cents / 100) }}<span> / day</span></p>
+<span class="home-status">
+    {% if own_rental %}
+    Continue rental <span aria-hidden="true">{% include 'rental_arrow.svg' %}</span>
+    {% elif can_rent %}
+    <span class="small-dot"></span>Available <span aria-hidden="true">{% include 'rental_arrow.svg' %}</span>
+    {% else %}
+    Unavailable
+    {% endif %}
+</span>
+{% endmacro %}
 {% set available = (lockers | selectattr('status', 'equalto', 'available') | list) if eligibility.can_book else [] %}
 <div class="home-content">
     {% include 'account_balance.html' %}
@@ -25,33 +43,25 @@
                 {% if own_rental %}
                 <a aria-label="Continue rental for {{ locker.name }}" class="home-locker is-owned"
                    href="{{ url_for('reservation', rental_id=own_rental.id) }}">
-                    {% elif can_rent %}
-                    <a aria-label="Rent {{ locker.name }}, {{ locker.size }}, €{{ '%.2f' | format(locker.price_per_day_cents / 100) }} per day"
-                       class="home-locker is-available"
-                       href="{{ url_for('rental', locker_id=locker.id) }}">
-                        {% else %}
-                        <div aria-disabled="true" class="home-locker">
-                            {% endif %}
-                            <span aria-hidden="true" class="door-vents"></span><span aria-hidden="true"
-                                                                                     class="door-handle"></span>
-                            <div class="locker-label"><h3>{{ locker.name }}</h3><span>{{ locker.size }}</span></div>
-                            <p class="home-price">€{{ '%.2f' | format(locker.price_per_day_cents / 100)
-                                }}<span> / day</span></p>
-                            <span class="home-status">{% if own_rental %}Continue rental <span
-                                    aria-hidden="true">{% include 'rental_arrow.svg' %}</span>{% elif can_rent %}<span
-                                    class="small-dot"></span>Available <span
-                                    aria-hidden="true">{% include 'rental_arrow.svg' %}</span>{% else %}Unavailable{% endif %}</span>
-                            {% if own_rental or can_rent %}
-                    </a>{% else %}
-</div>{% endif %}
-</li>
-{% else %}
-<li class="grid-empty">No lockers are listed yet.</li>
-{% endfor %}
-</ul>
-<p class="filter-empty" hidden role="status">No lockers are available right now.</p>
-</section>
-
-
+                    {{ locker_content(locker, own_rental, can_rent) }}
+                </a>
+                {% elif can_rent %}
+                <a aria-label="Rent {{ locker.name }}, {{ locker.size }}, €{{ '%.2f' | format(locker.price_per_day_cents / 100) }} per day"
+                   class="home-locker is-available"
+                   href="{{ url_for('rental', locker_id=locker.id) }}">
+                    {{ locker_content(locker, own_rental, can_rent) }}
+                </a>
+                {% else %}
+                <div aria-disabled="true" class="home-locker">
+                    {{ locker_content(locker, own_rental, can_rent) }}
+                </div>
+                {% endif %}
+            </li>
+            {% else %}
+            <li class="grid-empty">No lockers are listed yet.</li>
+            {% endfor %}
+        </ul>
+        <p class="filter-empty" hidden role="status">No lockers are available right now.</p>
+    </section>
 </div>
 {% endblock %}
