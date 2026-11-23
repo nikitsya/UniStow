@@ -26,7 +26,7 @@
                     <button class="home-text-link" id="logout-button" type="button">Sign out <span
                             aria-hidden="true">→</span>
                     </button>
-                    <script defer src="{{ url_for('static', path='js/logout.js') }}"></script>
+                    <script defer src="{{ url_for('static', path='js/account/logout.js') }}"></script>
                 {% else %}
                     <p class="section-note">Create an account to rent a locker.</p>
                     <div class="home-account-actions"><a class="home-primary" href="{{ url_for('registration') }}">Create

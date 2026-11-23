@@ -4,10 +4,10 @@
 {% set header_title %}My rental · Locker {{ rental.number }}{% endset %}
 {% block extra_head %}
     {{ super() }}
-    <script defer src="{{ url_for('static', path='js/payment.js') }}?v=7"></script>
-    <script defer src="{{ url_for('static', path='js/open_locker.js') }}?v=8"></script>
-    <script defer src="{{ url_for('static', path='js/live.js') }}?v=12"></script>
-    <script defer src="{{ url_for('static', path='js/outstanding_payment.js') }}?v=1"></script>
+    <script defer src="{{ url_for('static', path='js/rentals/payment.js') }}?v=7"></script>
+    <script defer src="{{ url_for('static', path='js/rentals/open_locker.js') }}?v=8"></script>
+    <script defer src="{{ url_for('static', path='js/shared/live.js') }}?v=12"></script>
+    <script defer src="{{ url_for('static', path='js/rentals/outstanding_payment.js') }}?v=1"></script>
 {% endblock %}
 {% block screen_content %}
     {% set collection_notice = 'Take all your belongings, then close the door to finish your rental.' %}
@@ -111,7 +111,7 @@
                         €{{ '%.2f' | format(billing.unpaid / 100) }}. You can still finish your rental to stop further
                         charges.{% elif not device_online %}Your locker is
                         temporarily unavailable. Please try again shortly or contact locker
-                        support.{% elifdoor_state == 'open' %}Your locker door is
+                        support.{% elif door_state == 'open' %}Your locker door is
                         open.{% elif rental.status == 'overdue' %}Your paid rental period has ended.
                         Finish your rental to stop daily charges.{% elif rental.number == 4 and rental.payment_status == 'paid' and
             not can_open %}Please wait until the

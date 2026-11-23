@@ -2,8 +2,8 @@
 {% set active_tab = 'lockers' %}
 {% block body_class %}home-page{% endblock %}
 {% block extra_head %}
-    <script defer src="{{ url_for('static', path='js/home.js') }}?v=5"></script>
-    <script defer src="{{ url_for('static', path='js/live.js') }}?v=12"></script>
+    <script defer src="{{ url_for('static', path='js/lockers/home.js') }}?v=5"></script>
+    <script defer src="{{ url_for('static', path='js/shared/live.js') }}?v=12"></script>
 {% endblock %}
 {% block content %}
     {% macro locker_content(locker, own_rental, can_rent) %}

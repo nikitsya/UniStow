@@ -90,7 +90,7 @@ class LoginTests(unittest.TestCase):
         response = self.client.get('/login')
         self.assertEqual(response.status_code, 200)
         self.assertIn('autocomplete="current-password"', response.text)
-        self.assertEqual(self.client.get('/static/js/login.js').status_code, 200)
+        self.assertEqual(self.client.get('/static/js/account/login.js').status_code, 200)
 
     def test_rental_requires_valid_session(self):
         path = '/lockers/4/rent'
