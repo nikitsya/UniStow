@@ -64,104 +64,108 @@
         if (activeNotice) activeNotice.hidden = Boolean(message);
     }
 
+    async function updatePage() {
+        if (document.querySelector('#pay-button, #pay-outstanding-button') && !window.paymentBusy
+            && Date.now() - lastPaymentCheck > 10000) {
+            lastPaymentCheck = Date.now();
+            await window.checkRentalPayment?.();
+            await window.checkOutstandingPayment?.();
+        }
+        const fetchingDuringCommand = window.lockerBusy;
+        const commandAtFetch = window.lockerCooldown;
+        const response = await fetch(window.location.href, {
+            cache: 'no-store', signal: AbortSignal.timeout(8000),
+        });
+        if (response.redirected && new URL(response.url).pathname === '/login') {
+            window.location.assign(response.url);
+            return;
+        }
+        if (!response.ok) throw new Error('Update unavailable');
+        const fresh = parser.parseFromString(await response.text(), 'text/html');
+        const pageSection = document.querySelector('#live-rental, .home-locker-grid, #live-rentals-list');
+        const expected = pageSection?.id ? '#' + pageSection.id : '.home-locker-grid';
+        if (!fresh.querySelector(expected)) {
+            throw new Error('Page unavailable');
+        }
+        failures = 0;
+        updateAvailability(false);
+        replaceIfChanged('#account-booking-notice', fresh);
+        const rental = document.querySelector('#live-rental');
+        if (rental) {
+            const next = fresh.querySelector('#live-rental');
+            if (!next) throw new Error('Rental unavailable');
+            for (const selector of ['.rental-overview', '.rental-facts', '.total']) {
+                replaceIfChanged(`#live-rental ${selector}`, fresh);
+            }
+            const actionsChanged = rental.dataset.status !== next.dataset.status
+                || document.querySelector('#pay-button')?.dataset.bookingBlocked !== next.querySelector('#pay-button')?.dataset.bookingBlocked
+                || document.querySelector('#pay-outstanding-button')?.textContent !== next.querySelector('#pay-outstanding-button')?.textContent
+                || Boolean(document.querySelector('#pay-button')) !== Boolean(next.querySelector('#pay-button'))
+                || Boolean(document.querySelector('#open-locker-button')) !== Boolean(next.querySelector('#open-locker-button'));
+            if (actionsChanged && !window.paymentBusy && !window.lockerBusy) {
+                const justPaid = rental.dataset.status === 'pending' && next.dataset.status === 'active';
+                document.querySelector('#finish-dialog')?.close();
+                replaceIfChanged('#rental-actions', fresh);
+                rental.dataset.status = next.dataset.status;
+                if (justPaid) showPaymentConfirmation();
+                window.initialisePayment();
+                window.initialiseOutstandingPayment?.();
+                window.initialiseLockerActions();
+            }
+            const doorState = next.dataset.doorState;
+            if (doorState !== 'closed' || !next.querySelector('#open-locker-button')?.disabled) {
+                relockGraceUntil = 0;
+            } else if (rental.dataset.doorState === 'open') {
+                relockGraceUntil = Date.now() + 10000;
+            }
+            rental.dataset.doorState = doorState;
+            const cooldown = window.lockerBusy || Date.now() < (window.lockerCooldown || 0);
+            for (const id of ['open-locker-button', 'finish-rental-button']) {
+                const button = document.getElementById(id);
+                const updated = next.querySelector(`#${id}`);
+                if (button && updated) button.disabled = cooldown || updated.disabled;
+            }
+            const notice = document.querySelector('#active-rental-notice');
+            const updatedNotice = next.querySelector('#active-rental-notice');
+            if (notice && updatedNotice && !window.paymentBusy && !fetchingDuringCommand && !window.lockerBusy && commandAtFetch === window.lockerCooldown) {
+                const collecting = next.dataset.collecting === '1';
+                if (doorState === 'open' || collecting) delete notice.dataset.uncertain;
+                const keepCommand = notice.dataset.uncertain
+                    || (notice.dataset.commandMessage && cooldown && doorState !== 'open' && !collecting);
+                if (!keepCommand && Date.now() >= Number(notice.dataset.paymentMessageUntil || 0)) {
+                    delete notice.dataset.commandMessage;
+                    notice.classList.remove('unlock-warning');
+                    const message = Date.now() < relockGraceUntil && !collecting
+                        ? 'Securing your locker…' : updatedNotice.textContent;
+                    const keepConfirmation = !message.trim() && notice.textContent === paymentConfirmation;
+                    if (!keepConfirmation && notice.textContent !== message) notice.textContent = message;
+                }
+            }
+            const finish = document.querySelector('#finish-rental-button');
+            const confirm = document.querySelector('#confirm-finish');
+            if (finish && confirm) confirm.disabled = finish.disabled;
+        } else if (document.querySelector('.home-locker-grid')) {
+            if (!fresh.querySelector('.home-locker-grid')) throw new Error('Lockers unavailable');
+            replaceIfChanged('.home-locker-grid', fresh);
+            for (const filter of ['all', 'available']) {
+                const selector = `[data-filter="${filter}"] span`;
+                replaceIfChanged(selector, fresh);
+            }
+            document.querySelector('.home-locker-grid').inert = false;
+            window.updateLockerFilter();
+        } else {
+            if (!fresh.querySelector('#live-rentals-list')) throw new Error('Rentals unavailable');
+            replaceIfChanged('#live-rentals-list', fresh);
+        }
+    }
+
     async function refresh() {
         clearTimeout(timer);
         if (running) return;
         if (document.hidden) return;
         running = true;
         try {
-            if (document.querySelector('#pay-button, #pay-outstanding-button') && !window.paymentBusy
-                && Date.now() - lastPaymentCheck > 10000) {
-                lastPaymentCheck = Date.now();
-                await window.checkRentalPayment?.();
-                await window.checkOutstandingPayment?.();
-            }
-            const fetchingDuringCommand = window.lockerBusy;
-            const commandAtFetch = window.lockerCooldown;
-            const response = await fetch(window.location.href, {
-                cache: 'no-store', signal: AbortSignal.timeout(8000),
-            });
-            if (response.redirected && new URL(response.url).pathname === '/login') {
-                window.location.assign(response.url);
-                return;
-            }
-            if (!response.ok) throw new Error('Update unavailable');
-            const fresh = parser.parseFromString(await response.text(), 'text/html');
-            const pageSection = document.querySelector('#live-rental, .home-locker-grid, #live-rentals-list');
-            const expected = pageSection?.id ? '#' + pageSection.id : '.home-locker-grid';
-            if (!fresh.querySelector(expected)) {
-                throw new Error('Page unavailable');
-            }
-            failures = 0;
-            updateAvailability(false);
-            replaceIfChanged('#account-booking-notice', fresh);
-            const rental = document.querySelector('#live-rental');
-            if (rental) {
-                const next = fresh.querySelector('#live-rental');
-                if (!next) throw new Error('Rental unavailable');
-                for (const selector of ['.rental-overview', '.rental-facts', '.total']) {
-                    replaceIfChanged(`#live-rental ${selector}`, fresh);
-                }
-                const actionsChanged = rental.dataset.status !== next.dataset.status
-                    || document.querySelector('#pay-button')?.dataset.bookingBlocked !== next.querySelector('#pay-button')?.dataset.bookingBlocked
-                    || document.querySelector('#pay-outstanding-button')?.textContent !== next.querySelector('#pay-outstanding-button')?.textContent
-                    || Boolean(document.querySelector('#pay-button')) !== Boolean(next.querySelector('#pay-button'))
-                    || Boolean(document.querySelector('#open-locker-button')) !== Boolean(next.querySelector('#open-locker-button'));
-                if (actionsChanged && !window.paymentBusy && !window.lockerBusy) {
-                    const justPaid = rental.dataset.status === 'pending' && next.dataset.status === 'active';
-                    document.querySelector('#finish-dialog')?.close();
-                    replaceIfChanged('#rental-actions', fresh);
-                    rental.dataset.status = next.dataset.status;
-                    if (justPaid) showPaymentConfirmation();
-                    window.initialisePayment();
-                    window.initialiseOutstandingPayment?.();
-                    window.initialiseLockerActions();
-                }
-                const doorState = next.dataset.doorState;
-                if (doorState !== 'closed' || !next.querySelector('#open-locker-button')?.disabled) {
-                    relockGraceUntil = 0;
-                } else if (rental.dataset.doorState === 'open') {
-                    relockGraceUntil = Date.now() + 10000;
-                }
-                rental.dataset.doorState = doorState;
-                const cooldown = window.lockerBusy || Date.now() < (window.lockerCooldown || 0);
-                for (const id of ['open-locker-button', 'finish-rental-button']) {
-                    const button = document.getElementById(id);
-                    const updated = next.querySelector(`#${id}`);
-                    if (button && updated) button.disabled = cooldown || updated.disabled;
-                }
-                const notice = document.querySelector('#active-rental-notice');
-                const updatedNotice = next.querySelector('#active-rental-notice');
-                if (notice && updatedNotice && !window.paymentBusy && !fetchingDuringCommand && !window.lockerBusy && commandAtFetch === window.lockerCooldown) {
-                    const collecting = next.dataset.collecting === '1';
-                    if (doorState === 'open' || collecting) delete notice.dataset.uncertain;
-                    const keepCommand = notice.dataset.uncertain
-                        || (notice.dataset.commandMessage && cooldown && doorState !== 'open' && !collecting);
-                    if (!keepCommand && Date.now() >= Number(notice.dataset.paymentMessageUntil || 0)) {
-                        delete notice.dataset.commandMessage;
-                        notice.classList.remove('unlock-warning');
-                        const message = Date.now() < relockGraceUntil && !collecting
-                            ? 'Securing your locker…' : updatedNotice.textContent;
-                        const keepConfirmation = !message.trim() && notice.textContent === paymentConfirmation;
-                        if (!keepConfirmation && notice.textContent !== message) notice.textContent = message;
-                    }
-                }
-                const finish = document.querySelector('#finish-rental-button');
-                const confirm = document.querySelector('#confirm-finish');
-                if (finish && confirm) confirm.disabled = finish.disabled;
-            } else if (document.querySelector('.home-locker-grid')) {
-                if (!fresh.querySelector('.home-locker-grid')) throw new Error('Lockers unavailable');
-                replaceIfChanged('.home-locker-grid', fresh);
-                for (const filter of ['all', 'available']) {
-                    const selector = `[data-filter="${filter}"] span`;
-                    replaceIfChanged(selector, fresh);
-                }
-                document.querySelector('.home-locker-grid').inert = false;
-                window.updateLockerFilter();
-            } else {
-                if (!fresh.querySelector('#live-rentals-list')) throw new Error('Rentals unavailable');
-                replaceIfChanged('#live-rentals-list', fresh);
-            }
+            await updatePage();
         } catch {
             failures += 1;
             updateAvailability(true);
@@ -184,5 +188,5 @@
     document.addEventListener('rental-updated', refresh);
     window.addEventListener('online', refresh);
     window.addEventListener('pageshow', refresh);
-    refresh();
+    void refresh();
 })();
