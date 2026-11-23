@@ -1,4 +1,4 @@
-{% extends "layout.html" %}
+{% extends "layouts/layout.html" %}
 {% set header_hint = 'Choose your rental period' %}
 {% block body_class %}flow-page{% endblock %}
 {% block extra_head %}
@@ -6,7 +6,7 @@
 {% endblock %}
 {% block content %}
     <section class="rental-screen">
-        {% include 'account_balance.html' %}
+        {% include 'components/account_balance.html' %}
         {% if eligibility.can_book %}
             <div class="booking-summary"><span aria-hidden="true"
                                                class="summary-locker"><i></i>{{ '%02d' | format(locker.number) }}</span>

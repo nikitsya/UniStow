@@ -57,7 +57,7 @@ def completed_rentals(db, user):
 def home(request: Request, db: Annotated[Session, Depends(get_db)]):
     user = current_user(db, request)
     return templates.TemplateResponse(
-        request, "home.html", {"title": "UniStow", "lockers": read_lockers(db), "user": user,
+        request, "pages/home.html", {"title": "UniStow", "lockers": read_lockers(db), "user": user,
                                "eligibility": booking_eligibility(db, user['id'] if user else None),
                                "own_rentals": {r["locker_id"]: r for r in current_rentals(db, user)
                                                if r['status'] != 'completed'}}
@@ -77,7 +77,7 @@ def my_rentals(request: Request, db: Annotated[Session, Depends(get_db)]):
         rental["has_outstanding"] = rental["id"] in outstanding_ids
     reservations = [r for r in current if r["id"] not in completed_ids]
     return templates.TemplateResponse(
-        request, "my_rentals.html", {"title": "My rentals | UniStow", "user": user,
+        request, "rentals/my_rentals.html", {"title": "My rentals | UniStow", "user": user,
                                      "eligibility": booking_eligibility(db, user['id']),
                                      "reservations": reservations, "completed_rentals": completed}
     )
@@ -90,13 +90,13 @@ def contact(request: Request, db: Annotated[Session, Depends(get_db)]):
         context["user"] = current_user(db, request)
     except SQLAlchemyError:
         context["account_unavailable"] = True
-    return templates.TemplateResponse(request, "contact.html", context)
+    return templates.TemplateResponse(request, "pages/contact.html", context)
 
 
 @router.get("/register")
 def registration(request: Request):
     return templates.TemplateResponse(
-        request, "register.html", {"title": "Create account | UniStow"}
+        request, "account/register.html", {"title": "Create account | UniStow"}
     )
 
 
@@ -107,7 +107,7 @@ def sign_in(request: Request, locker_id: int | None = None, rental_id: int | Non
                    f"/lockers/{locker_id}/rent" if locker_id is not None else
                    "/rentals" if my_rentals else "/")
     return templates.TemplateResponse(
-        request, "login.html", {"title": "Sign in | UniStow", "destination": destination}
+        request, "account/login.html", {"title": "Sign in | UniStow", "destination": destination}
     )
 
 
@@ -154,7 +154,7 @@ def reservation(request: Request, rental_id: int, db: Annotated[Session, Depends
                                                                                                             "closed")
     physical = getattr(request.app.state, "open_client", None) is not None
     open_ready = bool(events.ready_controller()) if physical else controller_ready
-    return templates.TemplateResponse(request, "reservation.html", {
+    return templates.TemplateResponse(request, "rentals/reservation.html", {
         "open_test": open_test, "http_ready": controller_ready,
         "title": "My rental | UniStow", "rental": rental, "billing": billing,
         "eligibility": booking_eligibility(db, user['id']),
@@ -178,11 +178,11 @@ def rental(request: Request, locker_id: int, db: Annotated[Session, Depends(get_
     locker = lockers[0]
     if locker["status"] != "available":
         return templates.TemplateResponse(
-            request, "error.html", {"title": "Locker unavailable | UniStow",
+            request, "pages/error.html", {"title": "Locker unavailable | UniStow",
                                     "message": "This locker is temporarily unavailable. Please choose another locker.",
                                     "retry_url": "/"}, status_code=409
         )
     return templates.TemplateResponse(
-        request, "rental.html", {"title": f"{locker['name']} | UniStow", "locker": locker,
+        request, "rentals/rental.html", {"title": f"{locker['name']} | UniStow", "locker": locker,
                                  "eligibility": booking_eligibility(db, user['id'])}
     )

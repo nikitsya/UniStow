@@ -1,4 +1,4 @@
-{% extends "layout.html" %}
+{% extends "layouts/layout.html" %}
 {% set active_tab = 'lockers' %}
 {% block body_class %}home-page{% endblock %}
 {% block extra_head %}
@@ -16,9 +16,9 @@
         <p class="home-price">€{{ '%.2f' | format(locker.price_per_day_cents / 100) }}<span> / day</span></p>
         <span class="home-status">
     {% if own_rental %}
-        Continue rental <span aria-hidden="true">{% include 'rental_arrow.svg' %}</span>
+        Continue rental <span aria-hidden="true">{% include 'components/rental_arrow.svg' %}</span>
     {% elif can_rent %}
-        <span class="small-dot"></span>Available <span aria-hidden="true">{% include 'rental_arrow.svg' %}</span>
+        <span class="small-dot"></span>Available <span aria-hidden="true">{% include 'components/rental_arrow.svg' %}</span>
     {% else %}
         Unavailable
     {% endif %}
@@ -26,7 +26,7 @@
     {% endmacro %}
     {% set available = (lockers | selectattr('status', 'equalto', 'available') | list) if eligibility.can_book else [] %}
     <div class="home-content">
-        {% include 'account_balance.html' %}
+        {% include 'components/account_balance.html' %}
         <section aria-label="Lockers" class="home-section" id="lockers">
             <div aria-label="Filter lockers" class="locker-filters" hidden role="group">
                 <button aria-pressed="true" data-filter="all" type="button">All lockers

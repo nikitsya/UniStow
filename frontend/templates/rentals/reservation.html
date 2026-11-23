@@ -1,4 +1,4 @@
-{% extends "screen.html" %}
+{% extends "layouts/screen.html" %}
 {% set header_back_url = url_for('my_rentals') %}
 {% set header_back_label = 'Back to my rentals' %}
 {% set header_title %}My rental · Locker {{ rental.number }}{% endset %}
@@ -12,7 +12,7 @@
 {% block screen_content %}
     {% set collection_notice = 'Take all your belongings, then close the door to finish your rental.' %}
     {% if rental.status == 'pending' %}
-        {% include 'account_balance.html' %}
+        {% include 'components/account_balance.html' %}
     {% else %}
         <div aria-live="polite" id="account-booking-notice"></div>
     {% endif %}

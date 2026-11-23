@@ -19,9 +19,9 @@
 </head>
 <body class="{% block body_class %}{% endblock %}">
 <main class="app-shell">
-    {% include 'main_header.html' %}
+    {% include 'components/main_header.html' %}
     {% block content %}{% endblock content %}
-    {% if active_tab %}{% include 'bottom_nav.html' %}{% endif %}
+    {% if active_tab %}{% include 'components/bottom_nav.html' %}{% endif %}
 </main>
 </body>
 </html>

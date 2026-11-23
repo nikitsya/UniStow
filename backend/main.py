@@ -56,6 +56,6 @@ async def service_error(request: Request, exception: Exception):
     if request.url.path.startswith("/api/"):
         return JSONResponse(status_code=503, content={"detail": message})
     return pages.templates.TemplateResponse(
-        request, "error.html", {"title": "Please try again | UniStow", "message": message,
+        request, "pages/error.html", {"title": "Please try again | UniStow", "message": message,
                                 "retry_url": request.url.path}, status_code=503
     )
