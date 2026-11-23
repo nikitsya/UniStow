@@ -53,13 +53,13 @@ def run(config, shared, lock, commands, stop):
     client.username_pw_set('unistow-locker-4', config['password'])
     client.tls_set(ca_certs=config.get('ca_file') or None)
 
-    def connected(client, userdata, flags, reason_code, properties):
+    def connected(mqtt_client, _userdata, _flags, reason_code, _properties):
         if reason_code.is_failure:
             print('Locker MQTT connection refused:', reason_code, flush=True)
         elif mode != 'telemetry':
-            client.subscribe(COMMANDS, qos=0)
+            mqtt_client.subscribe(COMMANDS, qos=0)
 
-    def message(client, userdata, event):
+    def message(mqtt_client, _userdata, event):
         if event.topic != COMMANDS or event.retain or stop.is_set():
             return
         try:
@@ -69,7 +69,7 @@ def run(config, shared, lock, commands, stop):
         if isinstance(payload, dict):
             ack = acknowledge(payload, seen, mode, controller_id, commands)
             if ack and not stop.is_set():
-                client.publish(EVENTS, json.dumps(ack), qos=0, retain=False)
+                mqtt_client.publish(EVENTS, json.dumps(ack), qos=0, retain=False)
 
     client.on_connect = connected
     client.on_message = message
