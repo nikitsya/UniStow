@@ -59,7 +59,7 @@ window.initialiseLockerActions = function () {
     cancelFinish.addEventListener('click', () => finishDialog.close());
     confirmFinish.addEventListener('click', () => {
         finishDialog.close();
-        sendCommand(finishButton, true);
+        void sendCommand(finishButton, true);
     });
     finishDialog.addEventListener('click', (event) => {
         const bounds = finishDialog.getBoundingClientRect();
