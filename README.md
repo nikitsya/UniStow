@@ -111,7 +111,7 @@ Keep the generated key on this machine. To rotate the one-year certificate, move
 the certificate directory aside, generate a new pair and recreate the db container.
 
 On a new database, Docker creates the tables. Then add the nine locker records using
-[the migration instructions](docs/database.md#initial-setup). Existing data is retained.
+[the initial setup instructions](docs/database.md#initial-setup). Existing data is retained.
 
 From `backend/`:
 
@@ -134,7 +134,7 @@ an unpaid extra-day balance or a payment awaiting confirmation. My rentals lists
 every affected rental, including older completed rentals, with payment and support
 links. Existing paid access and collection remain available under their normal
 checks. See the [balance restriction rules](docs/database.md#booking-with-an-outstanding-balance)
-and apply migration 005 before running this version on an existing database.
+and ensure an existing database matches the current schema before running this version.
 
 Set `STRIPE_SECRET_KEY` to a sandbox key beginning with `sk_test_` in `.env`.
 Set `APP_BASE_URL` to the browser address used for checkout; the default is
@@ -164,7 +164,7 @@ To include database tests, start PostgreSQL and prefix the command with
 
 - `backend/main.py` — Application setup; `routes/` — Page, API and device routes.
 - `backend/auth/` — Accounts and sessions; `services/` — Rental, payment and command logic.
-- `backend/database.py` — Connection; `database/` — SQL schema and migrations.
+- `backend/database.py` — Connection; `database/` — SQL schema and locker seed.
 - `frontend/` — Templates, CSS and JavaScript served by FastAPI.
 - `hardware/` — Pi scripts, configuration example and systemd services.
 - [Database](docs/database.md), [implementation plan](docs/implementation-plan.md)

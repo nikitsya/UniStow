@@ -1,4 +1,4 @@
--- Migration 001: add nine lockers, enabling only Locker 4.
+-- Seed nine lockers, enabling only Locker 4.
 -- Run after schema.sql. Existing records are left unchanged on repeat runs.
 BEGIN;
 

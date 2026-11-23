@@ -179,7 +179,10 @@ recreation, but it is not a backup and does not protect against disk loss.
 Never use `docker compose down -v` on this deployment.
 
 After updating the source, rerun the build/start command. Database schema changes
-require explicit migrations; initialisation scripts run only on an empty volume.
+require explicit SQL updates; initialisation scripts run only on an empty volume.
+The repository contains the current schema and locker seed. Historical upgrade
+scripts remain available in Git history. Back up and compare an existing database
+with the current schema before preparing an update.
 
 ### Unpaid-balance rollout on 22 November 2026
 
@@ -297,7 +300,7 @@ attempt to publish to the other client's topic.
 
 ## Daily overdue test billing
 
-Before enabling daily test charges, apply database migrations 002 and 003.
+Before enabling daily test charges, ensure the database matches the current schema.
 Set `UNISTOW_OVERDUE_BILLING=1` in `.env.production` and recreate the app
 container. The default is 0. The worker runs every minute and uses a database
 lock to coordinate multiple application processes. See the
@@ -305,10 +308,9 @@ lock to coordinate multiple application processes. See the
 
 ## Outstanding payment recovery
 
-Before deploying Pay outstanding, back up the database and apply
-`database/migrations/004_overdue_payment_recovery.sql` using the
-production PostgreSQL container, as for earlier migrations. Deploy the app only
-after the migration succeeds. The migration does not change existing charges.
+Before deploying Pay outstanding against an older database, back it up and ensure
+its structure includes `overdue_payments` as defined in `database/schema.sql`.
+New installations create this table automatically.
 
 The signed Stripe Checkout webhook also handles outstanding payments. Verify a
 failed test charge through Checkout, confirm its balance clears after Stripe

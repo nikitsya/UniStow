@@ -76,26 +76,18 @@ tables without inserting lockers. Production Compose then runs the locker seed
 automatically. For a new local database, run this from the project folder:
 
 ```sh
-docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1' < database/migrations/001_add_lockers.sql
+docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1' < database/seed.sql
 ```
 
 This adds nine lockers with only Locker 4 enabled. Repeating it leaves existing records
 unchanged. It does not reset availability or change existing locker settings.
 
-Apply `002_save_payment_method.sql` to an existing database before starting the
-updated application. From the project folder, for the local Docker database:
-
-```sh
-docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1' < database/migrations/002_save_payment_method.sql
-```
-
-For EC2, use `docker compose --env-file .env.production -f compose.production.yaml`
-in the same command. Back up the database first. The migration adds nullable
-columns and supports repeated execution.
-
-Migrations are manual; restarting Docker does not apply SQL changes. Device and
-payment tables are already in the current schema. An older database needs a migration based on its existing
-structure; do not rerun the initial schema or delete its volume to update it.
+The repository keeps the current schema and locker seed rather than incremental
+upgrade scripts. Historical scripts remain available in Git history. Restarting
+Docker does not update an existing database. Before changing an existing database,
+back it up, compare its structure with `database/schema.sql` and prepare the
+required SQL changes. Do not rerun the initial schema or delete the volume to
+update it.
 
 ## Saved payment method verification
 
@@ -150,14 +142,7 @@ The worker selects new requests carrying their own idempotency key.
 
 ### Enable the worker
 
-Back up the database and apply migration `003_overdue_billing_requests.sql`
-after `002_save_payment_method.sql`, before enabling the worker. Locally:
-
-```sh
-docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1' < database/migrations/003_overdue_billing_requests.sql
-```
-
-On EC2, use the production Compose file and environment file as for migration 002.
+Ensure the database matches the current schema before enabling the worker.
 Set `UNISTOW_OVERDUE_BILLING=1` in the application's environment and restart the
 application. Production Compose passes this variable through, defaulting to 0.
 The worker accepts only a Stripe test secret key. Setting the flag to 0 and
@@ -245,7 +230,7 @@ A physical-phone check of the summary is still pending.
 
 ### Paying an outstanding balance
 
-Migration `004_overdue_payment_recovery.sql` adds `overdue_payments`. Each row
+The current schema includes `overdue_payments`. Each row
 stores a frozen list of failed charge IDs, the server-calculated amount, durable
 Checkout parameters and the resulting Stripe session and PaymentIntent IDs.
 Only one pending recovery payment is allowed per rental.
@@ -349,20 +334,15 @@ a verified correction. `review` means the result needs investigation, not a new
 collection attempt. There is no operator dashboard or automatic waiver; the
 restriction clears once all relevant records are verified as settled or corrected.
 
-Before starting this version against an existing database, back up the database
-and apply [migration 005](../database/migrations/005_booking_balance_review.sql)
-after migration 004. It adds the `review` state and reclassifies the two previous
-uncertain-failure reasons without changing amounts or confirmed declines. It is
-safe to repeat. New installations use the updated schema directly.
-
-```sh
-docker compose exec -T db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1' < database/migrations/005_booking_balance_review.sql
-```
+New installations include the `review` state in the current schema. For an older
+database, back it up and check its constraints and uncertain payment outcomes
+before starting the application. The historical upgrade scripts are available in
+Git history; see [initial setup](#initial-setup) for the current approach.
 
 Automated tests use isolated PostgreSQL schemas and mocked Stripe responses.
 They cover a EUR 1 balance, account-wide and older debt, pending/review wording,
 direct reservation and checkout requests, unaffected paid access and collection,
-partial and duplicate settlements, migration repeatability, account-lock races
+partial and duplicate settlements, account-lock races
 and a checkout authorised immediately before another rental's debt appears.
 
 The [deployed-site visual evidence for issue #19](usability-testing.md#22-november-2026--unpaid-balance-restriction)

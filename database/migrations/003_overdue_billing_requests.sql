@@ -1,9 +1,0 @@
-BEGIN;
-
-ALTER TABLE overdue_charges
-    ADD COLUMN IF NOT EXISTS request_key        TEXT UNIQUE,
-    ADD COLUMN IF NOT EXISTS request_params     JSONB,
-    ADD COLUMN IF NOT EXISTS first_requested_at TIMESTAMPTZ,
-    ADD COLUMN IF NOT EXISTS failure_reason     TEXT;
-
-COMMIT;

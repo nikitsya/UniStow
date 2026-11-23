@@ -2,7 +2,6 @@ import os
 import time
 import unittest
 from concurrent.futures import ThreadPoolExecutor
-from pathlib import Path
 from threading import Event
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
@@ -196,18 +195,6 @@ class BookingEligibilityTests(unittest.TestCase):
         self.assertFalse(booking_eligibility(self.db, 1)['can_book'])
         self.assertEqual(self.db.scalar(text('SELECT status FROM rentals WHERE id=:id'),
                                         {'id': pending['id']}), 'active')
-
-    def test_migration_classifies_only_uncertain_failures_and_can_be_repeated(self):
-        self.charge(day=0)
-        review = self.charge(day=1)
-        self.connection.execute(text("UPDATE overdue_charges SET failure_reason=:reason WHERE id=:id"),
-                                {'id': review, 'reason': 'Payment verification needs operator review.'})
-        source = (Path(__file__).resolve().parents[2] /
-                  'database/migrations/005_booking_balance_review.sql').read_text()
-        for _ in range(2):
-            self.connection.exec_driver_sql(source.replace('BEGIN;', '').replace('COMMIT;', ''))
-        self.assertEqual(self.connection.execute(text(
-            'SELECT status FROM overdue_charges ORDER BY charge_date')).scalars().all(), ['failed', 'review'])
 
 
 @unittest.skipUnless(os.getenv('UNISTOW_TEST_POSTGRES') == '1', 'Requires independent PostgreSQL transactions')
