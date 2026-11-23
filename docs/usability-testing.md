@@ -385,8 +385,8 @@ been completed by the author before the updated application was checked.
 
 ### Account balance and locker availability
 
-The home-page notice shows **Balance to settle**, EUR 1.00 unpaid and a link to
-**Rental #50 · Locker 5**. The underlined, bold rental link has no list bullet or
+The home-page notice shows **Balance to settle**, EUR 1.00 unpaid and a link to **Rental #50 · Locker 5**. The
+underlined, bold rental link has no list bullet or
 repeated payment caption beneath it. The notice explains the restriction on new
 rentals, retained
 paid access and collection, and how to contact support about an incorrect
@@ -404,8 +404,8 @@ overflow. All four captures use the same narrow-screen viewport.
 
 ### Balance above rental history
 
-My rentals places the same pale red notice above **No current rentals** and
-**Recently completed**. The panel uses square corners and a uniform one-pixel
+My rentals places the same pale red notice above **No current rentals** and **Recently completed**. The panel uses
+square corners and a uniform one-pixel
 border. Completed rental summaries also use square corners following the
 author's visual review. Colour is accompanied by explanatory text, amounts
 and links, following the [W3C guidance on use of colour](https://www.w3.org/WAI/WCAG21/Understanding/use-of-color.html).
@@ -415,8 +415,8 @@ a confirmed unpaid balance; that state is not shown in these captures.
 ![Updated My rentals page showing the balance notice above No current rentals and Recently completed](images/testing/unpaid-balance-ec2-my-rentals.png)
 
 The separate history view shows square completed-rental cards and the shorter
-description, **Your last five completed rentals.** Rental #50 retains a
-**View outstanding payment** link; completed rentals without debt remain
+description, **Your last five completed rentals.** Rental #50 retains a **View outstanding payment** link; completed
+rentals without debt remain
 non-interactive summaries.
 
 ![Updated rental history showing square cards and the outstanding-payment link for Rental 50](images/testing/unpaid-balance-ec2-rental-history.png)
@@ -424,8 +424,8 @@ non-interactive summaries.
 ### Completed rental and recovery action
 
 The detail page identifies reservation #50 as **Completed**, with a one-day
-rental ending at 18:00 on 21 November 2026. It shows **Payment incomplete**,
-**Rental cost EUR 1.00**, **Extra days · unpaid EUR 1.00** and **Total EUR 2.00**.
+rental ending at 18:00 on 21 November 2026. It shows **Payment incomplete**, **Rental cost EUR 1.00**, **Extra days ·
+unpaid EUR 1.00** and **Total EUR 2.00**.
 The original cost and unpaid amount are separate: the remaining amount requested
 by **Pay outstanding EUR 1.00** is EUR 1.00. The page explains that the rental
 has ended and links back to My rentals. It does not offer opening or collection
@@ -461,8 +461,8 @@ The visible payment button is not evidence of a successful payment.
 
 After the manual check on 22 November, synthetic charge #84324 was changed from
 `failed` to `waived` at the author's request, without recording a payment. The
-account then had no unpaid or processing balance. On EC2 the notice disappeared,
-**Available 1** returned and Locker 4 became selectable again.
+account then had no unpaid or processing balance. On EC2 the notice disappeared, **Available 1** returned and Locker 4
+became selectable again.
 
 ### Separate test account — 22 November 2026
 

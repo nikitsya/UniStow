@@ -2,42 +2,43 @@
     <a aria-label="UniStow home" class="home-brand" href="{{ url_for('home') }}"><img
             alt="" height="36" src="{{ url_for('static', path='unistow.svg') }}" width="32">UniStow</a>
     {% if not active_tab %}
-    <a aria-label="{{ header_back_label | default('Back to lockers') }}" class="account-menu header-account"
-       href="{{ header_back_url | default(url_for('home')) }}">
-        <svg aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24">
-            <path d="m14 6-6 6 6 6M8 12h12"></path>
-        </svg>
-    </a>
-    {% else %}
-    <details class="account-menu" id="account">
-        <summary aria-label="Your account" class="header-account">
+        <a aria-label="{{ header_back_label | default('Back to lockers') }}" class="account-menu header-account"
+           href="{{ header_back_url | default(url_for('home')) }}">
             <svg aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24">
-                <circle cx="12" cy="8" r="3.5"></circle>
-                <path d="M5 21v-3a7 7 0 0 1 14 0v3"></path>
+                <path d="m14 6-6 6 6 6M8 12h12"></path>
             </svg>
-        </summary>
-        <div aria-labelledby="account-heading" class="account-dropdown">
-            <div class="section-heading"><h2 id="account-heading">Account</h2></div>
-            {% if account_unavailable %}
-            <p class="section-note">Account details are temporarily unavailable.</p>
-            {% elif user %}
-            <p class="account-email">{{ user.email }}</p>
-            <p class="home-error" id="logout-message" role="status"></p>
-            <button class="home-text-link" id="logout-button" type="button">Sign out <span aria-hidden="true">→</span>
-            </button>
-            <script defer src="{{ url_for('static', path='js/logout.js') }}"></script>
-            {% else %}
-            <p class="section-note">Create an account to rent a locker.</p>
-            <div class="home-account-actions"><a class="home-primary" href="{{ url_for('registration') }}">Create
-                account</a><a class="home-text-link" href="{{ url_for('sign_in') }}">Sign in →</a></div>
-            {% endif %}
-        </div>
-    </details>
+        </a>
+    {% else %}
+        <details class="account-menu" id="account">
+            <summary aria-label="Your account" class="header-account">
+                <svg aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24">
+                    <circle cx="12" cy="8" r="3.5"></circle>
+                    <path d="M5 21v-3a7 7 0 0 1 14 0v3"></path>
+                </svg>
+            </summary>
+            <div aria-labelledby="account-heading" class="account-dropdown">
+                <div class="section-heading"><h2 id="account-heading">Account</h2></div>
+                {% if account_unavailable %}
+                    <p class="section-note">Account details are temporarily unavailable.</p>
+                {% elif user %}
+                    <p class="account-email">{{ user.email }}</p>
+                    <p class="home-error" id="logout-message" role="status"></p>
+                    <button class="home-text-link" id="logout-button" type="button">Sign out <span
+                            aria-hidden="true">→</span>
+                    </button>
+                    <script defer src="{{ url_for('static', path='js/logout.js') }}"></script>
+                {% else %}
+                    <p class="section-note">Create an account to rent a locker.</p>
+                    <div class="home-account-actions"><a class="home-primary" href="{{ url_for('registration') }}">Create
+                        account</a><a class="home-text-link" href="{{ url_for('sign_in') }}">Sign in →</a></div>
+                {% endif %}
+            </div>
+        </details>
     {% endif %}
     <div class="home-intro"><p class="eyebrow">CAMPUS STORAGE</p></div>
     {% if header_title %}
-    <h1 class="rental-guidance">{{ header_title }}</h1>
+        <h1 class="rental-guidance">{{ header_title }}</h1>
     {% else %}
-    <p class="rental-guidance">{{ header_hint | default('Rent for 1–4 calendar days. Your rental ends at 18:00.') }}</p>
+        <p class="rental-guidance">{{ header_hint | default('Rent for 1–4 calendar days. Your rental ends at 18:00.') }}</p>
     {% endif %}
 </header>
