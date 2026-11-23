@@ -4,6 +4,10 @@ The door contact connects GPIO17 (physical pin 11) to ground when closed.
 The servo receives its control signal on GPIO18 (physical pin 12). Check the
 pin numbers on the header when reconnecting the prototype.
 
+## Python dependencies
+
+Hardware dependencies are listed separately in `requirements.txt`.
+
 ## Connect Locker 4 to Mosquitto
 
 The controller sends door changes and a fresh reading every five seconds to

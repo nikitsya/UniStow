@@ -155,6 +155,8 @@ def main():
     factory = PiGPIOFactory(host='localhost')
     try:
         # GPIO17: sensor (physical 11). GPIO18: servo (physical 12).
+        # GPIO Zero supports None to leave the servo uncontrolled at startup.
+        # noinspection PyTypeChecker
         with Button(17, pull_up=True, bounce_time=0.1, pin_factory=factory) as door, \
                 Servo(18, initial_value=None, min_pulse_width=0.0015,
                       max_pulse_width=0.00225, pin_factory=factory) as servo:
@@ -174,7 +176,7 @@ def main():
                 now = monotonic()
                 closed = door.is_pressed
                 requested = False
-                acknowledgement = None
+                acknowledgement: Event | None = None
                 try:
                     command_id, deadline, command_action, *receipts = commands.get_nowait()
                     acknowledgement = receipts[0] if receipts else None
@@ -190,7 +192,7 @@ def main():
                 action = cycle.tick(closed, now, requested)
                 if action == 'open':
                     servo.max()
-                    if requested and acknowledgement:
+                    if requested and acknowledgement is not None:
                         acknowledgement.set()
                     print('Latch retracted (2250 us).', flush=True)
                 elif action == 'close':
