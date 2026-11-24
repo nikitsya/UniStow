@@ -1,5 +1,14 @@
+from typing import TypedDict
+
 from fastapi import HTTPException
 from sqlalchemy import text
+
+
+class BookingEligibility(TypedDict):
+    can_book: bool
+    unpaid_cents: int
+    processing_cents: int
+    rentals: list[dict[str, int]]
 
 
 def lock_account(db, user_id):
@@ -12,7 +21,7 @@ def lock_rental_account(db, rental_id):
     lock_account(db, user_id)
 
 
-def booking_eligibility(db, user_id):
+def booking_eligibility(db, user_id) -> BookingEligibility:
     rows = db.execute(text("""
                            SELECT r.id,
                                   l.number,
