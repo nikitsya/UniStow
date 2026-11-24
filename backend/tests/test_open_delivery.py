@@ -1,5 +1,5 @@
+import importlib.util
 import json
-import sys
 import unittest
 from pathlib import Path
 from time import time
@@ -11,8 +11,14 @@ from fastapi import HTTPException
 
 from services.door_events import COMMANDS, EVENTS, DoorEvents
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'hardware'))
-from locker_mqtt import acknowledge
+spec = importlib.util.spec_from_file_location(
+    'locker_mqtt', Path(__file__).resolve().parents[2] / 'hardware/locker_mqtt.py',
+)
+if spec is None or spec.loader is None:
+    raise ImportError('Could not load the MQTT controller for delivery tests.')
+controller = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(controller)
+acknowledge = controller.acknowledge
 
 
 def packet(data, topic=EVENTS, retain=False):
