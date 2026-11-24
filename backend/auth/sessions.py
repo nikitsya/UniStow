@@ -3,8 +3,10 @@ import secrets
 from datetime import datetime, timedelta, timezone
 
 from fastapi import HTTPException, Request, Response
-from sqlalchemy import text
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from models import User
 
 COOKIE_NAME = "unistow_session"
 SESSION_SECONDS = 24 * 60 * 60
@@ -44,15 +46,14 @@ async def current_user(db: AsyncSession, request: Request):
     token = request.cookies.get(COOKIE_NAME)
     if not token:
         return None
-    user = (await db.execute(text("""
-                           SELECT users.id, users.email
-                           FROM sessions
-                                    JOIN users ON users.id = sessions.user_id
-                           WHERE sessions.token_hash = :token_hash
-                             AND sessions.expires_at > :now
-                           """),
-                             {"token_hash": token_hash(token), "now": datetime.now(timezone.utc)})).mappings().first()
-    return dict(user) if user else None
+    user = await db.scalar(
+        select(User).where(User.id.in_(text(
+            "SELECT user_id FROM sessions WHERE token_hash = :token_hash AND expires_at > :now"
+        ))),
+        {"token_hash": token_hash(token), "now": datetime.now(timezone.utc)},
+    )
+    return {"id": user.id, "email": user.email} if user else None
+
 
 
 async def end_session(db: AsyncSession, request: Request, response: Response):

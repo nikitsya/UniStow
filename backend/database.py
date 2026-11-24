@@ -4,6 +4,11 @@ from pathlib import Path
 from dotenv import load_dotenv
 from sqlalchemy import URL
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.orm import DeclarativeBase
+
+class Base(DeclarativeBase):
+    pass
+
 
 project_root = Path(__file__).resolve().parent.parent
 load_dotenv(project_root / ".env")

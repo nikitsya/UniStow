@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.pool import StaticPool
 
-from auth.users import password_hasher
+from auth.users import create_user, password_hasher
 from database import get_db
 from main import app
 
@@ -23,7 +23,8 @@ class RegistrationTestCase(unittest.IsolatedAsyncioTestCase):
                                     (
                                         id            INTEGER PRIMARY KEY,
                                         email         TEXT NOT NULL UNIQUE,
-                                        password_hash TEXT NOT NULL
+                                        password_hash TEXT NOT NULL,
+                                        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
                                     )
                                     """))
 
@@ -72,6 +73,15 @@ class RegistrationTests(RegistrationTestCase):
             rows = (await connection.execute(text("SELECT password_hash FROM users"))).scalars().all()
         self.assertEqual(len(rows), 1)
         self.assertTrue(password_hasher.verify(self.password, rows[0]))
+
+    async def test_duplicate_registration_leaves_session_usable(self):
+        async with AsyncSession(self.engine) as db:
+            first = await create_user(db, "first@example.com", self.password)
+            duplicate = await create_user(db, "first@example.com", "A different password!")
+            second = await create_user(db, "second@example.com", self.password)
+        self.assertIsNone(duplicate)
+        self.assertNotEqual(first["id"], second["id"])
+        self.assertEqual(second["email"], "second@example.com")
 
     async def test_invalid_input_is_rejected_without_echoing_password(self):
         for email, password in [
