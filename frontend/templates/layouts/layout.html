@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
-    <meta content="#183B35" name="theme-color">
+    <meta content="#64DEA5" name="theme-color">
     <link href="{{ url_for('static', path='unistow.svg') }}" rel="icon" type="image/svg+xml">
     <title>{{ title }}</title>
-    <link href="{{ url_for('static', path='css/main.css') }}?v=6" rel="stylesheet">
+    <link href="{{ url_for('static', path='css/main.css') }}?v=7" rel="stylesheet">
     <script defer src="{{ url_for('static', path='js/shared/dialogs.js') }}"></script>
     <script defer src="{{ url_for('static', path='js/shared/pull_to_refresh.js') }}"></script>
     <script defer src="{{ url_for('static', path='js/rentals/rental.js') }}?v=checkout-5"></script>
-    <link href="{{ url_for('static', path='css/home.css') }}?v=16" rel="stylesheet">
+    <link href="{{ url_for('static', path='css/home.css') }}?v=18" rel="stylesheet">
     {% if active_tab %}
         <script defer src="{{ url_for('static', path='js/account/account_menu.js') }}"></script>
-        <link href="{{ url_for('static', path='css/bottom_nav.css') }}?v=2" rel="stylesheet">
+        <link href="{{ url_for('static', path='css/bottom_nav.css') }}?v=4" rel="stylesheet">
     {% endif %}
     {% block extra_head %}{% endblock %}
 </head>

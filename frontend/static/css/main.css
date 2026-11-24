@@ -3,12 +3,18 @@
     overflow-x: clip;
     color-scheme: light;
     font-family: Roboto, "Helvetica Neue", Arial, sans-serif;
-    color: #fff;
-    background: #183b35;
+    color: var(--ink);
+    background: var(--green);
     font-synthesis: none;
-    --green: #183b35;
-    --supporting: #dce6e2;
-    --sand: #e8d5b5;
+    --green: #64dea5;
+    --ink: #183b35;
+    --supporting: #425e50;
+    --sand: #f5d76e;
+    --mint-soft: #d7f5e6;
+    --yellow-soft: #fff2ba;
+    --surface: #f8fcf9;
+    --page: #e7f2ec;
+    --focus: #27674b;
 }
 
 * {
@@ -89,7 +95,7 @@ h1 {
     padding: 20px;
     border-radius: 16px;
     background: #fff;
-    color: var(--green);
+    color: var(--ink);
     text-decoration: none;
     transition: background-color 160ms, transform 160ms;
 }
@@ -132,7 +138,7 @@ h1 {
 }
 
 a.locker-card:hover {
-    background: #f5f2ec;
+    background: var(--surface);
     transform: translateY(-2px);
 }
 
@@ -141,7 +147,7 @@ a.locker-card:active {
 }
 
 :focus-visible {
-    outline: 3px solid var(--sand);
+    outline: 3px solid var(--focus);
     outline-offset: 4px;
 }
 
@@ -194,7 +200,7 @@ button.back-button {
 }
 
 .confirmation.error {
-    color: #ffb4ab;
+    color: #a12e25;
 }
 
 .rental-screen h1 {
@@ -204,8 +210,8 @@ button.back-button {
 
 .field {
     border-radius: 12px;
-    background: #f5f2ec;
-    color: var(--green);
+    background: var(--surface);
+    color: var(--ink);
     padding: 12px 16px;
 }
 
@@ -221,12 +227,12 @@ button.back-button {
     min-height: 28px;
     border: none;
     background: transparent;
-    color: var(--green);
+    color: var(--ink);
     font-size: 18px;
 }
 
 .field:focus-within {
-    outline: 3px solid var(--sand);
+    outline: 3px solid var(--focus);
     outline-offset: 3px;
 }
 
@@ -236,7 +242,7 @@ button.back-button {
 
 .field:has([aria-invalid="true"]) {
     background: #ffedea;
-    outline: 2px solid #ffb4ab;
+    outline: 2px solid #a12e25;
 }
 
 .field-help {
@@ -247,7 +253,7 @@ button.back-button {
 }
 
 .field-help.error {
-    color: #ffb4ab;
+    color: #a12e25;
 }
 
 .total {
@@ -267,13 +273,13 @@ button.back-button {
 }
 
 .confirm-button {
-    color: var(--green);
+    color: var(--ink);
     background: var(--sand);
     transition: background-color 160ms;
 }
 
 .confirm-button:hover:not(:disabled) {
-    background: #f3e4cb;
+    background: #ffe695;
 }
 
 .confirm-button:disabled {
@@ -288,7 +294,7 @@ button.back-button {
 }
 
 .back-button:hover {
-    background: #254840;
+    background: var(--mint-soft);
 }
 
 .confirmation {
@@ -379,7 +385,7 @@ button.back-button {
 }
 
 .account-balance--pending {
-    background: #fbf3e5;
+    background: var(--yellow-soft);
 }
 
 .account-balance p {

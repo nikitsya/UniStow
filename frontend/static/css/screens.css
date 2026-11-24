@@ -1,6 +1,6 @@
 .flow-page {
-    background: #eae7e1;
-    color: #183b35;
+    background: var(--page);
+    color: var(--ink);
     --supporting: #607065;
 }
 
@@ -8,7 +8,7 @@
     max-width: 760px;
     padding: 0 0 32px;
     min-height: 100svh;
-    background: #faf8f3;
+    background: var(--surface);
 }
 
 .flow-page .rental-screen {
@@ -42,7 +42,7 @@
 }
 
 .flow-page .field:focus-within {
-    outline: 2px solid #9caf92;
+    outline: 2px solid #68ad8b;
     outline-offset: 2px;
 }
 
@@ -67,7 +67,7 @@
 
 .flow-page .confirm-button {
     background: var(--green);
-    color: white;
+    color: var(--ink);
     border-radius: 14px;
     min-height: 50px;
     font-weight: 600;
@@ -75,7 +75,7 @@
 }
 
 .flow-page .confirm-button:hover:not(:disabled) {
-    background: #2b5146;
+    background: #4dcb91;
 }
 
 .flow-page .confirm-button:active:not(:disabled) {
@@ -89,7 +89,7 @@
 }
 
 .flow-page .back-button {
-    color: var(--green);
+    color: var(--ink);
     font-size: 14px;
     min-height: 48px;
     border-radius: 14px;
@@ -105,13 +105,13 @@
 }
 
 .flow-page :is(#finish-rental-button, .finish-dialog-actions .confirm-button):enabled {
-    border: 1px solid #c78e62;
-    background: #fae4ce;
-    color: #703910;
+    border: 1px solid #a88b35;
+    background: var(--sand);
+    color: #514215;
 }
 
 .flow-page :is(#finish-rental-button, .finish-dialog-actions .confirm-button):enabled:hover {
-    background: #f4d5b5;
+    background: #ffe695;
 }
 
 .flow-page :is(#finish-rental-button, #confirm-finish) {
@@ -158,7 +158,7 @@
 }
 
 .flow-page .consent input {
-    accent-color: var(--green);
+    accent-color: var(--ink);
     margin-top: 3px;
 }
 
@@ -217,11 +217,11 @@
     width: 58px;
     height: 80px;
     padding-top: 8px;
-    border: 1px solid #9caf92;
+    border: 1px solid #68ad8b;
     border-radius: 6px;
     box-shadow: inset 0 0 0 4px #ffffff30;
-    background: #d7e3cb;
-    color: #304936;
+    background: var(--mint-soft);
+    color: var(--ink);
     font-size: 18px;
 }
 
@@ -262,12 +262,12 @@
 }
 
 .state-active, .state-completed {
-    background: #d7e3cb;
-    color: #304936;
+    background: var(--mint-soft);
+    color: var(--ink);
 }
 
 .state-pending {
-    background: #eee3cf;
+    background: var(--yellow-soft);
     color: #67532f;
 }
 
@@ -306,7 +306,7 @@
 }
 
 .flow-page :focus-visible {
-    outline-color: #8b6d37;
+    outline-color: var(--focus);
 }
 
 .rentals-list {
@@ -328,7 +328,7 @@
 }
 
 .rental-list-link:hover {
-    background: #e6ecdf;
+    background: var(--mint-soft);
 }
 
 .rental-list-link strong {
@@ -377,8 +377,8 @@
     padding: 28px;
     border: 1px solid #d7dcd1;
     border-radius: 24px;
-    background: #faf8f3;
-    color: #183b35;
+    background: var(--surface);
+    color: var(--ink);
     box-shadow: 0 24px 80px #102b3140;
 }
 
