@@ -7,11 +7,7 @@ import test_commands
 
 
 @unittest.skipUnless(os.environ.get('UNISTOW_TEST_POSTGRES') == '1', 'Requires PostgreSQL')
-class RentalHistoryTests(unittest.TestCase):
-    setUp = test_commands.CommandTests.setUp
-    tearDown = test_commands.CommandTests.tearDown
-    report = test_commands.CommandTests.report
-
+class RentalHistoryTests(test_commands.CommandTestCase):
     def completed(self, minutes):
         return self.connection.execute(text("""
                                             INSERT INTO rentals (user_id, locker_id, status, prepaid_days,
