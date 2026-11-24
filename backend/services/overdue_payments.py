@@ -8,7 +8,6 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models import Locker, OverdueCharge, OverduePayment, Rental
-
 from services.booking_eligibility import lock_account, lock_rental_account
 from services.overdue_billing import validate_intent
 from services.payments import owned_rental, stripe_client
