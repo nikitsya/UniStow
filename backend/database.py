@@ -12,7 +12,7 @@ password = os.environ.get("POSTGRES_PASSWORD")
 if not password:
     raise RuntimeError("Set POSTGRES_PASSWORD in the project's .env file.")
 
-connect_args = {"connect_timeout": 3}
+connect_args: dict[str, int | str] = {"connect_timeout": 3}
 root_certificate = os.environ.get("POSTGRES_SSLROOTCERT")
 if root_certificate:
     connect_args.update(sslmode="verify-full", sslrootcert=str(project_root / root_certificate))
