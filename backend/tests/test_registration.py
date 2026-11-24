@@ -10,7 +10,7 @@ from database import get_db
 from main import app
 
 
-class RegistrationTests(unittest.TestCase):
+class RegistrationTestCase(unittest.TestCase):
     def setUp(self):
         self.engine = create_engine(
             "sqlite://", poolclass=StaticPool,
@@ -45,6 +45,8 @@ class RegistrationTests(unittest.TestCase):
             "password": self.password if password is None else password,
         }, headers={"X-UniStow-Request": "1"} if headers is None else headers)
 
+
+class RegistrationTests(RegistrationTestCase):
     def test_registration_stores_hash_and_returns_public_fields(self):
         response = self.register()
         self.assertEqual(response.status_code, 201)

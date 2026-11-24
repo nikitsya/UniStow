@@ -1,4 +1,3 @@
-import unittest
 from unittest.mock import patch
 
 from sqlalchemy import text
@@ -6,11 +5,9 @@ from sqlalchemy import text
 import test_registration
 
 
-class DeviceTests(unittest.TestCase):
-    tearDown = test_registration.RegistrationTests.tearDown
-
+class DeviceTests(test_registration.RegistrationTestCase):
     def setUp(self):
-        test_registration.RegistrationTests.setUp(self)
+        super().setUp()
         with self.engine.begin() as connection:
             connection.execute(text("""
                                     CREATE TABLE lockers
@@ -23,6 +20,8 @@ class DeviceTests(unittest.TestCase):
                                         controller_id TEXT
                                     )
                                     """))
+            # The SQLite fixture above intentionally differs from the PostgreSQL schema.
+            # noinspection SqlInsertValues
             connection.execute(text('INSERT INTO lockers (number) VALUES (4), (5)'))
         key = patch.dict('os.environ', {'UNISTOW_DEVICE_KEY': 'test-device-key'})
         key.start()
