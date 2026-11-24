@@ -3,22 +3,21 @@ from datetime import timedelta
 from sqlalchemy import and_, column, exists, func, or_, select, table
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models import Locker
+from models import Locker, Rental
 
-# These tables remain SQL expressions until their ORM migration.
-rentals = table("rentals", column("id"), column("locker_id"), column("status"), column("reserved_until"))
+# Payments remain a SQL expression until their ORM migration.
 payments = table("payments", column("rental_id"))
 
 
 async def read_lockers(db: AsyncSession, locker_id: int | None = None):
-    has_payment = exists(select(payments.c.rental_id).where(payments.c.rental_id == rentals.c.id))
-    occupied = exists(select(rentals.c.id).where(
-        rentals.c.locker_id == Locker.id,
+    has_payment = exists(select(payments.c.rental_id).where(payments.c.rental_id == Rental.id))
+    occupied = exists(select(Rental.id).where(
+        Rental.locker_id == Locker.id,
         or_(
-            rentals.c.status.in_(("active", "overdue")),
+            Rental.status.in_(("active", "overdue")),
             and_(
-                rentals.c.status == "pending",
-                or_(rentals.c.reserved_until > func.current_timestamp(), has_payment),
+                Rental.status == "pending",
+                or_(Rental.reserved_until > func.current_timestamp(), has_payment),
             ),
         ),
     ))
