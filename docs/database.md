@@ -2,20 +2,44 @@
 
 UniStow uses PostgreSQL 16. [schema.sql](../database/schema.sql) defines the current tables.
 
-| Table             | Purpose                                                                                |
-|-------------------|----------------------------------------------------------------------------------------|
-| `users`           | Normalised, unique email addresses and Argon2 password hashes                          |
-| `sessions`        | Hashed session tokens, user references and expiry times                                |
-| `lockers`         | Number, size, daily price, enabled flag, door state and controller readiness           |
-| `rentals`         | Owner, locker, booked dates, price, status and accepted overdue terms                  |
-| `payments`        | One Stripe checkout request per rental, fixed parameters, retry key and payment status |
-| `payment_events`  | Processed Stripe event IDs to prevent duplicate handling                               |
-| `locker_commands` | Opening/collection commands, controller ID, expiry, dispatch and completion times      |
-| `overdue_charges` | Daily charge records, durable Stripe requests and collection status                    |
+| Table              | Purpose                                                                                |
+|--------------------|----------------------------------------------------------------------------------------|
+| `users`            | Normalised, unique email addresses and Argon2 password hashes                          |
+| `sessions`         | Hashed session tokens, user references and expiry times                                |
+| `lockers`          | Number, size, daily price, enabled flag, door state and controller readiness           |
+| `rentals`          | Owner, locker, booked dates, price, status and accepted overdue terms                  |
+| `payments`         | One Stripe checkout request per rental, fixed parameters, retry key and payment status |
+| `payment_events`   | Processed Stripe event IDs to prevent duplicate handling                               |
+| `locker_commands`  | Opening/collection commands, controller ID, expiry, dispatch and completion times      |
+| `overdue_charges`  | Daily charge records, durable Stripe requests and collection status                    |
+| `overdue_payments` | Checkout requests for failed charges, retry parameters and payment confirmation        |
 
 A user and a locker can each have many past rentals. A unique index permits only one
 unfinished (`pending`, `active` or `overdue`) rental per locker. Foreign keys preserve
 rental history. Payment records contain Stripe references, not card details.
+
+## Application database access
+
+[database.py](../backend/database.py) configures the async SQLAlchemy engine,
+`async_sessionmaker` and the `get_db` request dependency. The backend uses
+`AsyncSession` with the psycopg driver and closes the engine during shutdown.
+
+[models.py](../backend/models.py) maps all nine tables using `DeclarativeBase`,
+`Mapped` and `mapped_column`. Account, rental, device and payment queries use
+these models with SQLAlchemy `select`, `update`, `delete` and inserts. Some
+queries select individual columns and return mappings for existing services
+and templates; others load ORM objects directly.
+
+PostgreSQL-specific operations remain where needed: JSONB containment,
+conflict-safe inserts and session-level advisory locks for the billing worker.
+Account and locker row locks, transaction boundaries and durable Stripe retry
+parameters are preserved.
+
+`database/schema.sql` remains the source of truth for database structure,
+including check constraints and partial indexes. The model declarations do not
+reproduce every constraint or index. Application startup does not call
+`Base.metadata.create_all`; model changes alone do not update an existing
+PostgreSQL database. See the initial setup instructions below.
 
 ## Rental rules
 
@@ -50,7 +74,7 @@ not the latch position. Commands are stored in `locker_commands`; there is no se
 The accepted terms specify EUR 1 at the unpaid deadline and each following local 18:00
 until collection and completion. The server saves the terms version and consent time.
 `overdue_charges` allows one record per rental and local charge date, with statuses
-`pending`, `paid`, `failed` or `waived`.
+`pending`, `paid`, `failed`, `waived` or `review`.
 
 New reservations that explicitly authorise payment-method storage use terms version
 `2026-11-09`. The checkbox starts unchecked and its agreement covers Stripe storage and the agreed
