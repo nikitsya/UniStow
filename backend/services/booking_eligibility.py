@@ -11,18 +11,18 @@ class BookingEligibility(TypedDict):
     rentals: list[dict[str, int]]
 
 
-def lock_account(db, user_id):
+async def lock_account(db, user_id):
     # All booking and balance writes take the account lock before any locker lock.
-    db.execute(text('SELECT id FROM users WHERE id=:id FOR UPDATE'), {'id': user_id})
+    await db.execute(text('SELECT id FROM users WHERE id=:id FOR UPDATE'), {'id': user_id})
 
 
-def lock_rental_account(db, rental_id):
-    user_id = db.scalar(text('SELECT user_id FROM rentals WHERE id=:id'), {'id': rental_id})
-    lock_account(db, user_id)
+async def lock_rental_account(db, rental_id):
+    user_id = await db.scalar(text('SELECT user_id FROM rentals WHERE id=:id'), {'id': rental_id})
+    await lock_account(db, user_id)
 
 
-def booking_eligibility(db, user_id) -> BookingEligibility:
-    rows = db.execute(text("""
+async def booking_eligibility(db, user_id) -> BookingEligibility:
+    rows = (await db.execute(text("""
                            SELECT r.id,
                                   l.number,
                                   COALESCE(SUM(c.amount_cents) FILTER (
@@ -47,16 +47,16 @@ def booking_eligibility(db, user_id) -> BookingEligibility:
                              AND c.status IN ('failed', 'pending', 'review')
                            GROUP BY r.id, l.number
                            ORDER BY r.id
-                           """), {'user_id': user_id}).mappings().all() if user_id is not None else []
+                                  """), {'user_id': user_id})).mappings().all() if user_id is not None else []
     unpaid = sum(row['unpaid_cents'] for row in rows)
     processing = sum(row['processing_cents'] for row in rows)
     return {'can_book': not (unpaid or processing), 'unpaid_cents': unpaid,
             'processing_cents': processing, 'rentals': [dict(row) for row in rows]}
 
 
-def require_booking_eligibility(db, user_id):
-    lock_account(db, user_id)
-    eligibility = booking_eligibility(db, user_id)
+async def require_booking_eligibility(db, user_id):
+    await lock_account(db, user_id)
+    eligibility = await booking_eligibility(db, user_id)
     if not eligibility['can_book']:
         message = (f"Please settle your unpaid rental balance of €{eligibility['unpaid_cents'] / 100:.2f} "
                    'before starting a new rental.' if eligibility['unpaid_cents'] else

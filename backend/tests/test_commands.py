@@ -6,9 +6,9 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 from uuid import uuid4
 
-from fastapi.testclient import TestClient
+from httpx import ASGITransport, AsyncClient
 from sqlalchemy import text
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from auth.sessions import token_hash
 from database import engine, get_db
@@ -16,183 +16,188 @@ from main import app
 from services.rentals import reserve_locker, rental_end
 
 
-class CommandTestCase(unittest.TestCase):
-    def setUp(self):
-        self.connection = engine.connect()
-        self.transaction = self.connection.begin()
+class CommandTestCase(unittest.IsolatedAsyncioTestCase):
+    async def asyncSetUp(self):
+        self.addAsyncCleanup(engine.dispose)
+        self.connection = await engine.connect()
+        self.transaction = await self.connection.begin()
         schema = 'test_commands_' + secrets.token_hex(6)
-        self.connection.exec_driver_sql(f'CREATE SCHEMA {schema}')
-        self.connection.exec_driver_sql(f'SET LOCAL search_path TO {schema}')
+        await self.connection.exec_driver_sql(f'CREATE SCHEMA {schema}')
+        await self.connection.exec_driver_sql(f'SET LOCAL search_path TO {schema}')
         source = (Path(__file__).resolve().parents[2] / 'database/schema.sql').read_text()
-        self.connection.exec_driver_sql(source.replace('BEGIN;', '').replace('COMMIT;', ''))
-        self.connection.execute(text(
+        await self.connection.exec_driver_sql(source.replace('BEGIN;', '').replace('COMMIT;', ''))
+        await self.connection.execute(text(
             "INSERT INTO users(email,password_hash) VALUES ('owner@example.com','test'),('other@example.com','test')"))
-        self.connection.execute(text(
+        await self.connection.execute(text(
             "INSERT INTO lockers(number,size,price_per_day_cents,is_enabled) VALUES(4,'small',100,true),(5,'small',100,true)"))
-        self.connection.execute(text("UPDATE lockers SET last_seen_at=CURRENT_TIMESTAMP WHERE number IN (4, 5)"))
-        with Session(bind=self.connection, join_transaction_mode='create_savepoint') as db:
-            self.rental = reserve_locker(db, 1, 1, 2)
+        await self.connection.execute(text("UPDATE lockers SET last_seen_at=CURRENT_TIMESTAMP WHERE number IN (4, 5)"))
+        async with AsyncSession(bind=self.connection, join_transaction_mode='create_savepoint') as db:
+            self.rental = await reserve_locker(db, 1, 1, 2)
         self.rental_id = self.rental['id']
-        self.connection.execute(text("UPDATE rentals SET status='active' WHERE id=:id"), {'id': self.rental_id})
-        self.connection.execute(text(
+        await self.connection.execute(text("UPDATE rentals SET status='active' WHERE id=:id"), {'id': self.rental_id})
+        await self.connection.execute(text(
             "INSERT INTO payments(rental_id,request_key,checkout_params,status) VALUES(:id,'fixture','{}','paid')"),
             {'id': self.rental_id})
         for user in (1, 2):
-            self.connection.execute(text(
+            await self.connection.execute(text(
                 "INSERT INTO sessions(token_hash,user_id,expires_at) VALUES(:token,:user,CURRENT_TIMESTAMP+INTERVAL '1 hour')"),
                 {'token': token_hash(f'session-{user}'), 'user': user})
 
-        def test_db():
-            with Session(bind=self.connection, join_transaction_mode='create_savepoint') as request_db:
+        async def test_db():
+            async with AsyncSession(bind=self.connection, join_transaction_mode='create_savepoint') as request_db:
                 yield request_db
 
         app.dependency_overrides[get_db] = test_db
-        self.client = TestClient(app)
+        self.client = AsyncClient(transport=ASGITransport(app=app), base_url="http://testserver", follow_redirects=True)
         self.client.cookies.set('unistow_session', 'session-1')
         key = patch.dict('os.environ', {'UNISTOW_DEVICE_KEY': 'test-device-key'})
         key.start()
         self.addCleanup(key.stop)
         self.controller = str(uuid4())
         self.device_headers = {'Authorization': 'Bearer test-device-key'}
-        self.report()
+        await self.report()
 
-    def tearDown(self):
-        self.client.close()
+    async def asyncTearDown(self):
+        await self.client.aclose()
         app.dependency_overrides.clear()
-        self.transaction.rollback()
-        self.connection.close()
+        await self.transaction.rollback()
+        await self.connection.close()
 
-    def report(self, ready=True, door='closed', controller=None):
-        return self.client.post('/api/device/heartbeat', headers=self.device_headers,
+    async def report(self, ready=True, door='closed', controller=None):
+        return await self.client.post('/api/device/heartbeat', headers=self.device_headers,
                                 json={'door_state': door, 'ready': ready,
                                       'controller_id': controller or self.controller})
 
-    def open(self):
-        return self.client.post(f'/api/rentals/{self.rental_id}/open', headers={'X-UniStow-Request': '1'})
+    async def open(self):
+        return await self.client.post(f'/api/rentals/{self.rental_id}/open', headers={'X-UniStow-Request': '1'})
 
-    def take(self, controller=None):
-        return self.client.post('/api/device/commands/next', headers=self.device_headers,
+    async def take(self, controller=None):
+        return await self.client.post('/api/device/commands/next', headers=self.device_headers,
                                 json={'controller_id': controller or self.controller})
 
-    def finish(self, confirmed=True):
+    async def finish(self, confirmed=True):
         headers = {'X-UniStow-Request': '1'}
         if confirmed:
             headers['X-UniStow-Collect-All'] = 'yes'
-        return self.client.post(f'/api/rentals/{self.rental_id}/finish', headers=headers)
+        return await self.client.post(f'/api/rentals/{self.rental_id}/finish', headers=headers)
 
-    def acknowledge(self, command_id, controller=None):
-        return self.client.post(f'/api/device/commands/{command_id}/completed',
+    async def acknowledge(self, command_id, controller=None):
+        return await self.client.post(f'/api/device/commands/{command_id}/completed',
                                 headers=self.device_headers, json={'controller_id': controller or self.controller})
 
 
 @unittest.skipUnless(os.environ.get('UNISTOW_TEST_POSTGRES') == '1', 'Requires PostgreSQL; isolated schema rolled back')
 class CommandTests(CommandTestCase):
-    def test_home_continues_only_the_owners_current_rental(self):
+    async def test_home_continues_only_the_owners_current_rental(self):
         for status in ('pending', 'active', 'overdue'):
-            self.connection.execute(text('UPDATE rentals SET status=:status WHERE id=:id'),
+            await self.connection.execute(text('UPDATE rentals SET status=:status WHERE id=:id'),
                                     {'id': self.rental_id, 'status': status})
             self.client.cookies.set('unistow_session', 'session-1')
-            page = self.client.get('/')
+            page = await self.client.get('/')
             self.assertEqual(page.status_code, 200)
             self.assertIn('Continue rental for Locker 4', page.text)
             self.assertIn(f'/rentals/{self.rental_id}', page.text)
             self.client.cookies.set('unistow_session', 'session-2')
-            self.assertNotIn('Continue rental', self.client.get('/').text)
+            self.assertNotIn('Continue rental', (await self.client.get('/')).text)
         self.client.cookies.set('unistow_session', 'session-1')
         for status in ('completed', 'cancelled'):
-            self.connection.execute(text(
+            await self.connection.execute(text(
                 "UPDATE rentals SET status=:status, completed_at=CASE WHEN :status='completed' THEN clock_timestamp() END WHERE id=:id"),
                 {'id': self.rental_id, 'status': status})
-            self.assertNotIn('Continue rental', self.client.get('/').text)
-        self.connection.execute(text('DELETE FROM payments WHERE rental_id=:id'), {'id': self.rental_id})
-        self.connection.execute(text(
+            self.assertNotIn('Continue rental', (await self.client.get('/')).text)
+        await self.connection.execute(text('DELETE FROM payments WHERE rental_id=:id'), {'id': self.rental_id})
+        await self.connection.execute(text(
             "UPDATE rentals SET status='pending', created_at=CURRENT_TIMESTAMP-INTERVAL '20 minutes', overdue_terms_accepted_at=CURRENT_TIMESTAMP-INTERVAL '20 minutes', reserved_until=CURRENT_TIMESTAMP-INTERVAL '1 minute' WHERE id=:id"),
             {'id': self.rental_id})
-        self.assertNotIn('Continue rental', self.client.get('/').text)
+        self.assertNotIn('Continue rental', (await self.client.get('/')).text)
         self.client.cookies.clear()
-        self.assertNotIn('Continue rental', self.client.get('/').text)
+        self.assertNotIn('Continue rental', (await self.client.get('/')).text)
 
-    def test_mqtt_open_cannot_be_repeated_or_collected_over_http(self):
+    async def test_mqtt_open_cannot_be_repeated_or_collected_over_http(self):
         events = Mock()
         events.ready_controller.return_value = self.controller
         events.open.return_value = {'status': 'opening'}
-        with patch.object(app.state, 'open_client', object(), create=True), \
-                patch.object(app.state, 'door_events', events, create=True):
-            self.assertEqual(self.open().status_code, 202)
-            self.assertEqual(self.open().status_code, 409)
-            self.assertIsNone(self.take().json()['command'])
-            events.open.assert_called_once()
+        with patch.object(app.state, 'open_client', object(), create=True):
+            with patch.object(app.state, 'door_events', events, create=True):
+                self.assertEqual((await self.open()).status_code, 202)
+                self.assertEqual((await self.open()).status_code, 409)
+                self.assertIsNone((await self.take()).json()['command'])
+                events.open.assert_called_once()
 
-    def test_owner_paid_flow_dispatches_once(self):
-        response = self.open()
+    async def test_owner_paid_flow_dispatches_once(self):
+        response = await self.open()
         self.assertEqual(response.status_code, 202, response.text)
-        self.assertEqual(self.open().status_code, 409)
-        result = self.take().json()['command']
+        self.assertEqual((await self.open()).status_code, 409)
+        result = (await self.take()).json()['command']
         self.assertEqual(result['id'], response.json()['command_id'])
         self.assertEqual(result['action'], 'open')
         self.assertLessEqual(result['valid_for_seconds'], 10)
-        self.assertIsNone(self.take().json()['command'])
-        self.report()
-        self.assertIsNone(self.take().json()['command'])
+        self.assertIsNone((await self.take()).json()['command'])
+        await self.report()
+        self.assertIsNone((await self.take()).json()['command'])
 
-    def test_open_door_allows_release_but_not_finish(self):
-        self.report(door='open')
-        page = self.client.get(f'/rentals/{self.rental_id}')
+    async def test_open_door_allows_release_but_not_finish(self):
+        await self.report(door='open')
+        page = await self.client.get(f'/rentals/{self.rental_id}')
         self.assertIn('Open locker', page.text)
         self.assertRegex(page.text, r'<button(?=[^>]*id="open-locker-button")(?=[^>]*\bdisabled\b)[^>]*>')
         self.assertRegex(page.text, r'<button(?=[^>]*id="finish-rental-button")(?=[^>]*\bdisabled\b)[^>]*>')
-        self.assertEqual(self.finish().status_code, 409)
-        self.assertEqual(self.open().status_code, 202)
-        self.assertEqual(self.take().json()['command']['action'], 'open')
+        self.assertEqual((await self.finish()).status_code, 409)
+        self.assertEqual((await self.open()).status_code, 202)
+        self.assertEqual((await self.take()).json()['command']['action'], 'open')
 
-    def test_authentication_ownership_and_browser_header(self):
+    async def test_authentication_ownership_and_browser_header(self):
         self.client.cookies.clear()
-        self.assertEqual(self.open().status_code, 401)
+        self.assertEqual((await self.open()).status_code, 401)
         self.client.cookies.set('unistow_session', 'session-2')
-        self.assertEqual(self.open().status_code, 404)
+        self.assertEqual((await self.open()).status_code, 404)
         self.client.cookies.set('unistow_session', 'session-1')
-        self.assertEqual(self.client.post(f'/api/rentals/{self.rental_id}/open').status_code, 403)
+        self.assertEqual((await self.client.post(f'/api/rentals/{self.rental_id}/open')).status_code, 403)
         self.assertEqual(
-            self.client.post('/api/device/commands/next', json={'controller_id': self.controller}).status_code, 401)
+            (await self.client.post('/api/device/commands/next', json={'controller_id': self.controller})).status_code,
+            401)
 
-    def test_unpaid_offline_open_and_legacy_report_cannot_unlock(self):
-        self.connection.execute(text("UPDATE payments SET status='pending' WHERE rental_id=:id"),
+    async def test_unpaid_offline_open_and_legacy_report_cannot_unlock(self):
+        await self.connection.execute(text("UPDATE payments SET status='pending' WHERE rental_id=:id"),
                                 {'id': self.rental_id})
-        self.assertEqual(self.open().status_code, 409)
-        self.connection.execute(text("UPDATE payments SET status='paid' WHERE rental_id=:id"), {'id': self.rental_id})
-        self.report(ready=False)
-        self.assertEqual(self.open().status_code, 409)
-        self.report()
-        self.connection.execute(
+        self.assertEqual((await self.open()).status_code, 409)
+        await self.connection.execute(text("UPDATE payments SET status='paid' WHERE rental_id=:id"),
+                                      {'id': self.rental_id})
+        await self.report(ready=False)
+        self.assertEqual((await self.open()).status_code, 409)
+        await self.report()
+        await self.connection.execute(
             text("UPDATE lockers SET last_seen_at=CURRENT_TIMESTAMP-INTERVAL '1 minute' WHERE number=4"))
-        self.assertEqual(self.open().status_code, 409)
-        self.client.post('/api/device/heartbeat', headers=self.device_headers, json={'door_state': 'closed'})
-        self.assertEqual(self.open().status_code, 409)
+        self.assertEqual((await self.open()).status_code, 409)
+        await self.client.post('/api/device/heartbeat', headers=self.device_headers, json={'door_state': 'closed'})
+        self.assertEqual((await self.open()).status_code, 409)
 
-    def test_expired_command_and_restarted_controller_do_not_open(self):
-        self.assertEqual(self.open().status_code, 202)
-        self.connection.execute(text(
+    async def test_expired_command_and_restarted_controller_do_not_open(self):
+        self.assertEqual((await self.open()).status_code, 202)
+        await self.connection.execute(text(
             "UPDATE locker_commands SET created_at=created_at-INTERVAL '1 minute', expires_at=expires_at-INTERVAL '1 minute' WHERE rental_id=:id"),
             {'id': self.rental_id})
-        self.assertIsNone(self.take().json()['command'])
-        self.assertEqual(self.open().status_code, 202)
+        self.assertIsNone((await self.take()).json()['command'])
+        self.assertEqual((await self.open()).status_code, 202)
         new_controller = str(uuid4())
-        self.report(controller=new_controller)
-        self.assertIsNone(self.take(new_controller).json()['command'])
-        self.assertIsNone(self.take().json()['command'])
+        await self.report(controller=new_controller)
+        self.assertIsNone((await self.take(new_controller)).json()['command'])
+        self.assertIsNone((await self.take()).json()['command'])
 
-    def test_rental_and_payment_are_rechecked_on_dispatch(self):
-        self.assertEqual(self.open().status_code, 202)
-        self.connection.execute(text("UPDATE payments SET status='expired' WHERE rental_id=:id"),
+    async def test_rental_and_payment_are_rechecked_on_dispatch(self):
+        self.assertEqual((await self.open()).status_code, 202)
+        await self.connection.execute(text("UPDATE payments SET status='expired' WHERE rental_id=:id"),
                                 {'id': self.rental_id})
-        self.assertIsNone(self.take().json()['command'])
-        self.connection.execute(text("UPDATE payments SET status='paid' WHERE rental_id=:id"), {'id': self.rental_id})
-        self.connection.execute(text("UPDATE rentals SET status='cancelled' WHERE id=:id"), {'id': self.rental_id})
-        self.assertIsNone(self.take().json()['command'])
+        self.assertIsNone((await self.take()).json()['command'])
+        await self.connection.execute(text("UPDATE payments SET status='paid' WHERE rental_id=:id"),
+                                      {'id': self.rental_id})
+        await self.connection.execute(text("UPDATE rentals SET status='cancelled' WHERE id=:id"),
+                                      {'id': self.rental_id})
+        self.assertIsNone((await self.take()).json()['command'])
 
-    def test_expired_paid_period_cannot_open(self):
-        start = self.connection.execute(text('SELECT starts_at FROM rentals')).scalar_one() - timedelta(days=7)
-        self.connection.execute(text('''UPDATE rentals
+    async def test_expired_paid_period_cannot_open(self):
+        start = (await self.connection.execute(text('SELECT starts_at FROM rentals'))).scalar_one() - timedelta(days=7)
+        await self.connection.execute(text('''UPDATE rentals
                                         SET starts_at=:start,
                                             created_at=:start,
                                             overdue_terms_accepted_at=:start,
@@ -201,71 +206,73 @@ class CommandTests(CommandTestCase):
                                         WHERE id = :id'''),
                                 {'id': self.rental_id, 'start': start, 'reserved': start + timedelta(minutes=15),
                                  'end': rental_end(start, 2)})
-        self.assertEqual(self.open().status_code, 409)
+        self.assertEqual((await self.open()).status_code, 409)
 
-    def test_button_shown_only_for_ready_paid_owner(self):
-        response = self.client.get(f'/rentals/{self.rental_id}')
+    async def test_button_shown_only_for_ready_paid_owner(self):
+        response = await self.client.get(f'/rentals/{self.rental_id}')
         self.assertEqual(response.status_code, 200)
         self.assertIn('id="open-locker-button"', response.text)
         self.assertRegex(response.text, r'<button(?=[^>]*id="open-locker-button")(?![^>]*\bdisabled\b)[^>]*>')
-        self.report(ready=False)
-        self.assertRegex(self.client.get(f'/rentals/{self.rental_id}').text,
+        await self.report(ready=False)
+        self.assertRegex((await self.client.get(f'/rentals/{self.rental_id}')).text,
                          r'<button(?=[^>]*id="open-locker-button")(?=[^>]*\bdisabled\b)[^>]*>')
 
-    def test_finish_is_disabled_when_mqtt_reports_an_open_door(self):
+    async def test_finish_is_disabled_when_mqtt_reports_an_open_door(self):
         events = Mock()
         events.latest.return_value = 'open'
         with patch.object(app.state, 'door_events', events, create=True):
-            page = self.client.get(f'/rentals/{self.rental_id}')
+            page = await self.client.get(f'/rentals/{self.rental_id}')
         self.assertEqual(page.status_code, 200)
         self.assertRegex(page.text, r'<button(?=[^>]*id="finish-rental-button")(?=[^>]*\bdisabled\b)[^>]*>')
 
-    def test_finish_requires_confirmation_owner_and_paid_access(self):
-        self.assertEqual(self.finish(False).status_code, 422)
+    async def test_finish_requires_confirmation_owner_and_paid_access(self):
+        self.assertEqual((await self.finish(False)).status_code, 422)
         self.client.cookies.clear()
-        self.assertEqual(self.finish().status_code, 401)
+        self.assertEqual((await self.finish()).status_code, 401)
         self.client.cookies.set('unistow_session', 'session-2')
-        self.assertEqual(self.finish().status_code, 404)
+        self.assertEqual((await self.finish()).status_code, 404)
         self.client.cookies.set('unistow_session', 'session-1')
-        self.connection.execute(text("UPDATE payments SET status='pending' WHERE rental_id=:id"),
+        await self.connection.execute(text("UPDATE payments SET status='pending' WHERE rental_id=:id"),
                                 {'id': self.rental_id})
-        self.assertEqual(self.finish().status_code, 409)
+        self.assertEqual((await self.finish()).status_code, 409)
 
-    def test_collection_needs_dispatch_and_matching_controller(self):
-        response = self.finish()
+    async def test_collection_needs_dispatch_and_matching_controller(self):
+        response = await self.finish()
         self.assertEqual(response.status_code, 202, response.text)
         command_id = response.json()['command_id']
-        self.assertEqual(self.acknowledge(command_id).status_code, 409)
+        self.assertEqual((await self.acknowledge(command_id)).status_code, 409)
         # Old controllers must never execute a collection as an ordinary opening.
-        self.assertIsNone(self.take().json()['command'])
-        result = self.client.post('/api/device/commands/next', headers=self.device_headers,
-                                  json={'controller_id': self.controller, 'supports_finish': True}).json()['command']
+        self.assertIsNone((await self.take()).json()['command'])
+        result = (await self.client.post('/api/device/commands/next', headers=self.device_headers,
+                                         json={'controller_id': self.controller, 'supports_finish': True})).json()[
+            'command']
         self.assertEqual(result['action'], 'finish')
-        self.report(ready=False, door='open')
-        page = self.client.get(f'/rentals/{self.rental_id}').text
-        self.assertIn('>Take all your belongings, then close the door to finish your rental.</p>', page)
+        await self.report(ready=False, door='open')
+        page = (await self.client.get(f'/rentals/{self.rental_id}')).text
+        self.assertRegex(page, r'>\s*Take all your belongings, then close the door to finish your rental\.</p>')
         for button in ('open-locker-button', 'finish-rental-button'):
             self.assertRegex(page, rf'<button(?=[^>]*id="{button}")(?=[^>]*\bdisabled\b)[^>]*>')
-        self.report(ready=False, door='closed')
-        self.assertEqual(self.connection.execute(text('SELECT status FROM rentals')).scalar_one(), 'active')
-        self.assertEqual(self.acknowledge(command_id, str(uuid4())).status_code, 409)
-        self.assertEqual(self.client.post(f'/api/device/commands/{command_id}/completed',
-                                          json={'controller_id': self.controller}).status_code, 401)
-        self.assertEqual(self.acknowledge(command_id).status_code, 200)
-        completed = self.connection.execute(text('SELECT completed_at FROM rentals')).scalar_one()
+        await self.report(ready=False, door='closed')
+        self.assertEqual((await self.connection.execute(text('SELECT status FROM rentals'))).scalar_one(), 'active')
+        self.assertEqual((await self.acknowledge(command_id, str(uuid4()))).status_code, 409)
+        self.assertEqual((await self.client.post(f'/api/device/commands/{command_id}/completed',
+                                                 json={'controller_id': self.controller})).status_code, 401)
+        self.assertEqual((await self.acknowledge(command_id)).status_code, 200)
+        completed = (await self.connection.execute(text('SELECT completed_at FROM rentals'))).scalar_one()
         self.assertIsNotNone(completed)
-        self.assertEqual(self.acknowledge(command_id).status_code, 200)
-        self.assertEqual(self.connection.execute(text('SELECT completed_at FROM rentals')).scalar_one(), completed)
-        with Session(bind=self.connection, join_transaction_mode='create_savepoint') as db:
+        self.assertEqual((await self.acknowledge(command_id)).status_code, 200)
+        self.assertEqual((await self.connection.execute(text('SELECT completed_at FROM rentals'))).scalar_one(),
+                         completed)
+        async with AsyncSession(bind=self.connection, join_transaction_mode='create_savepoint') as db:
             from services.lockers import read_lockers
-            self.assertEqual(read_lockers(db, 1)[0]['status'], 'available')
-        self.assertEqual(self.open().status_code, 409)
-        page = self.client.get(f'/rentals/{self.rental_id}').text
+            self.assertEqual((await read_lockers(db, 1))[0]['status'], 'available')
+        self.assertEqual((await self.open()).status_code, 409)
+        page = (await self.client.get(f'/rentals/{self.rental_id}')).text
         self.assertIn('Rental completed.', page)
         self.assertNotIn('id="finish-rental-button"', page)
 
-    def test_overdue_rental_can_finish_but_cannot_open_normally(self):
-        self.connection.execute(text("""
+    async def test_overdue_rental_can_finish_but_cannot_open_normally(self):
+        await self.connection.execute(text("""
                                      UPDATE rentals
                                      SET status='overdue',
                                          starts_at=starts_at - INTERVAL '4 days',
@@ -275,38 +282,39 @@ class CommandTests(CommandTestCase):
                                          overdue_terms_accepted_at=overdue_terms_accepted_at - INTERVAL '4 days'
                                      WHERE id = :id
                                      """), {'id': self.rental_id})
-        page = self.client.get(f'/rentals/{self.rental_id}').text
+        page = (await self.client.get(f'/rentals/{self.rental_id}')).text
         self.assertIn('Finish your rental to stop daily charges.', page)
         self.assertRegex(page, r'<button(?=[^>]*id="open-locker-button")(?=[^>]*\bdisabled\b)[^>]*>')
         self.assertRegex(page, r'<button(?=[^>]*id="finish-rental-button")(?![^>]*\bdisabled\b)[^>]*>')
-        self.assertEqual(self.open().status_code, 409)
-        self.assertEqual(self.finish(False).status_code, 422)
+        self.assertEqual((await self.open()).status_code, 409)
+        self.assertEqual((await self.finish(False)).status_code, 422)
         self.client.cookies.set('unistow_session', 'session-2')
-        self.assertEqual(self.finish().status_code, 404)
+        self.assertEqual((await self.finish()).status_code, 404)
         self.client.cookies.set('unistow_session', 'session-1')
-        self.report(ready=False)
-        self.assertEqual(self.finish().status_code, 409)
-        self.report()
-        response = self.finish()
+        await self.report(ready=False)
+        self.assertEqual((await self.finish()).status_code, 409)
+        await self.report()
+        response = await self.finish()
         self.assertEqual(response.status_code, 202, response.text)
         command_id = response.json()['command_id']
-        self.assertIsNone(self.take().json()['command'])
-        result = self.client.post('/api/device/commands/next', headers=self.device_headers,
-                                  json={'controller_id': self.controller, 'supports_finish': True}).json()['command']
+        self.assertIsNone((await self.take()).json()['command'])
+        result = (await self.client.post('/api/device/commands/next', headers=self.device_headers,
+                                         json={'controller_id': self.controller, 'supports_finish': True})).json()[
+            'command']
         self.assertEqual(result['id'], command_id)
         self.assertEqual(result['action'], 'finish')
         self.assertGreater(result['valid_for_seconds'], 0)
         self.assertLessEqual(result['valid_for_seconds'], 10)
-        self.report(ready=False, door='open')
-        page = self.client.get(f'/rentals/{self.rental_id}').text
+        await self.report(ready=False, door='open')
+        page = (await self.client.get(f'/rentals/{self.rental_id}')).text
         self.assertRegex(page, r'<button(?=[^>]*id="finish-rental-button")(?=[^>]*\bdisabled\b)[^>]*>')
-        self.report(ready=False, door='closed')
-        self.assertEqual(self.acknowledge(command_id).status_code, 200)
-        self.assertEqual(self.connection.execute(text('SELECT status FROM rentals')).scalar_one(), 'completed')
-        self.assertEqual(self.finish().status_code, 409)
+        await self.report(ready=False, door='closed')
+        self.assertEqual((await self.acknowledge(command_id)).status_code, 200)
+        self.assertEqual((await self.connection.execute(text('SELECT status FROM rentals'))).scalar_one(), 'completed')
+        self.assertEqual((await self.finish()).status_code, 409)
 
-    def test_rental_summary_separates_paid_pending_failed_and_waived_charges(self):
-        self.connection.execute(text("""
+    async def test_rental_summary_separates_paid_pending_failed_and_waived_charges(self):
+        await self.connection.execute(text("""
                                      INSERT INTO overdue_charges
                                          (rental_id, charge_date, status, stripe_payment_intent_id, paid_at)
                                      VALUES (:id, CURRENT_DATE - 3, 'paid', 'pi_summary', clock_timestamp()),
@@ -314,63 +322,63 @@ class CommandTests(CommandTestCase):
                                             (:id, CURRENT_DATE - 1, 'failed', NULL, NULL),
                                             (:id, CURRENT_DATE, 'waived', NULL, NULL)
                                      """), {'id': self.rental_id})
-        page = self.client.get(f'/rentals/{self.rental_id}').text
+        page = (await self.client.get(f'/rentals/{self.rental_id}')).text
         self.assertIn('Payment incomplete', page)
         for label in ('Extra days · paid', 'Extra days · processing', 'Extra days · unpaid'):
             self.assertIn(label, page)
         self.assertIn('<span>Total</span><strong>€5.00</strong>', page)
-        self.connection.execute(text("UPDATE overdue_charges SET status='waived' WHERE status='failed'"))
-        page = self.client.get(f'/rentals/{self.rental_id}').text
+        await self.connection.execute(text("UPDATE overdue_charges SET status='waived' WHERE status='failed'"))
+        page = (await self.client.get(f'/rentals/{self.rental_id}')).text
         self.assertRegex(page, r'Payment\s+processing')
         self.assertNotIn('Extra days · unpaid', page)
         self.assertIn('<span>Total</span><strong>€4.00</strong>', page)
-        self.connection.execute(text("UPDATE overdue_charges SET status='waived' WHERE status='pending'"))
-        self.connection.execute(
+        await self.connection.execute(text("UPDATE overdue_charges SET status='waived' WHERE status='pending'"))
+        await self.connection.execute(
             text("UPDATE rentals SET status='completed', completed_at=clock_timestamp() WHERE id=:id"),
             {'id': self.rental_id})
-        page = self.client.get(f'/rentals/{self.rental_id}').text
+        page = (await self.client.get(f'/rentals/{self.rental_id}')).text
         self.assertIn('Rental completed.', page)
         self.assertIn('Extra days · paid', page)
         self.assertNotRegex(page, r'Payment\s+processing')
         self.assertIn('<span>Total</span><strong>€3.00</strong>', page)
         self.client.cookies.set('unistow_session', 'session-2')
-        self.assertEqual(self.client.get(f'/rentals/{self.rental_id}').status_code, 404)
+        self.assertEqual((await self.client.get(f'/rentals/{self.rental_id}')).status_code, 404)
 
-    def test_rental_without_extra_charges_keeps_original_total(self):
-        page = self.client.get(f'/rentals/{self.rental_id}').text
+    async def test_rental_without_extra_charges_keeps_original_total(self):
+        page = (await self.client.get(f'/rentals/{self.rental_id}')).text
         self.assertNotIn('Extra days ·', page)
         self.assertNotIn('<dt>Rental cost</dt>', page)
         self.assertIn('<span>Total</span><strong>€2.00</strong>', page)
 
-    def test_ordinary_open_cannot_complete_rental(self):
-        command_id = self.open().json()['command_id']
-        self.take()
-        self.assertEqual(self.acknowledge(command_id).status_code, 409)
-        self.assertEqual(self.connection.execute(text('SELECT status FROM rentals')).scalar_one(), 'active')
+    async def test_ordinary_open_cannot_complete_rental(self):
+        command_id = (await self.open()).json()['command_id']
+        await self.take()
+        self.assertEqual((await self.acknowledge(command_id)).status_code, 409)
+        self.assertEqual((await self.connection.execute(text('SELECT status FROM rentals'))).scalar_one(), 'active')
 
-    def test_offline_locker_cannot_be_reserved(self):
-        self.connection.execute(
+    async def test_offline_locker_cannot_be_reserved(self):
+        await self.connection.execute(
             text("UPDATE lockers SET last_seen_at=CURRENT_TIMESTAMP-INTERVAL '1 minute' WHERE number=5"))
-        response = self.client.post('/api/rentals',
+        response = await self.client.post('/api/rentals',
                                     json={'locker_id': 2, 'days': 1, 'overdue_consent': True},
                                     headers={'X-UniStow-Request': '1'})
         self.assertEqual(response.status_code, 409)
         self.assertIn('temporarily unavailable', response.json()['detail'])
         from services.lockers import read_lockers
-        with Session(bind=self.connection, join_transaction_mode='create_savepoint') as db:
-            self.assertEqual(read_lockers(db, 2)[0]['status'], 'offline')
-        self.connection.execute(text("UPDATE lockers SET last_seen_at=CURRENT_TIMESTAMP WHERE number=5"))
-        with Session(bind=self.connection, join_transaction_mode='create_savepoint') as db:
-            self.assertEqual(read_lockers(db, 2)[0]['status'], 'available')
+        async with AsyncSession(bind=self.connection, join_transaction_mode='create_savepoint') as db:
+            self.assertEqual((await read_lockers(db, 2))[0]['status'], 'offline')
+        await self.connection.execute(text("UPDATE lockers SET last_seen_at=CURRENT_TIMESTAMP WHERE number=5"))
+        async with AsyncSession(bind=self.connection, join_transaction_mode='create_savepoint') as db:
+            self.assertEqual((await read_lockers(db, 2))[0]['status'], 'available')
 
-    def test_records_explicit_payment_method_consent(self):
-        response = self.client.post('/api/rentals',
+    async def test_records_explicit_payment_method_consent(self):
+        response = await self.client.post('/api/rentals',
                                     json={'locker_id': 2, 'days': 1, 'overdue_consent': True,
                                           'payment_method_consent': True},
                                     headers={'X-UniStow-Request': '1'})
         self.assertEqual(response.status_code, 201)
-        rental = self.connection.execute(text(
+        rental = (await self.connection.execute(text(
             "SELECT overdue_terms_version, overdue_terms_accepted_at FROM rentals WHERE id=:id"
-        ), {'id': response.json()['id']}).one()
+        ), {'id': response.json()['id']})).one()
         self.assertEqual(rental[0], '2026-11-09')
         self.assertIsNotNone(rental[1])

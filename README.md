@@ -56,7 +56,7 @@ Other images are grouped into [deployment evidence](docs/images/deployment/),
 | Part              | Technology                                                                        |
 |-------------------|-----------------------------------------------------------------------------------|
 | Web app           | Python, FastAPI, Jinja2, HTML, CSS and JavaScript                                 |
-| Database          | PostgreSQL 16 in Docker                                                           |
+| Database          | PostgreSQL 16 in Docker, async SQLAlchemy and psycopg                             |
 | Payments          | Stripe sandbox Checkout and verified webhooks                                     |
 | Hardware          | Raspberry Pi 400, SG92R servo and magnetic contact sensor                         |
 | Hosting           | AWS EC2, Nginx and Let's Encrypt certificates                                     |
@@ -156,6 +156,9 @@ From `backend/`:
 ```sh
 uv run python -m unittest discover -s tests -v
 ```
+
+Database access uses `AsyncSession` in request handlers and the overdue billing task.
+Existing SQL queries and database tables are retained.
 
 To include database tests, start PostgreSQL and prefix the command with
 `UNISTOW_TEST_POSTGRES=1`. These tests use isolated database schemas.

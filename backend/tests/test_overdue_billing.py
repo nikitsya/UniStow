@@ -1,26 +1,29 @@
+import asyncio
 import os
 import secrets
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import stripe
-from sqlalchemy import create_engine, text
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import create_async_engine
 
 from database import connect_args, engine
 from services.overdue_billing import WORKER_LOCK, due_dates, run_billing_once
 from services.rentals import IRELAND, rental_end
+from stripe_fakes import stripe_client as fake_stripe_client
 
 
-class BillingDateTests(unittest.TestCase):
-    def test_deadline_is_inclusive(self):
+class BillingDateTests(unittest.IsolatedAsyncioTestCase):
+    async def test_deadline_is_inclusive(self):
         deadline = datetime(2026, 11, 9, 18, tzinfo=IRELAND)
         self.assertEqual(list(due_dates(deadline, deadline - timedelta(seconds=1))), [])
         self.assertEqual(list(due_dates(deadline, deadline)), [deadline.date()])
 
-    def test_daily_deadlines_follow_dublin_clock_changes(self):
+    async def test_daily_deadlines_follow_dublin_clock_changes(self):
         for month, day in [(3, 28), (10, 24)]:
             first = datetime(2026, month, day, 18, tzinfo=IRELAND)
             before = datetime(2026, month, day + 1, 17, 59, tzinfo=IRELAND).astimezone(timezone.utc)
@@ -29,20 +32,22 @@ class BillingDateTests(unittest.TestCase):
             self.assertEqual(len(list(due_dates(first, at))), 2)
 
 
-class OverdueBillingTestCase(unittest.TestCase):
-    def setUp(self):
+class OverdueBillingTestCase(unittest.IsolatedAsyncioTestCase):
+    async def asyncSetUp(self):
+        self.addAsyncCleanup(engine.dispose)
         self.schema = 'test_billing_' + secrets.token_hex(6)
-        with engine.begin() as connection:
-            connection.exec_driver_sql(f'CREATE SCHEMA {self.schema}')
-        self.db = create_engine(engine.url, connect_args=connect_args | {'options': f'-c search_path={self.schema}'})
-        self.addCleanup(self.clean_database)
-        with self.db.begin() as connection:
+        async with engine.begin() as connection:
+            await connection.exec_driver_sql(f'CREATE SCHEMA {self.schema}')
+        self.db = create_async_engine(engine.url,
+                                      connect_args=connect_args | {'options': f'-c search_path={self.schema}'})
+        self.addAsyncCleanup(self.clean_database)
+        async with self.db.begin() as connection:
             source = (Path(__file__).resolve().parents[2] / 'database/schema.sql').read_text()
-            connection.exec_driver_sql(source.replace('BEGIN;', '').replace('COMMIT;', ''))
+            await connection.exec_driver_sql(source.replace('BEGIN;', '').replace('COMMIT;', ''))
             start = datetime.now(IRELAND).replace(hour=12, minute=0, second=0, microsecond=0) - timedelta(days=1)
-            connection.execute(text("INSERT INTO users(email,password_hash) VALUES('test@example.com','test')"))
-            connection.execute(text("INSERT INTO lockers(number,size,price_per_day_cents) VALUES(4,'small',100)"))
-            connection.execute(text("""
+            await connection.execute(text("INSERT INTO users(email,password_hash) VALUES('test@example.com','test')"))
+            await connection.execute(text("INSERT INTO lockers(number,size,price_per_day_cents) VALUES(4,'small',100)"))
+            await connection.execute(text("""
                                     INSERT INTO rentals(user_id, locker_id, status, prepaid_days, reserved_until,
                                                         starts_at, paid_until,
                                                         total_price_cents, overdue_terms_version,
@@ -51,7 +56,7 @@ class OverdueBillingTestCase(unittest.TestCase):
                                             :start)
                                     """),
                                {'start': start, 'reserved': start + timedelta(minutes=15), 'end': rental_end(start, 1)})
-            connection.execute(text("""
+            await connection.execute(text("""
                                     INSERT INTO payments(rental_id, request_key, checkout_params, status,
                                                          stripe_customer_id,
                                                          stripe_payment_method_id, payment_method_saved_at)
@@ -60,18 +65,18 @@ class OverdueBillingTestCase(unittest.TestCase):
         self.intents = {}
         self.keys = {}
         self.collected = 0
-        self.client = Mock()
-        self.client.v1.payment_intents.create.side_effect = self.create_intent
-        self.client.v1.payment_intents.retrieve.side_effect = lambda key: self.response(self.intents[key])
-        self.client.v1.payment_intents.confirm.side_effect = self.confirm_intent
+        self.client = fake_stripe_client()
+        self.client.v1.payment_intents.create_async.side_effect = self.create_intent
+        self.client.v1.payment_intents.retrieve_async.side_effect = lambda key: self.response(self.intents[key])
+        self.client.v1.payment_intents.confirm_async.side_effect = self.confirm_intent
         self.patch = patch('services.overdue_billing.stripe_client', return_value=self.client)
         self.patch.start()
         self.addCleanup(self.patch.stop)
 
-    def clean_database(self):
-        self.db.dispose()
-        with engine.begin() as connection:
-            connection.exec_driver_sql(f'DROP SCHEMA {self.schema} CASCADE')
+    async def clean_database(self):
+        await self.db.dispose()
+        async with engine.begin() as connection:
+            await connection.exec_driver_sql(f'DROP SCHEMA {self.schema} CASCADE')
 
     @staticmethod
     def response(intent):
@@ -94,22 +99,23 @@ class OverdueBillingTestCase(unittest.TestCase):
         self.intents[key]['status'] = 'succeeded'
         return self.response(self.intents[key])
 
-    def run_pass(self):
-        run_billing_once(self.db)
+    async def run_pass(self):
+        await run_billing_once(self.db)
 
-    def rows(self):
-        with self.db.connect() as connection:
-            return connection.execute(text('SELECT * FROM overdue_charges ORDER BY charge_date')).mappings().all()
+    async def rows(self):
+        async with self.db.connect() as connection:
+            return (
+                await connection.execute(text('SELECT * FROM overdue_charges ORDER BY charge_date'))).mappings().all()
 
-    def expected_days(self):
-        with self.db.connect() as connection:
-            deadline = connection.scalar(text('SELECT paid_until FROM rentals WHERE id=1'))
+    async def expected_days(self):
+        async with self.db.connect() as connection:
+            deadline = await connection.scalar(text('SELECT paid_until FROM rentals WHERE id=1'))
         return len(list(due_dates(deadline, datetime.now(timezone.utc))))
 
 
 @unittest.skipUnless(os.getenv('UNISTOW_TEST_POSTGRES') == '1', 'Requires isolated PostgreSQL schema')
 class OverdueBillingTests(OverdueBillingTestCase):
-    def test_decline_with_cleared_payment_method_is_reconciled(self):
+    async def test_decline_with_cleared_payment_method_is_reconciled(self):
         def decline(key, _params, **_options):
             intent = self.intents[key]
             intent['status'] = 'requires_payment_method'
@@ -120,126 +126,127 @@ class OverdueBillingTests(OverdueBillingTestCase):
             intent['payment_method'] = None
             raise stripe.CardError('Declined', 'payment_method', 'card_declined')
 
-        self.client.v1.payment_intents.confirm.side_effect = decline
-        self.run_pass()
-        self.assertTrue(all(row['status'] == 'pending' for row in self.rows()))
-        self.run_pass()
-        self.assertTrue(all(row['status'] == 'failed' for row in self.rows()))
-        calls = self.client.v1.payment_intents.confirm.call_count
-        self.run_pass()
-        self.assertEqual(self.client.v1.payment_intents.confirm.call_count, calls)
-        self.assertEqual(len(self.intents), self.expected_days())
+        self.client.v1.payment_intents.confirm_async.side_effect = decline
+        await self.run_pass()
+        self.assertTrue(all(row['status'] == 'pending' for row in await self.rows()))
+        await self.run_pass()
+        self.assertTrue(all(row['status'] == 'failed' for row in await self.rows()))
+        calls = self.client.v1.payment_intents.confirm_async.call_count
+        await self.run_pass()
+        self.assertEqual(self.client.v1.payment_intents.confirm_async.call_count, calls)
+        self.assertEqual(len(self.intents), await self.expected_days())
         self.assertEqual(self.collected, 0)
 
-    def test_daily_amount_and_repeat_runs(self):
-        self.run_pass()
-        first = self.rows()
-        self.run_pass()
-        self.assertEqual(len(first), self.expected_days())
-        self.assertEqual(len(self.rows()), len(first))
+    async def test_daily_amount_and_repeat_runs(self):
+        await self.run_pass()
+        first = await self.rows()
+        await self.run_pass()
+        self.assertEqual(len(first), await self.expected_days())
+        self.assertEqual(len(await self.rows()), len(first))
         self.assertEqual(self.collected, len(first))
         self.assertTrue(all(r['status'] == 'paid' and r['amount_cents'] == 100 and r['paid_at'] for r in first))
 
-    def test_lost_creation_response_reuses_request(self):
+    async def test_lost_creation_response_reuses_request(self):
         def lost(params, options):
             self.create_intent(params, options)
             raise stripe.APIConnectionError('lost response')
 
-        self.client.v1.payment_intents.create.side_effect = lost
-        self.run_pass()
+        self.client.v1.payment_intents.create_async.side_effect = lost
+        await self.run_pass()
         self.assertEqual(self.collected, 0)
-        self.client.v1.payment_intents.create.side_effect = self.create_intent
-        self.run_pass()
-        self.assertEqual(len(self.intents), self.expected_days())
-        self.assertEqual(self.collected, self.expected_days())
+        self.client.v1.payment_intents.create_async.side_effect = self.create_intent
+        await self.run_pass()
+        self.assertEqual(len(self.intents), await self.expected_days())
+        self.assertEqual(self.collected, await self.expected_days())
 
-    def test_lost_confirmation_response_is_reconciled(self):
+    async def test_lost_confirmation_response_is_reconciled(self):
         def lost(key, params, options):
             self.confirm_intent(key, params, options=options)
             raise stripe.APIConnectionError('lost response')
 
-        self.client.v1.payment_intents.confirm.side_effect = lost
-        self.run_pass()
-        self.run_pass()
-        self.assertEqual(self.collected, self.expected_days())
-        self.assertTrue(all(r['status'] == 'paid' for r in self.rows()))
-        self.assertEqual(self.client.v1.payment_intents.confirm.call_count, self.expected_days())
+        self.client.v1.payment_intents.confirm_async.side_effect = lost
+        await self.run_pass()
+        await self.run_pass()
+        self.assertEqual(self.collected, await self.expected_days())
+        self.assertTrue(all(r['status'] == 'paid' for r in await self.rows()))
+        self.assertEqual(self.client.v1.payment_intents.confirm_async.call_count, await self.expected_days())
 
-    def test_unknown_creation_after_retry_window_needs_review(self):
-        self.client.v1.payment_intents.create.side_effect = stripe.APIConnectionError('lost')
-        self.run_pass()
-        with self.db.begin() as connection:
-            connection.execute(
+    async def test_unknown_creation_after_retry_window_needs_review(self):
+        self.client.v1.payment_intents.create_async.side_effect = stripe.APIConnectionError('lost')
+        await self.run_pass()
+        async with self.db.begin() as connection:
+            await connection.execute(
                 text("UPDATE overdue_charges SET first_requested_at=clock_timestamp()-INTERVAL '25 hours' "
                      "WHERE rental_id = 1"))
-        calls = self.client.v1.payment_intents.create.call_count
-        self.run_pass()
-        self.assertEqual(self.client.v1.payment_intents.create.call_count, calls)
-        self.assertTrue(all(r['status'] == 'review' for r in self.rows()))
+        calls = self.client.v1.payment_intents.create_async.call_count
+        await self.run_pass()
+        self.assertEqual(self.client.v1.payment_intents.create_async.call_count, calls)
+        self.assertTrue(all(r['status'] == 'review' for r in await self.rows()))
 
-    def test_completion_between_creation_and_confirmation_stops_charge(self):
-        def complete(params, options):
+    async def test_completion_between_creation_and_confirmation_stops_charge(self):
+        async def complete(params, options):
             result = self.create_intent(params, options)
-            with self.db.begin() as connection:
-                connection.execute(
+            async with self.db.begin() as connection:
+                await connection.execute(
                     text("UPDATE rentals SET status='completed',completed_at=clock_timestamp() WHERE id=1"))
             return result
 
-        self.client.v1.payment_intents.create.side_effect = complete
-        self.run_pass()
+        self.client.v1.payment_intents.create_async.side_effect = complete
+        await self.run_pass()
         self.assertEqual(self.collected, 0)
-        self.assertTrue(all(r['status'] == 'waived' for r in self.rows()))
+        self.assertTrue(all(r['status'] == 'waived' for r in await self.rows()))
 
-    def test_completed_rental_accrues_nothing(self):
-        with self.db.begin() as connection:
-            connection.execute(text("UPDATE rentals SET status='completed',completed_at=clock_timestamp() WHERE id=1"))
-        self.run_pass()
-        self.assertEqual(self.rows(), [])
+    async def test_completed_rental_accrues_nothing(self):
+        async with self.db.begin() as connection:
+            await connection.execute(
+                text("UPDATE rentals SET status='completed',completed_at=clock_timestamp() WHERE id=1"))
+        await self.run_pass()
+        self.assertEqual(await self.rows(), [])
 
-    def test_old_consent_accrues_nothing(self):
-        with self.db.begin() as connection:
-            connection.execute(text("UPDATE rentals SET overdue_terms_version='2026-10-25' WHERE id=1"))
-        self.run_pass()
-        self.assertEqual(self.rows(), [])
+    async def test_old_consent_accrues_nothing(self):
+        async with self.db.begin() as connection:
+            await connection.execute(text("UPDATE rentals SET overdue_terms_version='2026-10-25' WHERE id=1"))
+        await self.run_pass()
+        self.assertEqual(await self.rows(), [])
 
-    def test_second_worker_skips_held_lock(self):
-        with self.db.connect() as connection:
-            connection.execute(text('SELECT pg_advisory_lock(:key)'), {'key': WORKER_LOCK})
-            connection.commit()
+    async def test_second_worker_skips_held_lock(self):
+        async with self.db.connect() as connection:
+            await connection.execute(text('SELECT pg_advisory_lock(:key)'), {'key': WORKER_LOCK})
+            await connection.commit()
             try:
-                self.run_pass()
-                self.assertEqual(self.rows(), [])
-                self.client.v1.payment_intents.create.assert_not_called()
+                await self.run_pass()
+                self.assertEqual(await self.rows(), [])
+                self.client.v1.payment_intents.create_async.assert_not_called()
             finally:
-                connection.execute(text('SELECT pg_advisory_unlock(:key)'), {'key': WORKER_LOCK})
-                connection.commit()
+                await connection.execute(text('SELECT pg_advisory_unlock(:key)'), {'key': WORKER_LOCK})
+                await connection.commit()
 
-    def test_declined_payment_is_not_confirmed_again(self):
+    async def test_declined_payment_is_not_confirmed_again(self):
         def decline(key, _params, **_options):
             self.intents[key]['status'] = 'requires_payment_method'
             raise stripe.CardError('Declined', 'payment_method', 'card_declined')
 
-        self.client.v1.payment_intents.confirm.side_effect = decline
-        self.run_pass()
-        self.run_pass()
-        self.assertTrue(all(r['status'] == 'failed' for r in self.rows()))
-        self.assertEqual(self.client.v1.payment_intents.confirm.call_count, self.expected_days())
+        self.client.v1.payment_intents.confirm_async.side_effect = decline
+        await self.run_pass()
+        await self.run_pass()
+        self.assertTrue(all(r['status'] == 'failed' for r in await self.rows()))
+        self.assertEqual(self.client.v1.payment_intents.confirm_async.call_count, await self.expected_days())
 
-    def test_live_or_mismatched_intent_is_rejected(self):
+    async def test_live_or_mismatched_intent_is_rejected(self):
         def invalid(params, options):
             result = self.create_intent(params, options).to_dict()
             result['livemode'] = True
             return self.response(result)
 
-        self.client.v1.payment_intents.create.side_effect = invalid
-        self.run_pass()
+        self.client.v1.payment_intents.create_async.side_effect = invalid
+        await self.run_pass()
         self.assertEqual(self.collected, 0)
-        self.assertTrue(all(r['status'] == 'review' for r in self.rows()))
+        self.assertTrue(all(r['status'] == 'review' for r in await self.rows()))
 
-    def test_catches_up_missed_days_without_duplicates(self):
+    async def test_catches_up_missed_days_without_duplicates(self):
         start = datetime.now(IRELAND).replace(hour=12, minute=0, second=0, microsecond=0) - timedelta(days=4)
-        with self.db.begin() as connection:
-            connection.execute(text("""
+        async with self.db.begin() as connection:
+            await connection.execute(text("""
                                     UPDATE rentals
                                     SET starts_at=:start,
                                         created_at=:start,
@@ -249,51 +256,76 @@ class OverdueBillingTests(OverdueBillingTestCase):
                                     WHERE id = 1
                                     """),
                                {'start': start, 'reserved': start + timedelta(minutes=15), 'end': rental_end(start, 1)})
-        self.run_pass()
-        self.run_pass()
-        self.assertGreaterEqual(len(self.rows()), 4)
-        self.assertEqual(self.collected, self.expected_days())
-        self.assertEqual(len({r['charge_date'] for r in self.rows()}), self.expected_days())
+        await self.run_pass()
+        await self.run_pass()
+        self.assertGreaterEqual(len(await self.rows()), 4)
+        self.assertEqual(self.collected, await self.expected_days())
+        self.assertEqual(len({r['charge_date'] for r in await self.rows()}), await self.expected_days())
 
-    def test_completion_uses_same_lock_during_confirmation(self):
+    async def test_completion_uses_same_lock_during_confirmation(self):
         from sqlalchemy.exc import OperationalError
 
-        def confirm(key, params, options):
-            with self.db.connect() as connection:
-                connection.execute(text("SET LOCAL lock_timeout='100ms'"))
+        async def confirm(key, params, options):
+            async with self.db.connect() as connection:
+                await connection.execute(text("SET LOCAL lock_timeout='100ms'"))
                 with self.assertRaises(OperationalError):
-                    connection.execute(text("SELECT id FROM lockers WHERE id=1 FOR UPDATE"))
-                connection.rollback()
+                    await connection.execute(text("SELECT id FROM lockers WHERE id=1 FOR UPDATE"))
+                await connection.rollback()
             return self.confirm_intent(key, params, options=options)
 
-        self.client.v1.payment_intents.confirm.side_effect = confirm
-        self.run_pass()
-        self.assertEqual(self.collected, self.expected_days())
+        self.client.v1.payment_intents.confirm_async.side_effect = confirm
+        await self.run_pass()
+        self.assertEqual(self.collected, await self.expected_days())
 
-    def test_processing_payment_waits_for_verified_success(self):
+    async def test_processing_payment_waits_for_verified_success(self):
         def processing(key, _params, **_options):
             self.intents[key]['status'] = 'processing'
             return self.response(self.intents[key])
 
-        self.client.v1.payment_intents.confirm.side_effect = processing
-        self.run_pass()
-        self.run_pass()
-        self.assertTrue(all(r['status'] == 'pending' and r['paid_at'] is None for r in self.rows()))
+        self.client.v1.payment_intents.confirm_async.side_effect = processing
+        await self.run_pass()
+        await self.run_pass()
+        self.assertTrue(all(r['status'] == 'pending' and r['paid_at'] is None for r in await self.rows()))
         for intent in self.intents.values():
             intent['status'] = 'succeeded'
-        self.run_pass()
-        self.assertTrue(all(r['status'] == 'paid' for r in self.rows()))
-        self.assertEqual(self.client.v1.payment_intents.confirm.call_count, self.expected_days())
+        await self.run_pass()
+        self.assertTrue(all(r['status'] == 'paid' for r in await self.rows()))
+        self.assertEqual(self.client.v1.payment_intents.confirm_async.call_count, await self.expected_days())
 
-    def test_paid_response_after_completion_is_reconciled(self):
+    async def test_paid_response_after_completion_is_reconciled(self):
         def lost(key, params, options):
             self.confirm_intent(key, params, options=options)
             raise stripe.APIConnectionError('lost response')
 
-        self.client.v1.payment_intents.confirm.side_effect = lost
-        self.run_pass()
-        with self.db.begin() as connection:
-            connection.execute(text("UPDATE rentals SET status='completed',completed_at=clock_timestamp() WHERE id=1"))
-        self.run_pass()
-        self.assertTrue(all(r['status'] == 'paid' for r in self.rows()))
-        self.assertEqual(self.client.v1.payment_intents.confirm.call_count, self.expected_days())
+        self.client.v1.payment_intents.confirm_async.side_effect = lost
+        await self.run_pass()
+        async with self.db.begin() as connection:
+            await connection.execute(
+                text("UPDATE rentals SET status='completed',completed_at=clock_timestamp() WHERE id=1"))
+        await self.run_pass()
+        self.assertTrue(all(r['status'] == 'paid' for r in await self.rows()))
+        self.assertEqual(self.client.v1.payment_intents.confirm_async.call_count, await self.expected_days())
+
+    async def test_cancelled_worker_releases_advisory_lock(self):
+        entered = asyncio.Event()
+
+        async def waiting_charge(*_args):
+            entered.set()
+            await asyncio.Event().wait()
+
+        with patch('services.overdue_billing.process_charge', side_effect=waiting_charge):
+            task = asyncio.create_task(run_billing_once(self.db))
+            try:
+                await asyncio.wait_for(entered.wait(), timeout=3)
+            finally:
+                task.cancel()
+                with self.assertRaises(asyncio.CancelledError):
+                    await task
+        async with self.db.connect() as connection:
+            acquired = await connection.scalar(text('SELECT pg_try_advisory_lock(:key)'), {'key': WORKER_LOCK})
+            try:
+                self.assertTrue(acquired)
+            finally:
+                if acquired:
+                    await connection.execute(text('SELECT pg_advisory_unlock(:key)'), {'key': WORKER_LOCK})
+                await connection.commit()

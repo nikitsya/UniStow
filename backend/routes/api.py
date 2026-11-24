@@ -2,7 +2,7 @@ from typing import Annotated
 
 import stripe
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.concurrency import run_in_threadpool
 
 from auth.sessions import check_browser_request, current_user, end_session, start_session
@@ -20,146 +20,146 @@ router = APIRouter(prefix="/api")
 
 
 @router.post("/rentals/{rental_id}/outstanding/checkout", dependencies=[Depends(check_browser_request)])
-def outstanding_checkout(rental_id: int, request: Request, db: Annotated[Session, Depends(get_db)]):
-    user = current_user(db, request)
+async def outstanding_checkout(rental_id: int, request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
+    user = await current_user(db, request)
     if user is None:
         raise HTTPException(401, "Please sign in.")
     try:
-        return create_outstanding_checkout(db, rental_id, user["id"])
+        return await create_outstanding_checkout(db, rental_id, user["id"])
     except (stripe.StripeError, ValueError):
         raise HTTPException(503, "Outstanding payment is temporarily unavailable.") from None
 
 
 @router.post("/rentals/{rental_id}/outstanding/reconcile", dependencies=[Depends(check_browser_request)])
-def outstanding_reconcile(rental_id: int, request: Request, db: Annotated[Session, Depends(get_db)]):
-    user = current_user(db, request)
+async def outstanding_reconcile(rental_id: int, request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
+    user = await current_user(db, request)
     if user is None:
         raise HTTPException(401, "Please sign in.")
     try:
-        return reconcile_outstanding(db, rental_id, user["id"])
+        return await reconcile_outstanding(db, rental_id, user["id"])
     except stripe.StripeError:
         raise HTTPException(503, "Payment verification is temporarily unavailable.") from None
 
 
 @router.post("/stripe/webhook")
-async def stripe_webhook(request: Request, db: Annotated[Session, Depends(get_db)]):
+async def stripe_webhook(request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
     event = verify_event(await request.body(), request.headers.get("stripe-signature", ""))
-    await run_in_threadpool(process_event, db, event)
+    await process_event(db, event)
     return {"received": True}
 
 
 @router.post("/rentals/{rental_id}/reconcile", dependencies=[Depends(check_browser_request)])
-def reconcile(rental_id: int, request: Request, db: Annotated[Session, Depends(get_db)]):
-    user = current_user(db, request)
+async def reconcile(rental_id: int, request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
+    user = await current_user(db, request)
     if user is None:
         raise HTTPException(status_code=401, detail="Please sign in.")
-    rental = reconcile_rental(db, rental_id, user["id"])
+    rental = await reconcile_rental(db, rental_id, user["id"])
     return {"status": rental["status"]}
 
 
 @router.post("/rentals/{rental_id}/cancel", dependencies=[Depends(check_browser_request)])
-def cancel_reservation(rental_id: int, request: Request, db: Annotated[Session, Depends(get_db)]):
-    user = current_user(db, request)
+async def cancel_reservation(rental_id: int, request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
+    user = await current_user(db, request)
     if user is None:
         raise HTTPException(401, "Please sign in.")
-    cancel_pending_reservation(db, rental_id, user["id"])
+    await cancel_pending_reservation(db, rental_id, user["id"])
     return {"status": "cancelled"}
 
 
 @router.post("/rentals/{rental_id}/checkout", dependencies=[Depends(check_browser_request)])
-def checkout(rental_id: int, request: Request, db: Annotated[Session, Depends(get_db)]):
-    user = current_user(db, request)
+async def checkout(rental_id: int, request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
+    user = await current_user(db, request)
     if user is None:
         raise HTTPException(status_code=401, detail="Please sign in.")
-    return create_checkout(db, rental_id, user["id"])
+    return await create_checkout(db, rental_id, user["id"])
 
 
 @router.post("/rentals", status_code=201, dependencies=[Depends(check_browser_request)])
-def create_rental(details: RentalRequest, request: Request,
-                  db: Annotated[Session, Depends(get_db)]):
-    user = current_user(db, request)
+async def create_rental(details: RentalRequest, request: Request,
+                        db: Annotated[AsyncSession, Depends(get_db)]):
+    user = await current_user(db, request)
     if user is None:
         raise HTTPException(status_code=401, detail="Please sign in.")
-    return reserve_locker(db, user["id"], details.locker_id, details.days, details.payment_method_consent)
+    return await reserve_locker(db, user["id"], details.locker_id, details.days, details.payment_method_consent)
 
 
 @router.post("/register", status_code=201, dependencies=[Depends(check_browser_request)])
-def register(details: Registration, db: Annotated[Session, Depends(get_db)]):
-    user = create_user(db, details.email, details.password)
+async def register(details: Registration, db: Annotated[AsyncSession, Depends(get_db)]):
+    user = await create_user(db, details.email, details.password)
     if user is None:
         raise HTTPException(status_code=409, detail="This email is already registered.")
     return user
 
 
 @router.get("/lockers")
-def get_lockers(db: Annotated[Session, Depends(get_db)]):
-    return read_lockers(db)
+async def get_lockers(db: Annotated[AsyncSession, Depends(get_db)]):
+    return await read_lockers(db)
 
 
 @router.post("/login", dependencies=[Depends(check_browser_request)])
-def login(details: Login, request: Request, response: Response,
-          db: Annotated[Session, Depends(get_db)]):
-    user = authenticate_user(db, details.email, details.password)
+async def login(details: Login, request: Request, response: Response,
+                db: Annotated[AsyncSession, Depends(get_db)]):
+    user = await authenticate_user(db, details.email, details.password)
     if user is None:
         raise HTTPException(status_code=401, detail="Incorrect email or password.")
-    start_session(db, request, response, user["id"])
+    await start_session(db, request, response, user["id"])
     return user
 
 
 @router.get("/me")
-def me(request: Request, db: Annotated[Session, Depends(get_db)]):
-    user = current_user(db, request)
+async def me(request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
+    user = await current_user(db, request)
     if user is None:
         raise HTTPException(status_code=401, detail="Please sign in.")
     return user
 
 
 @router.post("/logout", status_code=204, dependencies=[Depends(check_browser_request)])
-def logout(request: Request, response: Response, db: Annotated[Session, Depends(get_db)]):
-    end_session(db, request, response)
+async def logout(request: Request, response: Response, db: Annotated[AsyncSession, Depends(get_db)]):
+    await end_session(db, request, response)
 
 
 @router.post("/rentals/{rental_id}/test-open", dependencies=[Depends(check_browser_request)])
-def test_open_locker(rental_id: int, request: Request, db: Annotated[Session, Depends(get_db)]):
+async def test_open_locker(rental_id: int, request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
     client = getattr(request.app.state, "open_test_client", None)
     if client is None:
         raise HTTPException(409, "Open test mode is disabled.")
-    user = current_user(db, request)
+    user = await current_user(db, request)
     if user is None:
         raise HTTPException(401, "Please sign in.")
-    _, rental, now = authorised_locker(db, rental_id, user["id"])
+    _, rental, now = await authorised_locker(db, rental_id, user["id"])
     expires_at = min(now.timestamp() + 10, rental["paid_until"].timestamp())
-    db.commit()
+    await db.commit()
     events = request.app.state.door_events
-    return events.test_open(client, expires_at)
+    return await run_in_threadpool(lambda: events.test_open(client, expires_at))
 
 
 @router.post("/rentals/{rental_id}/open", status_code=202, dependencies=[Depends(check_browser_request)])
-def open_locker(rental_id: int, request: Request, db: Annotated[Session, Depends(get_db)]):
-    user = current_user(db, request)
+async def open_locker(rental_id: int, request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
+    user = await current_user(db, request)
     if user is None:
         raise HTTPException(401, "Please sign in.")
     if getattr(request.app.state, "open_test_client", None) is not None:
         raise HTTPException(409, "Physical commands are disabled during the delivery test.")
     client = getattr(request.app.state, "open_client", None)
     if client is not None:
-        locker, rental, now = authorised_locker(db, rental_id, user["id"])
+        locker, rental, now = await authorised_locker(db, rental_id, user["id"])
         events = request.app.state.door_events
         controller = events.ready_controller()
         if not controller:
             raise HTTPException(409, "The locker controller is offline or busy.")
-        command_id, expiry = record_command(db, locker, rental, now, controller, "open", dispatched=True)
-        return events.open(client, command_id, expiry, controller)
-    return request_open(db, rental_id, user["id"])
+        command_id, expiry = await record_command(db, locker, rental, now, controller, "open", dispatched=True)
+        return await run_in_threadpool(lambda: events.open(client, command_id, expiry, controller))
+    return await request_open(db, rental_id, user["id"])
 
 
 @router.post("/rentals/{rental_id}/finish", status_code=202, dependencies=[Depends(check_browser_request)])
-def finish_rental(rental_id: int, request: Request, db: Annotated[Session, Depends(get_db)]):
-    user = current_user(db, request)
+async def finish_rental(rental_id: int, request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
+    user = await current_user(db, request)
     if user is None:
         raise HTTPException(401, "Please sign in.")
     if request.headers.get("X-UniStow-Collect-All") != "yes":
         raise HTTPException(422, "Confirm that you will collect all your belongings.")
     if getattr(request.app.state, "open_test_client", None) is not None:
         raise HTTPException(409, "Physical commands are disabled during the delivery test.")
-    return request_open(db, rental_id, user["id"], action="finish")
+    return await request_open(db, rental_id, user["id"], action="finish")

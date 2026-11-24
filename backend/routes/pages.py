@@ -8,7 +8,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from auth.sessions import current_user
 from database import get_db
@@ -21,8 +21,8 @@ frontend_directory = Path(__file__).resolve().parents[2] / "frontend"
 templates = Jinja2Templates(directory=frontend_directory / "templates")
 
 
-def current_rentals(db, user):
-    return db.execute(text("""
+async def current_rentals(db, user):
+    return (await db.execute(text("""
                            SELECT rentals.id, rentals.locker_id, rentals.status, lockers.number
                            FROM rentals
                                     JOIN lockers ON lockers.id = rentals.locker_id
@@ -36,11 +36,11 @@ def current_rentals(db, user):
                                    AND (reserved_until > CURRENT_TIMESTAMP
                                        OR EXISTS (SELECT 1 FROM payments WHERE payments.rental_id = rentals.id))))
                            ORDER BY rentals.id DESC
-                           """), {"user_id": user["id"]}).mappings().all() if user else []
+                                  """), {"user_id": user["id"]})).mappings().all() if user else []
 
 
-def completed_rentals(db, user):
-    rows = db.execute(text("""
+async def completed_rentals(db, user):
+    rows = (await db.execute(text("""
                            SELECT r.id, r.completed_at, l.number
                            FROM rentals r
                                     JOIN lockers l ON l.id = r.locker_id
@@ -48,46 +48,46 @@ def completed_rentals(db, user):
                              AND r.status = 'completed'
                            ORDER BY r.completed_at DESC, r.id DESC
                            LIMIT 5
-                           """), {"user_id": user["id"]}).mappings().all()
+                                  """), {"user_id": user["id"]})).mappings().all()
     return [dict(row, completed_on=row["completed_at"].astimezone(
         ZoneInfo("Europe/Dublin")).strftime("%d %B %Y at %H:%M")) for row in rows]
 
 
 @router.get("/")
-def home(request: Request, db: Annotated[Session, Depends(get_db)]):
-    user = current_user(db, request)
+async def home(request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
+    user = await current_user(db, request)
     return templates.TemplateResponse(
-        request, "pages/home.html", {"title": "UniStow", "lockers": read_lockers(db), "user": user,
-                                     "eligibility": booking_eligibility(db, user['id'] if user else None),
-                                     "own_rentals": {r["locker_id"]: r for r in current_rentals(db, user)
+        request, "pages/home.html", {"title": "UniStow", "lockers": await read_lockers(db), "user": user,
+                                     "eligibility": await booking_eligibility(db, user['id'] if user else None),
+                                     "own_rentals": {r["locker_id"]: r for r in await current_rentals(db, user)
                                                      if r['status'] != 'completed'}}
     )
 
 
 @router.get("/rentals")
-def my_rentals(request: Request, db: Annotated[Session, Depends(get_db)]):
-    user = current_user(db, request)
+async def my_rentals(request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
+    user = await current_user(db, request)
     if user is None:
         return RedirectResponse("/login?my_rentals=true", status_code=303)
-    completed = completed_rentals(db, user)
+    completed = await completed_rentals(db, user)
     completed_ids = {r["id"] for r in completed}
-    current = current_rentals(db, user)
+    current = await current_rentals(db, user)
     outstanding_ids = {r["id"] for r in current if r["status"] == "completed"}
     for completed_rental in completed:
         completed_rental["has_outstanding"] = completed_rental["id"] in outstanding_ids
     reservations = [r for r in current if r["id"] not in completed_ids]
     return templates.TemplateResponse(
         request, "rentals/my_rentals.html", {"title": "My rentals | UniStow", "user": user,
-                                             "eligibility": booking_eligibility(db, user['id']),
+                                             "eligibility": await booking_eligibility(db, user['id']),
                                              "reservations": reservations, "completed_rentals": completed}
     )
 
 
 @router.get("/contact")
-def contact(request: Request, db: Annotated[Session, Depends(get_db)]):
+async def contact(request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
     context: dict[str, object] = {"title": "Contact | UniStow"}
     try:
-        context["user"] = current_user(db, request)
+        context["user"] = await current_user(db, request)
     except SQLAlchemyError:
         context["account_unavailable"] = True
     return templates.TemplateResponse(request, "pages/contact.html", context)
@@ -112,18 +112,18 @@ def sign_in(request: Request, locker_id: int | None = None, rental_id: int | Non
 
 
 @router.get("/rentals/{rental_id}")
-def reservation(request: Request, rental_id: int, db: Annotated[Session, Depends(get_db)]):
-    user = current_user(db, request)
+async def reservation(request: Request, rental_id: int, db: Annotated[AsyncSession, Depends(get_db)]):
+    user = await current_user(db, request)
     if user is None:
         return RedirectResponse(f"/login?rental_id={rental_id}", status_code=303)
-    owned = owned_rental(db, rental_id, user["id"])
-    charges = db.execute(text("""
+    owned = await owned_rental(db, rental_id, user["id"])
+    charges = (await db.execute(text("""
                               SELECT status, COALESCE(SUM(amount_cents), 0) AS amount
                               FROM overdue_charges
                               WHERE rental_id = :id
                                 AND status <> 'waived'
                               GROUP BY status
-                              """), {"id": rental_id}).mappings().all()
+                                     """), {"id": rental_id})).mappings().all()
     additional = {row["status"]: row["amount"] for row in charges}
     billing = {
         "paid": additional.get("paid", 0),
@@ -131,7 +131,7 @@ def reservation(request: Request, rental_id: int, db: Annotated[Session, Depends
         "failed": additional.get("failed", 0),
         "additional": sum(additional.values()),
         "total": owned["total_price_cents"] + sum(additional.values()),
-        "recovery_pending": db.scalar(text("""
+        "recovery_pending": await db.scalar(text("""
                                            SELECT amount_cents
                                            FROM overdue_payments
                                            WHERE rental_id = :id
@@ -157,7 +157,7 @@ def reservation(request: Request, rental_id: int, db: Annotated[Session, Depends
     return templates.TemplateResponse(request, "rentals/reservation.html", {
         "open_test": open_test, "http_ready": controller_ready,
         "title": "My rental | UniStow", "rental": owned, "billing": billing,
-        "eligibility": booking_eligibility(db, user['id']),
+        "eligibility": await booking_eligibility(db, user['id']),
         "ends_at": ends_at.strftime("%d %B %Y at %H:%M"),
         "door_state": door_state, "device_online": device_online,
         "can_open": (owned["number"] == 4 and owned["status"] == "active"
@@ -168,11 +168,11 @@ def reservation(request: Request, rental_id: int, db: Annotated[Session, Depends
 
 
 @router.get("/lockers/{locker_id}/rent")
-def rental(request: Request, locker_id: int, db: Annotated[Session, Depends(get_db)]):
-    user = current_user(db, request)
+async def rental(request: Request, locker_id: int, db: Annotated[AsyncSession, Depends(get_db)]):
+    user = await current_user(db, request)
     if user is None:
         return RedirectResponse(f"/login?locker_id={locker_id}", status_code=303)
-    lockers = read_lockers(db, locker_id)
+    lockers = await read_lockers(db, locker_id)
     if not lockers:
         raise HTTPException(status_code=404, detail="Locker not found")
     locker = lockers[0]
@@ -184,5 +184,5 @@ def rental(request: Request, locker_id: int, db: Annotated[Session, Depends(get_
         )
     return templates.TemplateResponse(
         request, "rentals/rental.html", {"title": f"{locker['name']} | UniStow", "locker": locker,
-                                         "eligibility": booking_eligibility(db, user['id'])}
+                                         "eligibility": await booking_eligibility(db, user['id'])}
     )

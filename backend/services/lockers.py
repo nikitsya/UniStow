@@ -1,5 +1,5 @@
 from sqlalchemy import text
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 LOCKER_QUERY = """
                SELECT lockers.id,
@@ -24,14 +24,14 @@ LOCKER_QUERY = """
                """
 
 
-def read_lockers(db: Session, locker_id: int | None = None):
+async def read_lockers(db: AsyncSession, locker_id: int | None = None):
     query = LOCKER_QUERY
     parameters = {}
     if locker_id is not None:
         query += " WHERE lockers.id = :locker_id"
         parameters["locker_id"] = locker_id
     query += " ORDER BY lockers.number"
-    rows = db.execute(text(query), parameters).mappings().all()
+    rows = (await db.execute(text(query), parameters)).mappings().all()
     return [
         {
             "id": row["id"],

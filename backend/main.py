@@ -8,16 +8,24 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.exc import SQLAlchemyError
 
+from database import engine
 from routes import api, device, pages
 from services.door_events import lifespan as device_lifespan
 from services.overdue_billing import billing_worker
+from services.payments import close_stripe_http_client
 
 
 @asynccontextmanager
 async def lifespan(application):
-    with billing_worker(os.getenv("UNISTOW_OVERDUE_BILLING") == "1"):
-        async with device_lifespan(application):
-            yield
+    try:
+        async with billing_worker(os.getenv("UNISTOW_OVERDUE_BILLING") == "1"):
+            async with device_lifespan(application):
+                yield
+    finally:
+        try:
+            await close_stripe_http_client()
+        finally:
+            await engine.dispose()
 
 
 app = FastAPI(

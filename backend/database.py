@@ -2,8 +2,8 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
-from sqlalchemy import URL, create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import URL
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 project_root = Path(__file__).resolve().parent.parent
 load_dotenv(project_root / ".env")
@@ -17,7 +17,7 @@ root_certificate = os.environ.get("POSTGRES_SSLROOTCERT")
 if root_certificate:
     connect_args.update(sslmode="verify-full", sslrootcert=str(project_root / root_certificate))
 
-engine = create_engine(
+engine = create_async_engine(
     URL.create(
         "postgresql+psycopg",
         username=os.environ.get("POSTGRES_USER", "unistow"),
@@ -30,9 +30,9 @@ engine = create_engine(
     connect_args=connect_args,
 )
 
-SessionLocal = sessionmaker(autoflush=False, bind=engine)
+SessionLocal = async_sessionmaker(autoflush=False, expire_on_commit=False, bind=engine)
 
 
-def get_db():
-    with SessionLocal() as db:
+async def get_db():
+    async with SessionLocal() as db:
         yield db
