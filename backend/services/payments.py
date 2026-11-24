@@ -6,11 +6,11 @@ from uuid import uuid4
 
 import stripe
 from fastapi import HTTPException
-from sqlalchemy import DateTime, func, select, text, update
+from sqlalchemy import DateTime, exists, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from stripe.params.checkout import SessionCreateParams, SessionCreateParamsPaymentIntentData
 
-from models import Locker, Payment
+from models import Locker, LockerCommand, Payment, Rental
 from services.booking_eligibility import require_booking_eligibility
 from services.rentals import PAYMENT_METHOD_TERMS_VERSION
 
@@ -42,25 +42,22 @@ def stripe_client():
 
 
 async def owned_rental(db: AsyncSession, rental_id: int, user_id: int):
-    rental = (await db.execute(text("""
-                             SELECT rentals.*,
-                                    lockers.number,
-                                    lockers.door_state,
-                                    lockers.last_seen_at,
-                                    lockers.device_ready,
-                                    EXISTS (SELECT 1
-                                            FROM locker_commands c
-                                            WHERE c.rental_id = rentals.id
-                                              AND c.action = 'finish'
-                                              AND c.completed_at IS NULL
-                                              AND (c.dispatched_at IS NOT NULL OR c.expires_at > CURRENT_TIMESTAMP)) AS collecting,
-                                    payments.status                                                                  AS payment_status
-                             FROM rentals
-                                      JOIN lockers ON lockers.id = rentals.locker_id
-                                      LEFT JOIN payments ON payments.rental_id = rentals.id
-                             WHERE rentals.id = :id
-                               AND rentals.user_id = :user_id
-                                    """), {"id": rental_id, "user_id": user_id})).mappings().first()
+    collecting = exists(select(LockerCommand.id).where(
+        LockerCommand.rental_id == Rental.id,
+        LockerCommand.action == "finish",
+        LockerCommand.completed_at.is_(None),
+        or_(LockerCommand.dispatched_at.is_not(None),
+            LockerCommand.expires_at > func.current_timestamp()),
+    ))
+    rental = (await db.execute(
+        select(*Rental.__table__.columns, Locker.number, Locker.door_state,
+               Locker.last_seen_at, Locker.device_ready, collecting.label("collecting"),
+               Payment.status.label("payment_status"))
+        .select_from(Rental)
+        .join(Locker, Locker.id == Rental.locker_id)
+        .outerjoin(Payment, Payment.rental_id == Rental.id)
+        .where(Rental.id == rental_id, Rental.user_id == user_id)
+    )).mappings().first()
     if rental is None:
         raise HTTPException(status_code=404, detail="Reservation not found.")
     return dict(rental)

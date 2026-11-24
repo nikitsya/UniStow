@@ -85,3 +85,21 @@ class PaymentEvent(Base):
     event_type: Mapped[str] = mapped_column(Text)
     checkout_session_id: Mapped[str] = mapped_column(Text)
     processed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class LockerCommand(Base):
+    __tablename__ = "locker_commands"
+    __table_args__ = (
+        CheckConstraint("action IN ('open', 'finish')"),
+        CheckConstraint("expires_at > created_at"),
+    )
+
+    id: Mapped[str] = mapped_column(Text, primary_key=True)
+    rental_id: Mapped[int] = mapped_column(ForeignKey("rentals.id"))
+    locker_id: Mapped[int] = mapped_column(ForeignKey("lockers.id"))
+    controller_id: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    dispatched_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    action: Mapped[str] = mapped_column(Text, server_default=text("'open'"))
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
