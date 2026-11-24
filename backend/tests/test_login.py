@@ -1,4 +1,3 @@
-import unittest
 from unittest.mock import patch
 
 from sqlalchemy import text
@@ -6,17 +5,9 @@ from sqlalchemy import text
 import test_registration
 
 
-class LoginTests(unittest.TestCase):
-    register = test_registration.RegistrationTests.register
-    tearDown = test_registration.RegistrationTests.tearDown
-
-    def __init__(self, methodName: str = "runTest"):
-        super().__init__(methodName)
-        self.client = None
-        self.engine = None
-
+class LoginTestCase(test_registration.RegistrationTestCase):
     def setUp(self):
-        test_registration.RegistrationTests.setUp(self)
+        super().setUp()
         eligibility = patch('routes.pages.booking_eligibility', return_value={
             'can_book': True, 'unpaid_cents': 0, 'processing_cents': 0, 'rentals': [],
         })
@@ -38,6 +29,8 @@ class LoginTests(unittest.TestCase):
             'email': email, 'password': self.password if password is None else password,
         }, headers={'X-UniStow-Request': '1'} if headers is None else headers)
 
+
+class LoginTests(LoginTestCase):
     def test_session_and_logout(self):
         self.assertEqual(self.client.get('/api/me').status_code, 401)
         response = self.login()
@@ -65,7 +58,7 @@ class LoginTests(unittest.TestCase):
     def test_expired_and_forged_sessions(self):
         self.login()
         with self.engine.begin() as connection:
-            connection.execute(text("UPDATE sessions SET expires_at = '2000-01-01'"))
+            connection.execute(text("UPDATE sessions SET expires_at = '2000-01-01' WHERE user_id = 1"))
         self.assertEqual(self.client.get('/api/me').status_code, 401)
         self.client.cookies.clear()
         self.client.cookies.set('unistow_session', 'invented-token')
@@ -104,7 +97,7 @@ class LoginTests(unittest.TestCase):
         with patch('routes.pages.read_lockers', return_value=[locker]):
             self.assertEqual(self.client.get(path).status_code, 200)
         with self.engine.begin() as connection:
-            connection.execute(text("UPDATE sessions SET expires_at = '2000-01-01'"))
+            connection.execute(text("UPDATE sessions SET expires_at = '2000-01-01' WHERE user_id = 1"))
         self.assertEqual(self.client.get(path, follow_redirects=False).status_code, 303)
 
     def test_my_rentals_requires_valid_session(self):
@@ -121,7 +114,7 @@ class LoginTests(unittest.TestCase):
             rentals.assert_called_once()
             rentals.reset_mock()
             with self.engine.begin() as connection:
-                connection.execute(text("UPDATE sessions SET expires_at = '2000-01-01'"))
+                connection.execute(text("UPDATE sessions SET expires_at = '2000-01-01' WHERE user_id = 1"))
             self.assertEqual(self.client.get('/rentals', follow_redirects=False).status_code, 303)
             rentals.assert_not_called()
 

@@ -38,9 +38,9 @@ class PaymentSettingsTests(unittest.TestCase):
             checkout_parameters(rental, 'http://127.0.0.1:8000', now)
 
 
-class CheckoutAccessTests(unittest.TestCase):
+class CheckoutAccessTests(test_login.LoginTestCase):
     def setUp(self):
-        test_login.LoginTests.setUp(self)
+        super().setUp()
         with self.engine.begin() as connection:
             connection.execute(text("""
                                     CREATE TABLE overdue_charges
@@ -59,10 +59,6 @@ class CheckoutAccessTests(unittest.TestCase):
                                         amount_cents INTEGER NOT NULL
                                     )
                                     """))
-
-    tearDown = test_login.LoginTests.tearDown
-    register = test_login.LoginTests.register
-    login = test_login.LoginTests.login
 
     def test_checkout_requires_session_and_browser_header(self):
         path = '/api/rentals/7/checkout'

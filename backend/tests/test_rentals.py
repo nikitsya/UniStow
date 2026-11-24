@@ -29,12 +29,7 @@ class RentalDatesTests(unittest.TestCase):
                 RentalRequest(**({'locker_id': 4, 'days': 1, 'overdue_consent': True} | changes))
 
 
-class RentalAccessTests(unittest.TestCase):
-    setUp = test_login.LoginTests.setUp
-    tearDown = test_login.LoginTests.tearDown
-    register = test_login.LoginTests.register
-    login = test_login.LoginTests.login
-
+class RentalAccessTests(test_login.LoginTestCase):
     def test_server_uses_signed_in_user(self):
         body = {'locker_id': 4, 'days': 2, 'overdue_consent': True, 'user_id': 999}
         headers = {'X-UniStow-Request': '1'}
