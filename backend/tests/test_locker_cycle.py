@@ -128,6 +128,8 @@ class CollectionDeliveryTests(unittest.TestCase):
                     raise URLError('Connection lost')
                 return Reply()
 
+        # The dynamically loaded controller imports build_opener from urllib.request.
+        # noinspection PyUnresolvedReferences
         with patch.object(controller, 'build_opener', return_value=Opener()), patch('builtins.print'):
             controller.communicate('http://example.test', 'key',
                                    {'door_state': 'closed', 'ready': False}, Lock(), commands,
