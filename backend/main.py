@@ -14,9 +14,9 @@ from services.overdue_billing import billing_worker
 
 
 @asynccontextmanager
-async def lifespan(app):
+async def lifespan(application):
     with billing_worker(os.getenv("UNISTOW_OVERDUE_BILLING") == "1"):
-        async with device_lifespan(app):
+        async with device_lifespan(application):
             yield
 
 
@@ -39,7 +39,7 @@ async def prevent_account_caching(request: Request, call_next):
 
 
 @app.exception_handler(RequestValidationError)
-async def validation_error(request: Request, exception: RequestValidationError):
+async def validation_error(_request: Request, exception: RequestValidationError):
     errors = [
         {"loc": error["loc"], "msg": error["msg"], "type": error["type"]}
         for error in exception.errors()
