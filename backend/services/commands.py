@@ -2,29 +2,32 @@ from datetime import datetime, timedelta
 from uuid import uuid4
 
 from fastapi import HTTPException
-from sqlalchemy import text
+from sqlalchemy import DateTime, and_, func, literal, or_, select, update
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from models import Locker, LockerCommand, Payment, Rental
 
 
-async def authorised_locker(db, rental_id, user_id, *, action="open"):
-    rental = (await db.execute(text('SELECT * FROM rentals WHERE id=:id AND user_id=:user'),
-                               {'id': rental_id, 'user': user_id})).mappings().first()
+async def authorised_locker(db: AsyncSession, rental_id, user_id, *, action="open"):
+    rental = (await db.execute(select(*Rental.__table__.columns).where(
+        Rental.id == rental_id, Rental.user_id == user_id,
+    ))).mappings().first()
     if rental is None:
         raise HTTPException(404, 'Rental not found.')
-    locker = (await db.execute(text('SELECT * FROM lockers WHERE id=:id FOR UPDATE'),
-                               {'id': rental['locker_id']})).mappings().one()
-    now = (await db.execute(text('SELECT clock_timestamp()'))).scalar_one()
-    valid = (await db.execute(text("""
-                            SELECT 1
-                            FROM rentals r
-                                     JOIN payments p ON p.rental_id = r.id
-                            WHERE r.id = :id
-                              AND r.user_id = :user
-                              AND (r.status = 'active' OR (:finishing AND r.status = 'overdue'))
-                              AND p.status = 'paid'
-                              AND r.starts_at <= :now
-                              AND (:finishing OR r.paid_until > :now)
-                            """), {'id': rental_id, 'user': user_id, 'now': now,
-                                   'finishing': action == 'finish'})).scalar_one_or_none()
+    locker = (await db.execute(select(*Locker.__table__.columns).where(
+        Locker.id == rental['locker_id'],
+    ).with_for_update())).mappings().one()
+    now: datetime = (await db.execute(
+        select(func.clock_timestamp(type_=DateTime(timezone=True)))
+    )).scalar_one()
+    valid = await db.scalar(select(Rental.id).join(Payment, Payment.rental_id == Rental.id).where(
+        Rental.id == rental_id,
+        Rental.user_id == user_id,
+        or_(Rental.status == 'active', and_(literal(action == 'finish'), Rental.status == 'overdue')),
+        Payment.status == 'paid',
+        Rental.starts_at <= now,
+        or_(literal(action == 'finish'), Rental.paid_until > now),
+    ))
     if not valid:
         if action == 'finish':
             raise HTTPException(409, 'Collection requires an unfinished, paid rental.')
@@ -34,7 +37,7 @@ async def authorised_locker(db, rental_id, user_id, *, action="open"):
     return locker, rental, now
 
 
-async def request_open(db, rental_id, user_id, action="open"):
+async def request_open(db: AsyncSession, rental_id, user_id, action="open"):
     locker, rental, now = await authorised_locker(db, rental_id, user_id, action=action)
     if (not locker['device_ready'] or not locker['controller_id']
             or locker['last_seen_at'] is None
@@ -46,90 +49,84 @@ async def request_open(db, rental_id, user_id, action="open"):
     return {'status': 'queued', 'command_id': command_id}
 
 
-async def record_command(db, locker, rental, now: datetime, controller_id, action, *, dispatched=False):
+async def record_command(db: AsyncSession, locker, rental, now: datetime, controller_id, action, *, dispatched=False):
     # The caller holds the locker row lock until this transaction commits.
-    recent = (await db.execute(text('SELECT 1 FROM locker_commands WHERE locker_id=:id AND expires_at>:now LIMIT 1'),
-                               {'id': locker['id'], 'now': now})).first()
+    recent = await db.scalar(select(LockerCommand.id).where(
+        LockerCommand.locker_id == locker['id'], LockerCommand.expires_at > now,
+    ).limit(1))
     if recent:
         raise HTTPException(409, 'An opening request was already sent. Wait before trying again.')
     command_id = str(uuid4())
     expiry = now + timedelta(seconds=10)
     if action != 'finish':
         expiry = min(expiry, rental['paid_until'])
-    await db.execute(text('''
-                    INSERT INTO locker_commands(id, rental_id, locker_id, controller_id, created_at, expires_at, action,
-                                                dispatched_at)
-                    VALUES (:id, :rental, :locker, :controller, :now, :expires, :action, :dispatched)
-                    '''), {'id': command_id, 'rental': rental['id'], 'locker': locker['id'],
-                           'controller': controller_id, 'now': now, 'action': action,
-                           'expires': expiry, 'dispatched': now if dispatched else None})
+    db.add(LockerCommand(
+        id=command_id, rental_id=rental['id'], locker_id=locker['id'],
+        controller_id=controller_id, created_at=now, expires_at=expiry,
+        action=action, dispatched_at=now if dispatched else None,
+    ))
     await db.commit()
     return command_id, expiry.timestamp()
 
 
-async def take_command(db, controller_id, supports_finish=False):
-    locker = (await db.execute(text('SELECT * FROM lockers WHERE number=4 FOR UPDATE'))).mappings().first()
-    now = (await db.execute(text('SELECT clock_timestamp()'))).scalar_one()
+async def take_command(db: AsyncSession, controller_id, supports_finish=False):
+    locker = (await db.execute(select(*Locker.__table__.columns).where(
+        Locker.number == 4,
+    ).with_for_update())).mappings().first()
+    now: datetime = (await db.execute(
+        select(func.clock_timestamp(type_=DateTime(timezone=True)))
+    )).scalar_one()
     if (not locker or not locker['is_enabled'] or not locker['device_ready']
             or locker['controller_id'] != controller_id or locker['door_state'] not in ('open', 'closed')
             or locker['last_seen_at'] is None
             or not 0 <= (now - locker['last_seen_at']).total_seconds() < 15):
         await db.commit()
         return {'command': None}
-    command = (await db.execute(text('''
-                              SELECT c.id, c.expires_at, c.action
-                              FROM locker_commands c
-                                       JOIN rentals r ON r.id = c.rental_id
-                                       JOIN payments p ON p.rental_id = r.id
-                              WHERE c.locker_id = :locker
-                                AND c.controller_id = :controller
-                                AND (c.action = 'open' OR (:supports_finish AND :door_closed))
-                                AND c.dispatched_at IS NULL
-                                AND c.expires_at > :now
-                                AND (r.status = 'active' OR (c.action = 'finish' AND r.status = 'overdue'))
-                                AND p.status = 'paid'
-                                AND r.starts_at <= :now
-                                AND (c.action = 'finish' OR r.paid_until > :now)
-                              ORDER BY c.created_at
-                              LIMIT 1
-                              '''), {'locker': locker['id'], 'controller': controller_id, 'now': now,
-                                     'supports_finish': supports_finish,
-                                     'door_closed': locker['door_state'] == 'closed'})).mappings().first()
+    command = (await db.execute(
+        select(LockerCommand.id, LockerCommand.expires_at, LockerCommand.action)
+        .join(Rental, Rental.id == LockerCommand.rental_id)
+        .join(Payment, Payment.rental_id == Rental.id)
+        .where(
+            LockerCommand.locker_id == locker['id'],
+            LockerCommand.controller_id == controller_id,
+            or_(LockerCommand.action == 'open', literal(supports_finish and locker['door_state'] == 'closed')),
+            LockerCommand.dispatched_at.is_(None),
+            LockerCommand.expires_at > now,
+            or_(Rental.status == 'active',
+                and_(LockerCommand.action == 'finish', Rental.status == 'overdue')),
+            Payment.status == 'paid',
+            Rental.starts_at <= now,
+            or_(LockerCommand.action == 'finish', Rental.paid_until > now),
+        ).order_by(LockerCommand.created_at).limit(1)
+    )).mappings().first()
     if not command:
         await db.commit()
         return {'command': None}
     # At-most-once dispatch: an uncertain delivery is never replayed automatically.
-    await db.execute(text('UPDATE locker_commands SET dispatched_at=:now WHERE id=:id'),
-               {'id': command['id'], 'now': now})
-    await db.execute(text('UPDATE lockers SET device_ready=FALSE WHERE id=:id'), {'id': locker['id']})
+    await db.execute(update(LockerCommand).where(LockerCommand.id == command['id']).values(dispatched_at=now))
+    await db.execute(update(Locker).where(Locker.id == locker['id']).values(device_ready=False))
     await db.commit()
     return {'command': {'id': command['id'], 'action': command['action'],
                         'valid_for_seconds': max(0, (command['expires_at'] - now).total_seconds())}}
 
 
-async def complete_collection(db, command_id, controller_id):
+async def complete_collection(db: AsyncSession, command_id, controller_id):
     # Match the acknowledgement to the dispatched collection, never just a closed door.
-    (await db.execute(text('SELECT id FROM lockers WHERE number=4 FOR UPDATE'))).first()
-    command = (await db.execute(text("""
-                              SELECT *
-                              FROM locker_commands
-                              WHERE id = :id
-                                AND controller_id = :controller
-                                AND action = 'finish'
-                                AND dispatched_at IS NOT NULL FOR
-                                  UPDATE
-                                     """), {'id': command_id, 'controller': controller_id})).mappings().first()
+    await db.execute(select(Locker.id).where(Locker.number == 4).with_for_update())
+    command = (await db.execute(select(*LockerCommand.__table__.columns).where(
+        LockerCommand.id == command_id,
+        LockerCommand.controller_id == controller_id,
+        LockerCommand.action == 'finish',
+        LockerCommand.dispatched_at.is_not(None),
+    ).with_for_update())).mappings().first()
     if command is None:
         raise HTTPException(409, 'No matching collection command.')
     if command['completed_at'] is None:
-        await db.execute(text("""
-                        UPDATE rentals
-                        SET status='completed',
-                            completed_at=clock_timestamp()
-                        WHERE id = :id
-                          AND status IN ('active', 'overdue')
-                        """), {'id': command['rental_id']})
-        await db.execute(text('UPDATE locker_commands SET completed_at=clock_timestamp() WHERE id=:id'),
-                   {'id': command_id})
+        await db.execute(update(Rental).where(
+            Rental.id == command['rental_id'], Rental.status.in_(('active', 'overdue')),
+        ).values(status='completed', completed_at=func.clock_timestamp()))
+        await db.execute(update(LockerCommand).where(LockerCommand.id == command_id).values(
+            completed_at=func.clock_timestamp(),
+        ))
     await db.commit()
     return {'status': 'completed'}
