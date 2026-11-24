@@ -24,6 +24,8 @@ def main():
     process = subprocess.Popen(command, env=environment, stdout=subprocess.PIPE,
                                stderr=subprocess.STDOUT, text=True)
     try:
+        if process.stdout is None:
+            raise RuntimeError('Stripe CLI output pipe is unavailable.')
         for line in process.stdout:
             secret = re.search(r'whsec_[A-Za-z0-9]+', line)
             if secret:
