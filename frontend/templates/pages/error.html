@@ -1,8 +1,8 @@
 {% extends "layouts/screen.html" %}
-{% set header_title %}Please try again{% endset %}
+{% set header_title %}{{ error_heading | default("Please try again") }}{% endset %}
 
 {% block screen_content %}
     <p class="supporting" role="status">{{ message }}</p>
-    <a class="back-button" href="{{ retry_url | default(url_for('home')) }}">Try again</a>
+    <a class="back-button" href="{{ retry_url | default(url_for('home')) }}">{{ action_label | default("Try again") }}</a>
     <a class="back-button" href="{{ url_for('contact') }}">Contact locker support</a>
 {% endblock screen_content %}
