@@ -100,7 +100,8 @@ class BookingEligibilityTests(test_commands.CommandTestCase):
 
     def test_completed_debt_disables_new_lockers_and_precedes_rental_history(self):
         self.connection.execute(
-            text("UPDATE rentals SET status='completed',completed_at=clock_timestamp(),locker_id=2"))
+            text("UPDATE rentals SET status='completed',completed_at=clock_timestamp(),locker_id=2 WHERE id=:id"),
+            {'id': self.rental_id})
         self.charge()
         home = self.client.get('/').text
         self.assertNotIn('Continue rental', home)
@@ -113,7 +114,8 @@ class BookingEligibilityTests(test_commands.CommandTestCase):
         self.assertIn(f'Rental #{self.rental_id} · Locker 5', page)
         self.assertLess(page.index('id="account-balance"'), page.index('id="completed-rentals-heading"'))
         self.assertNotIn('Choose an available locker to get started.', page)
-        self.connection.execute(text("UPDATE overdue_charges SET status='waived'"))
+        self.connection.execute(text("UPDATE overdue_charges SET status='waived' WHERE rental_id=:id"),
+                                {'id': self.rental_id})
         home = self.client.get('/').text
         self.assertIn('home-locker is-available', home)
         self.assertIn('/lockers/1/rent', home)
@@ -166,7 +168,9 @@ class BookingEligibilityTests(test_commands.CommandTestCase):
         self.assertEqual(self.finish().status_code, 202)
 
     def test_checkout_authorised_before_debt_appears_is_honoured(self):
-        self.connection.execute(text("UPDATE rentals SET status='completed',completed_at=clock_timestamp()"))
+        self.connection.execute(
+            text("UPDATE rentals SET status='completed',completed_at=clock_timestamp() WHERE id=:id"),
+            {'id': self.rental_id})
         pending = reserve_locker(self.db, 1, 1, 2)
         client = Mock()
         checkout = {'id': 'cs_authorised', 'livemode': False, 'status': 'open',
@@ -247,6 +251,7 @@ class BookingConcurrencyTests(test_overdue_billing.OverdueBillingTestCase):
                                                 UPDATE overdue_charges
                                                 SET status='pending',
                                                     paid_at=NULL
+                                                WHERE id=1
                                                 """))
                         save_status(settlement, 1, status)
                     finally:
@@ -258,14 +263,14 @@ class BookingConcurrencyTests(test_overdue_billing.OverdueBillingTestCase):
 
     def test_checkout_waits_for_settlement_or_new_debt_before_deciding(self):
         with self.db.begin() as connection:
-            connection.execute(text("UPDATE overdue_charges SET status='waived'"))
+            connection.execute(text("UPDATE overdue_charges SET status='waived' WHERE id=1"))
         with Session(self.db) as db:
             rental = reserve_locker(db, 1, 2, 2)
         with self.db.begin() as connection:
-            connection.execute(text("UPDATE overdue_charges SET status='pending'"))
+            connection.execute(text("UPDATE overdue_charges SET status='pending' WHERE id=1"))
         client = Mock()
         client.v1.checkout.sessions.create.return_value = SimpleNamespace(
             id='cs_concurrent', livemode=False, status='open', url='https://checkout.stripe.com/test')
         with patch('services.payments.stripe_client', return_value=client):
-            self.assert_waits_for_balance(lambda db: create_checkout(db, rental['id'], 1))
+            self.assert_waits_for_balance(lambda booking_db: create_checkout(booking_db, rental['id'], 1))
         client.v1.checkout.sessions.create.assert_called_once()
