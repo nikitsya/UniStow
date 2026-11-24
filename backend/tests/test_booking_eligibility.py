@@ -21,14 +21,11 @@ from services.rentals import reserve_locker
 
 
 @unittest.skipUnless(os.getenv('UNISTOW_TEST_POSTGRES') == '1', 'Requires isolated PostgreSQL schema')
-class BookingEligibilityTests(unittest.TestCase):
-    tearDown = test_commands.CommandTests.tearDown
-    report = test_commands.CommandTests.report
-    finish = test_commands.CommandTests.finish
+class BookingEligibilityTests(test_commands.CommandTestCase):
     headers = {'X-UniStow-Request': '1'}
 
     def setUp(self):
-        test_commands.CommandTests.setUp(self)
+        super().setUp()
         self.db = Session(bind=self.connection, join_transaction_mode='create_savepoint')
         self.addCleanup(self.db.close)
 
@@ -141,7 +138,8 @@ class BookingEligibilityTests(unittest.TestCase):
     def test_all_balances_remain_visible_beyond_five_completed_rentals(self):
         oldest = self.completed_rental()
         self.charge(rental_id=oldest)
-        for _ in range(6):
+        latest = self.completed_rental()
+        for _ in range(5):
             latest = self.completed_rental()
         self.charge(rental_id=latest)
         self.assertEqual(self.reserve().status_code, 409)
@@ -176,7 +174,7 @@ class BookingEligibilityTests(unittest.TestCase):
                     'payment_status': 'unpaid', 'currency': 'eur', 'amount_total': 200,
                     'client_reference_id': str(pending['id']), 'metadata': {'rental_id': str(pending['id'])}}
 
-        def issue_checkout(*args, **kwargs):
+        def issue_checkout(*_args, **_kwargs):
             # The account lock and durable checkout decision precede the Stripe call.
             self.charge()
             return SimpleNamespace(**checkout)
@@ -198,14 +196,10 @@ class BookingEligibilityTests(unittest.TestCase):
 
 
 @unittest.skipUnless(os.getenv('UNISTOW_TEST_POSTGRES') == '1', 'Requires independent PostgreSQL transactions')
-class BookingConcurrencyTests(unittest.TestCase):
-    clean_database = test_overdue_billing.OverdueBillingTests.clean_database
-    response = test_overdue_billing.OverdueBillingTests.response
-    create_intent = test_overdue_billing.OverdueBillingTests.create_intent
-    confirm_intent = test_overdue_billing.OverdueBillingTests.confirm_intent
+class BookingConcurrencyTests(test_overdue_billing.OverdueBillingTestCase):
 
     def setUp(self):
-        test_overdue_billing.OverdueBillingTests.setUp(self)
+        super().setUp()
         with self.db.begin() as connection:
             connection.execute(text("""
                                     INSERT INTO lockers(number, size, price_per_day_cents, is_enabled, last_seen_at)

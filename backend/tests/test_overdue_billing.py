@@ -29,8 +29,7 @@ class BillingDateTests(unittest.TestCase):
             self.assertEqual(len(list(due_dates(first, at))), 2)
 
 
-@unittest.skipUnless(os.getenv('UNISTOW_TEST_POSTGRES') == '1', 'Requires isolated PostgreSQL schema')
-class OverdueBillingTests(unittest.TestCase):
+class OverdueBillingTestCase(unittest.TestCase):
     def setUp(self):
         self.schema = 'test_billing_' + secrets.token_hex(6)
         with engine.begin() as connection:
@@ -106,6 +105,9 @@ class OverdueBillingTests(unittest.TestCase):
             deadline = connection.scalar(text('SELECT paid_until FROM rentals WHERE id=1'))
         return len(list(due_dates(deadline, datetime.now(timezone.utc))))
 
+
+@unittest.skipUnless(os.getenv('UNISTOW_TEST_POSTGRES') == '1', 'Requires isolated PostgreSQL schema')
+class OverdueBillingTests(OverdueBillingTestCase):
     def test_decline_with_cleared_payment_method_is_reconciled(self):
         def decline(key, params, options):
             intent = self.intents[key]

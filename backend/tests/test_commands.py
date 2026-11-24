@@ -16,8 +16,7 @@ from main import app
 from services.rentals import reserve_locker, rental_end
 
 
-@unittest.skipUnless(os.environ.get('UNISTOW_TEST_POSTGRES') == '1', 'Requires PostgreSQL; isolated schema rolled back')
-class CommandTests(unittest.TestCase):
+class CommandTestCase(unittest.TestCase):
     def setUp(self):
         self.connection = engine.connect()
         self.transaction = self.connection.begin()
@@ -68,6 +67,26 @@ class CommandTests(unittest.TestCase):
                                 json={'door_state': door, 'ready': ready,
                                       'controller_id': controller or self.controller})
 
+    def open(self):
+        return self.client.post(f'/api/rentals/{self.rental_id}/open', headers={'X-UniStow-Request': '1'})
+
+    def take(self, controller=None):
+        return self.client.post('/api/device/commands/next', headers=self.device_headers,
+                                json={'controller_id': controller or self.controller})
+
+    def finish(self, confirmed=True):
+        headers = {'X-UniStow-Request': '1'}
+        if confirmed:
+            headers['X-UniStow-Collect-All'] = 'yes'
+        return self.client.post(f'/api/rentals/{self.rental_id}/finish', headers=headers)
+
+    def acknowledge(self, command_id, controller=None):
+        return self.client.post(f'/api/device/commands/{command_id}/completed',
+                                headers=self.device_headers, json={'controller_id': controller or self.controller})
+
+
+@unittest.skipUnless(os.environ.get('UNISTOW_TEST_POSTGRES') == '1', 'Requires PostgreSQL; isolated schema rolled back')
+class CommandTests(CommandTestCase):
     def test_home_continues_only_the_owners_current_rental(self):
         for status in ('pending', 'active', 'overdue'):
             self.connection.execute(text('UPDATE rentals SET status=:status'), {'status': status})
@@ -90,13 +109,6 @@ class CommandTests(unittest.TestCase):
         self.assertNotIn('Continue rental', self.client.get('/').text)
         self.client.cookies.clear()
         self.assertNotIn('Continue rental', self.client.get('/').text)
-
-    def open(self):
-        return self.client.post(f'/api/rentals/{self.rental_id}/open', headers={'X-UniStow-Request': '1'})
-
-    def take(self, controller=None):
-        return self.client.post('/api/device/commands/next', headers=self.device_headers,
-                                json={'controller_id': controller or self.controller})
 
     def test_mqtt_open_cannot_be_repeated_or_collected_over_http(self):
         events = Mock()
@@ -200,16 +212,6 @@ class CommandTests(unittest.TestCase):
             page = self.client.get(f'/rentals/{self.rental_id}')
         self.assertEqual(page.status_code, 200)
         self.assertRegex(page.text, r'<button(?=[^>]*id="finish-rental-button")(?=[^>]*\bdisabled\b)[^>]*>')
-
-    def finish(self, confirmed=True):
-        headers = {'X-UniStow-Request': '1'}
-        if confirmed:
-            headers['X-UniStow-Collect-All'] = 'yes'
-        return self.client.post(f'/api/rentals/{self.rental_id}/finish', headers=headers)
-
-    def acknowledge(self, command_id, controller=None):
-        return self.client.post(f'/api/device/commands/{command_id}/completed',
-                                headers=self.device_headers, json={'controller_id': controller or self.controller})
 
     def test_finish_requires_confirmation_owner_and_paid_access(self):
         self.assertEqual(self.finish(False).status_code, 422)
