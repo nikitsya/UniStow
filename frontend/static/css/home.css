@@ -11,7 +11,7 @@
 }
 
 .home-header {
-    background: var(--green);
+    background: #c1cea2;
     color: var(--ink);
     padding: 18px 28px 16px;
     display: grid;
@@ -482,8 +482,13 @@ a.home-locker:active {
 }
 
 .account-menu summary {
+    background: var(--mint-soft);
     list-style: none;
     cursor: pointer;
+}
+
+.account-menu summary:hover {
+    background: var(--surface);
 }
 
 .account-menu summary::-webkit-details-marker {
