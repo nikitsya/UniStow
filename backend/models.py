@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any
 
 from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Identity, Text, false, func, text
@@ -111,3 +111,22 @@ class LockerCommand(Base):
     dispatched_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     action: Mapped[str] = mapped_column(Text, server_default=text("'open'"))
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class OverdueCharge(Base):
+    __tablename__ = "overdue_charges"
+
+    # database/schema.sql owns the existing constraints and indexes.
+    id: Mapped[int] = mapped_column(Identity(always=True), primary_key=True)
+    rental_id: Mapped[int] = mapped_column(ForeignKey("rentals.id", ondelete="RESTRICT"))
+    charge_date: Mapped[date]
+    amount_cents: Mapped[int] = mapped_column(server_default=text("100"))
+    currency: Mapped[str] = mapped_column(Text, server_default=text("'eur'"))
+    status: Mapped[str] = mapped_column(Text, server_default=text("'pending'"))
+    stripe_payment_intent_id: Mapped[str | None] = mapped_column(Text, unique=True)
+    request_key: Mapped[str | None] = mapped_column(Text, unique=True)
+    request_params: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    first_requested_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    failure_reason: Mapped[str | None] = mapped_column(Text)
+    paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

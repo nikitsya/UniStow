@@ -6,12 +6,13 @@ from zoneinfo import ZoneInfo
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import text
+from sqlalchemy import and_, exists, func, or_, select, text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from auth.sessions import current_user
 from database import get_db
+from models import Locker, OverdueCharge, Payment, Rental
 from services.booking_eligibility import booking_eligibility
 from services.lockers import read_lockers
 from services.payments import owned_rental
@@ -21,34 +22,36 @@ frontend_directory = Path(__file__).resolve().parents[2] / "frontend"
 templates = Jinja2Templates(directory=frontend_directory / "templates")
 
 
-async def current_rentals(db, user):
-    return (await db.execute(text("""
-                           SELECT rentals.id, rentals.locker_id, rentals.status, lockers.number
-                           FROM rentals
-                                    JOIN lockers ON lockers.id = rentals.locker_id
-                           WHERE user_id = :user_id
-                             AND (status IN ('active', 'overdue')
-                               OR (status = 'completed' AND EXISTS (SELECT 1
-                                                                    FROM overdue_charges c
-                                                                    WHERE c.rental_id = rentals.id
-                                                                      AND c.status IN ('failed', 'pending', 'review')))
-                               OR (status = 'pending'
-                                   AND (reserved_until > CURRENT_TIMESTAMP
-                                       OR EXISTS (SELECT 1 FROM payments WHERE payments.rental_id = rentals.id))))
-                           ORDER BY rentals.id DESC
-                                  """), {"user_id": user["id"]})).mappings().all() if user else []
+async def current_rentals(db: AsyncSession, user):
+    if not user:
+        return []
+    outstanding = exists(select(OverdueCharge.id).where(
+        OverdueCharge.rental_id == Rental.id,
+        OverdueCharge.status.in_(('failed', 'pending', 'review')),
+    ))
+    has_payment = exists(select(Payment.rental_id).where(Payment.rental_id == Rental.id))
+    return (await db.execute(
+        select(Rental.id, Rental.locker_id, Rental.status, Locker.number)
+        .join(Locker, Locker.id == Rental.locker_id)
+        .where(
+            Rental.user_id == user['id'],
+            or_(
+                Rental.status.in_(('active', 'overdue')),
+                and_(Rental.status == 'completed', outstanding),
+                and_(Rental.status == 'pending',
+                     or_(Rental.reserved_until > func.current_timestamp(), has_payment)),
+            ),
+        ).order_by(Rental.id.desc())
+    )).mappings().all()
 
 
-async def completed_rentals(db, user):
-    rows = (await db.execute(text("""
-                           SELECT r.id, r.completed_at, l.number
-                           FROM rentals r
-                                    JOIN lockers l ON l.id = r.locker_id
-                           WHERE r.user_id = :user_id
-                             AND r.status = 'completed'
-                           ORDER BY r.completed_at DESC, r.id DESC
-                           LIMIT 5
-                                  """), {"user_id": user["id"]})).mappings().all()
+async def completed_rentals(db: AsyncSession, user):
+    rows = (await db.execute(
+        select(Rental.id, Rental.completed_at, Locker.number)
+        .join(Locker, Locker.id == Rental.locker_id)
+        .where(Rental.user_id == user['id'], Rental.status == 'completed')
+        .order_by(Rental.completed_at.desc(), Rental.id.desc()).limit(5)
+    )).mappings().all()
     return [dict(row, completed_on=row["completed_at"].astimezone(
         ZoneInfo("Europe/Dublin")).strftime("%d %B %Y at %H:%M")) for row in rows]
 
