@@ -5,10 +5,11 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, model_validator
-from sqlalchemy import text
+from sqlalchemy import func, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_db
+from models import Locker
 from schemas import CommandPollResponse, HeartbeatResponse, StatusResponse
 from services.commands import take_command, complete_collection
 
@@ -41,17 +42,14 @@ def check_device_key(request: Request):
 @router.post("/heartbeat", response_model=HeartbeatResponse, dependencies=[Depends(check_device_key)])
 async def heartbeat(report: DoorReport, db: Annotated[AsyncSession, Depends(get_db)]):
     # This prototype key belongs only to the physical Locker 4.
-    locker = (await db.execute(text("""
-                             UPDATE lockers
-                             SET door_state    = :state,
-                                 last_seen_at  = CURRENT_TIMESTAMP,
-                                 device_ready  = :ready,
-                                 controller_id = :controller
-                             WHERE number = 4
-                             RETURNING number
-                             """), {"state": report.door_state, "ready": report.ready,
-                                    "controller": str(
-                                        report.controller_id) if report.controller_id else None})).scalar_one_or_none()
+    locker = (await db.execute(
+        update(Locker).where(Locker.number == 4).values(
+            door_state=report.door_state,
+            last_seen_at=func.current_timestamp(),
+            device_ready=report.ready,
+            controller_id=str(report.controller_id) if report.controller_id else None,
+        ).returning(Locker.number)
+    )).scalar_one_or_none()
     if locker is None:
         raise HTTPException(404, "Locker 4 has not been configured.")
     await db.commit()
