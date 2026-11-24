@@ -6,13 +6,13 @@ from zoneinfo import ZoneInfo
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import and_, exists, func, or_, select, text
+from sqlalchemy import and_, exists, func, or_, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from auth.sessions import current_user
 from database import get_db
-from models import Locker, OverdueCharge, Payment, Rental
+from models import Locker, OverdueCharge, OverduePayment, Payment, Rental
 from services.booking_eligibility import booking_eligibility
 from services.lockers import read_lockers
 from services.payments import owned_rental
@@ -120,13 +120,11 @@ async def reservation(request: Request, rental_id: int, db: Annotated[AsyncSessi
     if user is None:
         return RedirectResponse(f"/login?rental_id={rental_id}", status_code=303)
     owned = await owned_rental(db, rental_id, user["id"])
-    charges = (await db.execute(text("""
-                              SELECT status, COALESCE(SUM(amount_cents), 0) AS amount
-                              FROM overdue_charges
-                              WHERE rental_id = :id
-                                AND status <> 'waived'
-                              GROUP BY status
-                                     """), {"id": rental_id})).mappings().all()
+    charges = (await db.execute(
+        select(OverdueCharge.status, func.coalesce(func.sum(OverdueCharge.amount_cents), 0).label("amount"))
+        .where(OverdueCharge.rental_id == rental_id, OverdueCharge.status != 'waived')
+        .group_by(OverdueCharge.status)
+    )).mappings().all()
     additional = {row["status"]: row["amount"] for row in charges}
     billing = {
         "paid": additional.get("paid", 0),
@@ -134,12 +132,9 @@ async def reservation(request: Request, rental_id: int, db: Annotated[AsyncSessi
         "failed": additional.get("failed", 0),
         "additional": sum(additional.values()),
         "total": owned["total_price_cents"] + sum(additional.values()),
-        "recovery_pending": await db.scalar(text("""
-                                           SELECT amount_cents
-                                           FROM overdue_payments
-                                           WHERE rental_id = :id
-                                             AND status = 'pending'
-                                           """), {"id": rental_id}) or 0,
+        "recovery_pending": await db.scalar(select(OverduePayment.amount_cents).where(
+            OverduePayment.rental_id == rental_id, OverduePayment.status == 'pending',
+        )) or 0,
     }
     billing["checkout_amount"] = billing["recovery_pending"] or billing["failed"]
     billing["unpaid"] = max(0, billing["failed"] - billing["recovery_pending"])
