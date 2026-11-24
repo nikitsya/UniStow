@@ -130,3 +130,19 @@ class OverdueCharge(Base):
     failure_reason: Mapped[str | None] = mapped_column(Text)
     paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class OverduePayment(Base):
+    __tablename__ = "overdue_payments"
+
+    # database/schema.sql owns the existing constraints and partial index.
+    id: Mapped[str] = mapped_column(Text, primary_key=True)
+    rental_id: Mapped[int] = mapped_column(ForeignKey("rentals.id"))
+    charge_ids: Mapped[list[int]] = mapped_column(JSONB)
+    amount_cents: Mapped[int]
+    checkout_params: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    checkout_session_id: Mapped[str | None] = mapped_column(Text, unique=True)
+    payment_intent_id: Mapped[str | None] = mapped_column(Text, unique=True)
+    status: Mapped[str] = mapped_column(Text, server_default=text("'pending'"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
