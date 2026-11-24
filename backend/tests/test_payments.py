@@ -19,8 +19,10 @@ class PaymentSettingsTests(unittest.TestCase):
 
     def test_checkout_uses_saved_amount(self):
         now = datetime(2026, 10, 25, 12, tzinfo=timezone.utc)
-        rental = {'id': 7, 'number': 4, 'prepaid_days': 2,
-                  'total_price_cents': 200, 'paid_until': now + timedelta(days=1)}
+        rental: dict[str, int | datetime | str] = {
+            'id': 7, 'number': 4, 'prepaid_days': 2,
+            'total_price_cents': 200, 'paid_until': now + timedelta(days=1),
+        }
         params = checkout_parameters(rental, 'http://127.0.0.1:8000', now)
         self.assertEqual(params['branding_settings']['display_name'], 'UniStow')
         self.assertEqual(params['line_items'][0]['price_data']['unit_amount'], 200)
