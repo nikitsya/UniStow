@@ -88,6 +88,24 @@ class CommandTestCase(unittest.IsolatedAsyncioTestCase):
 
 @unittest.skipUnless(os.environ.get('UNISTOW_TEST_POSTGRES') == '1', 'Requires PostgreSQL; isolated schema rolled back')
 class CommandTests(CommandTestCase):
+    async def test_expired_reservation_keeps_locker_unavailable_with_payment(self):
+        from services.lockers import read_lockers
+
+        await self.connection.execute(text(
+            "UPDATE rentals SET status='pending', created_at=CURRENT_TIMESTAMP-INTERVAL '20 minutes', "
+            "starts_at=CURRENT_TIMESTAMP-INTERVAL '20 minutes', "
+            "overdue_terms_accepted_at=CURRENT_TIMESTAMP-INTERVAL '20 minutes', "
+            "reserved_until=CURRENT_TIMESTAMP-INTERVAL '1 minute' "
+            "WHERE id=:id"
+        ), {'id': self.rental_id})
+        async with AsyncSession(bind=self.connection) as db:
+            lockers = await read_lockers(db)
+            self.assertEqual([locker['number'] for locker in lockers], [4, 5])
+            self.assertEqual(lockers[0]['status'], 'unavailable')
+            self.assertEqual(await read_lockers(db, -1), [])
+            await db.execute(text('DELETE FROM payments WHERE rental_id=:id'), {'id': self.rental_id})
+            self.assertEqual((await read_lockers(db, 1))[0]['status'], 'available')
+
     async def test_home_continues_only_the_owners_current_rental(self):
         for status in ('pending', 'active', 'overdue'):
             await self.connection.execute(text('UPDATE rentals SET status=:status WHERE id=:id'),

@@ -1,48 +1,47 @@
-from sqlalchemy import text
+from datetime import timedelta
+
+from sqlalchemy import and_, column, exists, func, or_, select, table
 from sqlalchemy.ext.asyncio import AsyncSession
 
-LOCKER_QUERY = """
-               SELECT lockers.id,
-                      lockers.number,
-                      lockers.size,
-                      lockers.price_per_day_cents,
-                      lockers.door_state,
-                      lockers.last_seen_at,
-                      lockers.is_enabled,
-                      (lockers.last_seen_at > CURRENT_TIMESTAMP - INTERVAL '15 seconds'
-                          AND lockers.last_seen_at <= CURRENT_TIMESTAMP)                                                   AS device_online,
-                      lockers.is_enabled AND NOT EXISTS (SELECT 1
-                                                         FROM rentals
-                                                         WHERE rentals.locker_id = lockers.id
-                                                           AND (rentals.status IN ('active', 'overdue')
-                                                             OR (rentals.status = 'pending'
-                                                                 AND (rentals.reserved_until > CURRENT_TIMESTAMP
-                                                                     OR EXISTS (SELECT 1
-                                                                                FROM payments
-                                                                                WHERE payments.rental_id = rentals.id))))) AS is_available
-               FROM lockers \
-               """
+from models import Locker
+
+# These tables remain SQL expressions until their ORM migration.
+rentals = table("rentals", column("id"), column("locker_id"), column("status"), column("reserved_until"))
+payments = table("payments", column("rental_id"))
 
 
 async def read_lockers(db: AsyncSession, locker_id: int | None = None):
-    query = LOCKER_QUERY
-    parameters = {}
+    has_payment = exists(select(payments.c.rental_id).where(payments.c.rental_id == rentals.c.id))
+    occupied = exists(select(rentals.c.id).where(
+        rentals.c.locker_id == Locker.id,
+        or_(
+            rentals.c.status.in_(("active", "overdue")),
+            and_(
+                rentals.c.status == "pending",
+                or_(rentals.c.reserved_until > func.current_timestamp(), has_payment),
+            ),
+        ),
+    ))
+    online = and_(
+        Locker.last_seen_at > func.current_timestamp() - timedelta(seconds=15),
+        Locker.last_seen_at <= func.current_timestamp(),
+    )
+    query = select(Locker, online.label("device_online"),
+                   and_(Locker.is_enabled, ~occupied).label("is_available"))
     if locker_id is not None:
-        query += " WHERE lockers.id = :locker_id"
-        parameters["locker_id"] = locker_id
-    query += " ORDER BY lockers.number"
-    rows = (await db.execute(text(query), parameters)).mappings().all()
+        query = query.where(Locker.id == locker_id)
+    rows = (await db.execute(query.order_by(Locker.number))).all()
     return [
         {
-            "id": row["id"],
-            "number": row["number"],
-            "name": f"Locker {row['number']}",
-            "size": row["size"].capitalize(),
-            "price_per_day_cents": row["price_per_day_cents"],
-            "status": ("offline" if row["is_enabled"] and not row["device_online"]
-                       else "available" if row["is_available"] else "unavailable"),
-            "door_state": row["door_state"],
-            "last_seen_at": row["last_seen_at"],
+            "id": locker.id,
+            "number": locker.number,
+            "name": f"Locker {locker.number}",
+            "size": locker.size.capitalize(),
+            "price_per_day_cents": locker.price_per_day_cents,
+            "status": ("offline" if locker.is_enabled and not device_online
+                       else "available" if is_available else "unavailable"),
+            "door_state": locker.door_state,
+            "last_seen_at": locker.last_seen_at,
         }
-        for row in rows
+        for locker, device_online, is_available in rows
     ]
