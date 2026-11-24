@@ -1,15 +1,22 @@
 import json
 import os
 from datetime import timedelta
+from typing import Literal
 from uuid import uuid4
 
 import stripe
 from fastapi import HTTPException
 from sqlalchemy import text
 from sqlalchemy.orm import Session
+from stripe.params.checkout import SessionCreateParams, SessionCreateParamsPaymentIntentData
 
 from services.booking_eligibility import require_booking_eligibility
 from services.rentals import PAYMENT_METHOD_TERMS_VERSION
+
+
+class CheckoutParameters(SessionCreateParams):
+    # The pinned 2025-06-30.basil API uses this field for payment methods.
+    payment_method_types: list[Literal["card"]]
 
 
 def stripe_client():
@@ -47,12 +54,12 @@ def owned_rental(db: Session, rental_id: int, user_id: int):
     return dict(rental)
 
 
-def checkout_parameters(rental, base_url: str, now):
+def checkout_parameters(rental, base_url: str, now) -> CheckoutParameters:
     # Stripe requires at least 30 minutes; allow a minute for the API request.
     expires_at = now + timedelta(minutes=31)
     if expires_at >= rental["paid_until"]:
         raise HTTPException(status_code=409, detail="Too close to the rental deadline to start checkout.")
-    params = {
+    params: CheckoutParameters = {
         "mode": "payment", "payment_method_types": ["card"],
         "branding_settings": {"display_name": "UniStow"},
         "client_reference_id": str(rental["id"]),
@@ -68,10 +75,10 @@ def checkout_parameters(rental, base_url: str, now):
 
     if rental.get("overdue_terms_version") == PAYMENT_METHOD_TERMS_VERSION:
         params["customer_creation"] = "always"
-        params["payment_intent_data"] = {
-            "setup_future_usage": "off_session",
-            "metadata": {"rental_id": str(rental["id"])},
-        }
+        params["payment_intent_data"] = SessionCreateParamsPaymentIntentData(
+            setup_future_usage="off_session",
+            metadata={"rental_id": str(rental["id"])},
+        )
     return params
 
 
