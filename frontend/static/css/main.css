@@ -6,14 +6,14 @@
     color: var(--ink);
     background: var(--green);
     font-synthesis: none;
-    --green: #64dea5;
+    --green: #d9e2c5;
     --ink: #183b35;
     --supporting: #425e50;
     --sand: #f5d76e;
-    --mint-soft: #d7f5e6;
+    --mint-soft: #edf2e3;
     --yellow-soft: #fff2ba;
-    --surface: #f8fcf9;
-    --page: #e7f2ec;
+    --surface: #fafbf6;
+    --page: #eef1e7;
     --focus: #27674b;
 }
 
