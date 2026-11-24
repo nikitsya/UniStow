@@ -13,12 +13,9 @@ from services.overdue_payments import apply_recovery, create_outstanding_checkou
 
 
 @unittest.skipUnless(os.getenv('UNISTOW_TEST_POSTGRES') == '1', 'Requires isolated PostgreSQL schema')
-class OutstandingPaymentTests(unittest.TestCase):
-    tearDown = test_commands.CommandTests.tearDown
-    report = test_commands.CommandTests.report
-
+class OutstandingPaymentTests(test_commands.CommandTestCase):
     def setUp(self):
-        test_commands.CommandTests.setUp(self)
+        super().setUp()
         self.connection.execute(text("""
                                      INSERT INTO overdue_charges(rental_id, charge_date, status,
                                                                  stripe_payment_intent_id, request_params)
@@ -44,11 +41,11 @@ class OutstandingPaymentTests(unittest.TestCase):
     def wrap(value):
         return SimpleNamespace(to_dict=lambda: dict(value))
 
-    def cancel(self, *args, **kwargs):
+    def cancel(self, *_args, **_kwargs):
         self.intent['status'] = 'canceled'
         return self.wrap(self.intent)
 
-    def create(self, params, options):
+    def create(self, params, **_options):
         self.checkout = {'id': 'cs_recovery', 'livemode': False, 'mode': 'payment', 'currency': 'eur',
                          'amount_total': params['line_items'][0]['price_data']['unit_amount'],
                          'metadata': params['metadata'], 'client_reference_id': params['client_reference_id'],
@@ -86,7 +83,9 @@ class OutstandingPaymentTests(unittest.TestCase):
             create_outstanding_checkout(self.db, self.rental_id, 1)
 
     def test_completed_rental_keeps_debt_visible_and_can_be_paid(self):
-        self.connection.execute(text("UPDATE rentals SET status='completed',completed_at=clock_timestamp()"))
+        self.connection.execute(
+            text("UPDATE rentals SET status='completed',completed_at=clock_timestamp() WHERE id=:id"),
+            {'id': self.rental_id})
         page = self.client.get(f'/rentals/{self.rental_id}')
         self.assertIn('Pay outstanding €1.00', page.text)
         self.assertNotIn('id="finish-rental-button"', page.text)
@@ -106,7 +105,9 @@ class OutstandingPaymentTests(unittest.TestCase):
         self.client_stripe.v1.checkout.sessions.create.assert_not_called()
 
     def test_pending_charges_are_not_recovered(self):
-        self.connection.execute(text("UPDATE overdue_charges SET status='pending'"))
+        self.connection.execute(
+            text("UPDATE overdue_charges SET status='pending' WHERE rental_id=:id"),
+            {'id': self.rental_id})
         with self.assertRaises(HTTPException):
             create_outstanding_checkout(self.db, self.rental_id, 1)
         self.client_stripe.v1.checkout.sessions.create.assert_not_called()
@@ -141,7 +142,7 @@ class OutstandingPaymentTests(unittest.TestCase):
         old_create = self.create
 
         def new_create(params, options):
-            old_create(params, options)
+            old_create(params, options=options)
             self.checkout['id'] = 'cs_new'
             return self.wrap(self.checkout)
 
@@ -169,7 +170,7 @@ class OutstandingPaymentTests(unittest.TestCase):
 
         def lost_response(params, options):
             saved.append(options['idempotency_key'])
-            self.create(params, options)
+            self.create(params, options=options)
             raise stripe.APIConnectionError('Lost response')
 
         self.client_stripe.v1.checkout.sessions.create.side_effect = lost_response
