@@ -20,7 +20,8 @@ from services.rentals import reserve_locker
 router = APIRouter(prefix="/api")
 
 
-@router.post("/rentals/{rental_id}/outstanding/checkout", response_model=CheckoutResponse, dependencies=[Depends(check_browser_request)])
+@router.post("/rentals/{rental_id}/outstanding/checkout", response_model=CheckoutResponse,
+             dependencies=[Depends(check_browser_request)])
 async def outstanding_checkout(rental_id: int, request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
     user = await current_user(db, request)
     if user is None:
@@ -31,7 +32,8 @@ async def outstanding_checkout(rental_id: int, request: Request, db: Annotated[A
         raise HTTPException(503, "Outstanding payment is temporarily unavailable.") from None
 
 
-@router.post("/rentals/{rental_id}/outstanding/reconcile", response_model=StatusResponse, dependencies=[Depends(check_browser_request)])
+@router.post("/rentals/{rental_id}/outstanding/reconcile", response_model=StatusResponse,
+             dependencies=[Depends(check_browser_request)])
 async def outstanding_reconcile(rental_id: int, request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
     user = await current_user(db, request)
     if user is None:
@@ -49,7 +51,8 @@ async def stripe_webhook(request: Request, db: Annotated[AsyncSession, Depends(g
     return {"received": True}
 
 
-@router.post("/rentals/{rental_id}/reconcile", response_model=StatusResponse, dependencies=[Depends(check_browser_request)])
+@router.post("/rentals/{rental_id}/reconcile", response_model=StatusResponse,
+             dependencies=[Depends(check_browser_request)])
 async def reconcile(rental_id: int, request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
     user = await current_user(db, request)
     if user is None:
@@ -58,7 +61,8 @@ async def reconcile(rental_id: int, request: Request, db: Annotated[AsyncSession
     return {"status": rental["status"]}
 
 
-@router.post("/rentals/{rental_id}/cancel", response_model=StatusResponse, dependencies=[Depends(check_browser_request)])
+@router.post("/rentals/{rental_id}/cancel", response_model=StatusResponse,
+             dependencies=[Depends(check_browser_request)])
 async def cancel_reservation(rental_id: int, request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
     user = await current_user(db, request)
     if user is None:
@@ -67,7 +71,8 @@ async def cancel_reservation(rental_id: int, request: Request, db: Annotated[Asy
     return {"status": "cancelled"}
 
 
-@router.post("/rentals/{rental_id}/checkout", response_model=CheckoutResponse, dependencies=[Depends(check_browser_request)])
+@router.post("/rentals/{rental_id}/checkout", response_model=CheckoutResponse,
+             dependencies=[Depends(check_browser_request)])
 async def checkout(rental_id: int, request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
     user = await current_user(db, request)
     if user is None:
@@ -120,7 +125,8 @@ async def logout(request: Request, response: Response, db: Annotated[AsyncSessio
     await end_session(db, request, response)
 
 
-@router.post("/rentals/{rental_id}/test-open", response_model=CommandResponse, dependencies=[Depends(check_browser_request)])
+@router.post("/rentals/{rental_id}/test-open", response_model=CommandResponse,
+             dependencies=[Depends(check_browser_request)])
 async def test_open_locker(rental_id: int, request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
     client = getattr(request.app.state, "open_test_client", None)
     if client is None:
@@ -135,7 +141,8 @@ async def test_open_locker(rental_id: int, request: Request, db: Annotated[Async
     return await run_in_threadpool(lambda: events.test_open(client, expires_at))
 
 
-@router.post("/rentals/{rental_id}/open", response_model=CommandResponse, status_code=202, dependencies=[Depends(check_browser_request)])
+@router.post("/rentals/{rental_id}/open", response_model=CommandResponse, status_code=202,
+             dependencies=[Depends(check_browser_request)])
 async def open_locker(rental_id: int, request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
     user = await current_user(db, request)
     if user is None:
@@ -154,7 +161,8 @@ async def open_locker(rental_id: int, request: Request, db: Annotated[AsyncSessi
     return await request_open(db, rental_id, user["id"])
 
 
-@router.post("/rentals/{rental_id}/finish", response_model=CommandResponse, status_code=202, dependencies=[Depends(check_browser_request)])
+@router.post("/rentals/{rental_id}/finish", response_model=CommandResponse, status_code=202,
+             dependencies=[Depends(check_browser_request)])
 async def finish_rental(rental_id: int, request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
     user = await current_user(db, request)
     if user is None:

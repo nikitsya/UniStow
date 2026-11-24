@@ -31,40 +31,43 @@ class BookingEligibilityTests(test_commands.CommandTestCase):
 
     async def charge(self, status='failed', rental_id=None, day=0):
         return await self.connection.scalar(text("""
-                                           INSERT INTO overdue_charges(rental_id, charge_date, status, stripe_payment_intent_id, paid_at)
-                                           VALUES (:rental, CURRENT_DATE + :day, :status, :intent,
-                                                   CASE WHEN :status = 'paid' THEN clock_timestamp() END)
-                                           RETURNING id
-                                           """), {'rental': rental_id or self.rental_id, 'day': day, 'status': status,
-                                                  'intent': f'pi_test_{rental_id}_{day}'})
+                                                 INSERT INTO overdue_charges(rental_id, charge_date, status, stripe_payment_intent_id, paid_at)
+                                                 VALUES (:rental, CURRENT_DATE + :day, :status, :intent,
+                                                         CASE WHEN :status = 'paid' THEN clock_timestamp() END)
+                                                 RETURNING id
+                                                 """),
+                                            {'rental': rental_id or self.rental_id, 'day': day, 'status': status,
+                                             'intent': f'pi_test_{rental_id}_{day}'})
 
     async def completed_rental(self):
         return await self.connection.scalar(text("""
-                                           INSERT INTO rentals(user_id, locker_id, status, prepaid_days, reserved_until,
-                                                               starts_at, paid_until, total_price_cents,
-                                                               overdue_terms_version,
-                                                               overdue_terms_accepted_at, created_at, completed_at)
-                                           SELECT user_id,
-                                                  locker_id,
-                                                  'completed',
-                                                  prepaid_days,
-                                                  reserved_until,
-                                                  starts_at,
-                                                  paid_until,
-                                                  total_price_cents,
-                                                  overdue_terms_version,
-                                                  overdue_terms_accepted_at,
-                                                  created_at,
-                                                  clock_timestamp()
-                                           FROM rentals
-                                           WHERE id = :id
-                                           RETURNING id
-                                           """), {'id': self.rental_id})
+                                                 INSERT INTO rentals(user_id, locker_id, status, prepaid_days,
+                                                                     reserved_until,
+                                                                     starts_at, paid_until, total_price_cents,
+                                                                     overdue_terms_version,
+                                                                     overdue_terms_accepted_at, created_at,
+                                                                     completed_at)
+                                                 SELECT user_id,
+                                                        locker_id,
+                                                        'completed',
+                                                        prepaid_days,
+                                                        reserved_until,
+                                                        starts_at,
+                                                        paid_until,
+                                                        total_price_cents,
+                                                        overdue_terms_version,
+                                                        overdue_terms_accepted_at,
+                                                        created_at,
+                                                        clock_timestamp()
+                                                 FROM rentals
+                                                 WHERE id = :id
+                                                 RETURNING id
+                                                 """), {'id': self.rental_id})
 
     async def reserve(self):
         return await self.client.post('/api/rentals', headers=self.headers,
-                                json={'locker_id': 2, 'days': 2, 'overdue_consent': True,
-                                      'payment_method_consent': True})
+                                      json={'locker_id': 2, 'days': 2, 'overdue_consent': True,
+                                            'payment_method_consent': True})
 
     async def test_one_failed_euro_blocks_direct_booking_and_prepared_reservation_checkout(self):
         pending = await reserve_locker(self.db, 1, 2, 2)
@@ -83,7 +86,7 @@ class BookingEligibilityTests(test_commands.CommandTestCase):
         self.assertRegex(page.text, r'<button(?=[^>]*id="pay-button")(?=[^>]*\bdisabled\b)[^>]*>')
         self.assertEqual(
             (await self.client.post(f"/api/rentals/{pending['id']}/cancel", headers=self.headers)).status_code,
-                         200)
+            200)
 
     async def test_pending_and_review_payments_pause_booking_without_claiming_debt(self):
         await self.charge('pending')
@@ -116,7 +119,7 @@ class BookingEligibilityTests(test_commands.CommandTestCase):
         self.assertLess(page.index('id="account-balance"'), page.index('id="completed-rentals-heading"'))
         self.assertNotIn('Choose an available locker to get started.', page)
         await self.connection.execute(text("UPDATE overdue_charges SET status='waived' WHERE rental_id=:id"),
-                                {'id': self.rental_id})
+                                      {'id': self.rental_id})
         home = (await self.client.get('/')).text
         self.assertIn('home-locker is-available', home)
         self.assertIn('/lockers/1/rent', home)
@@ -198,7 +201,7 @@ class BookingEligibilityTests(test_commands.CommandTestCase):
         await authorised_locker(self.db, pending['id'], 1)
         self.assertFalse((await booking_eligibility(self.db, 1))['can_book'])
         self.assertEqual(await self.db.scalar(text('SELECT status FROM rentals WHERE id=:id'),
-                                        {'id': pending['id']}), 'active')
+                                              {'id': pending['id']}), 'active')
 
 
 @unittest.skipUnless(os.getenv('UNISTOW_TEST_POSTGRES') == '1', 'Requires independent PostgreSQL transactions')
@@ -208,20 +211,20 @@ class BookingConcurrencyTests(test_overdue_billing.OverdueBillingTestCase):
         await super().asyncSetUp()
         async with self.db.begin() as connection:
             await connection.execute(text("""
-                                    INSERT INTO lockers(number, size, price_per_day_cents, is_enabled, last_seen_at)
-                                    VALUES (5, 'small', 100, true, clock_timestamp())
-                                    """))
+                                          INSERT INTO lockers(number, size, price_per_day_cents, is_enabled, last_seen_at)
+                                          VALUES (5, 'small', 100, true, clock_timestamp())
+                                          """))
             await connection.execute(text("""
-                                    INSERT INTO overdue_charges(rental_id, charge_date, status, stripe_payment_intent_id)
-                                    VALUES (1, CURRENT_DATE, 'pending', 'pi_unconfirmed')
-                                    """))
+                                          INSERT INTO overdue_charges(rental_id, charge_date, status, stripe_payment_intent_id)
+                                          VALUES (1, CURRENT_DATE, 'pending', 'pi_unconfirmed')
+                                          """))
 
     async def wait_for_lock(self, pid):
         deadline = time.monotonic() + 3
         while time.monotonic() < deadline:
             async with self.db.connect() as connection:
                 if await connection.scalar(text("SELECT wait_event_type FROM pg_stat_activity WHERE pid=:pid"),
-                                     {'pid': pid}) == 'Lock':
+                                           {'pid': pid}) == 'Lock':
                     return
             await asyncio.sleep(0.01)
         self.fail('The concurrent booking did not wait for the account lock.')

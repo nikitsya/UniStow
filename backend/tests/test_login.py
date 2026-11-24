@@ -15,13 +15,13 @@ class LoginTestCase(test_registration.RegistrationTestCase):
         self.addCleanup(eligibility.stop)
         async with self.engine.begin() as connection:
             await connection.execute(text("""
-                                    CREATE TABLE sessions
-                                    (
-                                        token_hash TEXT PRIMARY KEY,
-                                        user_id    INTEGER   NOT NULL,
-                                        expires_at TIMESTAMP NOT NULL
-                                    )
-                                    """))
+                                          CREATE TABLE sessions
+                                          (
+                                              token_hash TEXT PRIMARY KEY,
+                                              user_id    INTEGER   NOT NULL,
+                                              expires_at TIMESTAMP NOT NULL
+                                          )
+                                          """))
         await self.register()
 
     async def login(self, email="PERSON@example.com", password=None, headers=None):

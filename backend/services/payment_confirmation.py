@@ -72,7 +72,7 @@ async def apply_checkout(db: AsyncSession, checkout, event=None):
         # Stripe may notify us before the create-checkout response has been saved.
         reference = checkout.get("client_reference_id", "") or ""
         if reference.isdigit() and await db.scalar(select(Payment.rental_id).where(
-            Payment.rental_id == int(reference), Payment.checkout_session_id.is_(None),
+                Payment.rental_id == int(reference), Payment.checkout_session_id.is_(None),
         )) is not None:
             raise HTTPException(status_code=503, detail="Checkout is still being saved. Please retry.")
         return

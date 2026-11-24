@@ -183,15 +183,15 @@ class WebhookDatabaseTests(unittest.IsolatedAsyncioTestCase):
 
     async def prepare_saved_method(self):
         await self.connection.execute(text("""
-                                     UPDATE rentals
-                                     SET overdue_terms_version='2026-11-09'
-                                     WHERE id = :id
-                                     """), {'id': self.rental['id']})
+                                           UPDATE rentals
+                                           SET overdue_terms_version='2026-11-09'
+                                           WHERE id = :id
+                                           """), {'id': self.rental['id']})
         await self.connection.execute(text("""
-                                     UPDATE payments
-                                     SET checkout_params='{"payment_intent_data":{"setup_future_usage":"off_session"}}'
-                                     WHERE rental_id = :id
-                                     """), {'id': self.rental['id']})
+                                           UPDATE payments
+                                           SET checkout_params='{"payment_intent_data":{"setup_future_usage":"off_session"}}'
+                                           WHERE rental_id = :id
+                                           """), {'id': self.rental['id']})
         self.checkout['customer'] = 'cus_test'
         return {
             'id': self.checkout['payment_intent'], 'livemode': False,

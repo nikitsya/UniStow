@@ -19,14 +19,14 @@ class RegistrationTestCase(unittest.IsolatedAsyncioTestCase):
         )
         async with self.engine.begin() as connection:
             await connection.execute(text("""
-                                    CREATE TABLE users
-                                    (
-                                        id            INTEGER PRIMARY KEY,
-                                        email         TEXT NOT NULL UNIQUE,
-                                        password_hash TEXT NOT NULL,
-                                        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-                                    )
-                                    """))
+                                          CREATE TABLE users
+                                          (
+                                              id            INTEGER PRIMARY KEY,
+                                              email         TEXT      NOT NULL UNIQUE,
+                                              password_hash TEXT      NOT NULL,
+                                              created_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                                          )
+                                          """))
 
         async def test_db():
             async with AsyncSession(self.engine) as db:

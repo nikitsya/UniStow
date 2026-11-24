@@ -10,16 +10,16 @@ class DeviceTests(test_registration.RegistrationTestCase):
         await super().asyncSetUp()
         async with self.engine.begin() as connection:
             await connection.execute(text("""
-                                    CREATE TABLE lockers
-                                    (
-                                        number        INTEGER PRIMARY KEY,
-                                        door_state    TEXT    DEFAULT 'unknown',
-                                        last_seen_at  TIMESTAMP,
-                                        is_enabled    BOOLEAN DEFAULT FALSE,
-                                        device_ready  BOOLEAN DEFAULT FALSE,
-                                        controller_id TEXT
-                                    )
-                                    """))
+                                          CREATE TABLE lockers
+                                          (
+                                              number        INTEGER PRIMARY KEY,
+                                              door_state    TEXT    DEFAULT 'unknown',
+                                              last_seen_at  TIMESTAMP,
+                                              is_enabled    BOOLEAN DEFAULT FALSE,
+                                              device_ready  BOOLEAN DEFAULT FALSE,
+                                              controller_id TEXT
+                                          )
+                                          """))
             # The SQLite fixture above intentionally differs from the PostgreSQL schema.
             # noinspection SqlInsertValues
             await connection.execute(text('INSERT INTO lockers (number) VALUES (4), (5)'))
@@ -29,8 +29,8 @@ class DeviceTests(test_registration.RegistrationTestCase):
 
     async def report(self, state='closed', key='test-device-key', **extra):
         return await self.client.post('/api/device/heartbeat',
-                                json={'door_state': state, **extra},
-                                headers={'Authorization': f'Bearer {key}'})
+                                      json={'door_state': state, **extra},
+                                      headers={'Authorization': f'Bearer {key}'})
 
     async def test_updates_only_locker_four_without_enabling_rentals(self):
         for state in ['open', 'closed']:

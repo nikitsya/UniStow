@@ -46,22 +46,22 @@ class CheckoutAccessTests(test_login.LoginTestCase):
         await super().asyncSetUp()
         async with self.engine.begin() as connection:
             await connection.execute(text("""
-                                    CREATE TABLE overdue_charges
-                                    (
-                                        rental_id    INTEGER NOT NULL,
-                                        status       TEXT    NOT NULL,
-                                        amount_cents INTEGER NOT NULL
-                                    )
-                                    """))
+                                          CREATE TABLE overdue_charges
+                                          (
+                                              rental_id    INTEGER NOT NULL,
+                                              status       TEXT    NOT NULL,
+                                              amount_cents INTEGER NOT NULL
+                                          )
+                                          """))
 
             await connection.execute(text("""
-                                    CREATE TABLE overdue_payments
-                                    (
-                                        rental_id    INTEGER NOT NULL,
-                                        status       TEXT    NOT NULL,
-                                        amount_cents INTEGER NOT NULL
-                                    )
-                                    """))
+                                          CREATE TABLE overdue_payments
+                                          (
+                                              rental_id    INTEGER NOT NULL,
+                                              status       TEXT    NOT NULL,
+                                              amount_cents INTEGER NOT NULL
+                                          )
+                                          """))
 
     async def test_checkout_requires_session_and_browser_header(self):
         path = '/api/rentals/7/checkout'

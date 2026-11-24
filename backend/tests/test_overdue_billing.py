@@ -48,20 +48,21 @@ class OverdueBillingTestCase(unittest.IsolatedAsyncioTestCase):
             await connection.execute(text("INSERT INTO users(email,password_hash) VALUES('test@example.com','test')"))
             await connection.execute(text("INSERT INTO lockers(number,size,price_per_day_cents) VALUES(4,'small',100)"))
             await connection.execute(text("""
-                                    INSERT INTO rentals(user_id, locker_id, status, prepaid_days, reserved_until,
-                                                        starts_at, paid_until,
-                                                        total_price_cents, overdue_terms_version,
-                                                        overdue_terms_accepted_at, created_at)
-                                    VALUES (1, 1, 'active', 1, :reserved, :start, :end, 100, '2026-11-09', :start,
-                                            :start)
-                                    """),
-                               {'start': start, 'reserved': start + timedelta(minutes=15), 'end': rental_end(start, 1)})
+                                          INSERT INTO rentals(user_id, locker_id, status, prepaid_days, reserved_until,
+                                                              starts_at, paid_until,
+                                                              total_price_cents, overdue_terms_version,
+                                                              overdue_terms_accepted_at, created_at)
+                                          VALUES (1, 1, 'active', 1, :reserved, :start, :end, 100, '2026-11-09', :start,
+                                                  :start)
+                                          """),
+                                     {'start': start, 'reserved': start + timedelta(minutes=15),
+                                      'end': rental_end(start, 1)})
             await connection.execute(text("""
-                                    INSERT INTO payments(rental_id, request_key, checkout_params, status,
-                                                         stripe_customer_id,
-                                                         stripe_payment_method_id, payment_method_saved_at)
-                                    VALUES (1, 'checkout', '{}', 'paid', 'cus_test', 'pm_test', clock_timestamp())
-                                    """))
+                                          INSERT INTO payments(rental_id, request_key, checkout_params, status,
+                                                               stripe_customer_id,
+                                                               stripe_payment_method_id, payment_method_saved_at)
+                                          VALUES (1, 'checkout', '{}', 'paid', 'cus_test', 'pm_test', clock_timestamp())
+                                          """))
         self.intents = {}
         self.keys = {}
         self.collected = 0
@@ -247,15 +248,16 @@ class OverdueBillingTests(OverdueBillingTestCase):
         start = datetime.now(IRELAND).replace(hour=12, minute=0, second=0, microsecond=0) - timedelta(days=4)
         async with self.db.begin() as connection:
             await connection.execute(text("""
-                                    UPDATE rentals
-                                    SET starts_at=:start,
-                                        created_at=:start,
-                                        overdue_terms_accepted_at=:start,
-                                        reserved_until=:reserved,
-                                        paid_until=:end
-                                    WHERE id = 1
-                                    """),
-                               {'start': start, 'reserved': start + timedelta(minutes=15), 'end': rental_end(start, 1)})
+                                          UPDATE rentals
+                                          SET starts_at=:start,
+                                              created_at=:start,
+                                              overdue_terms_accepted_at=:start,
+                                              reserved_until=:reserved,
+                                              paid_until=:end
+                                          WHERE id = 1
+                                          """),
+                                     {'start': start, 'reserved': start + timedelta(minutes=15),
+                                      'end': rental_end(start, 1)})
         await self.run_pass()
         await self.run_pass()
         self.assertGreaterEqual(len(await self.rows()), 4)

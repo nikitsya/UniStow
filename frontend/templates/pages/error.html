@@ -3,6 +3,7 @@
 
 {% block screen_content %}
     <p class="supporting" role="status">{{ message }}</p>
-    <a class="back-button" href="{{ retry_url | default(url_for('home')) }}">{{ action_label | default("Try again") }}</a>
+    <a class="back-button"
+       href="{{ retry_url | default(url_for('home')) }}">{{ action_label | default("Try again") }}</a>
     <a class="back-button" href="{{ url_for('contact') }}">Contact locker support</a>
 {% endblock screen_content %}

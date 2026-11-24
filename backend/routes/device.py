@@ -70,7 +70,8 @@ class CollectionReport(BaseModel):
     controller_id: UUID
 
 
-@router.post("/commands/{command_id}/completed", response_model=StatusResponse, dependencies=[Depends(check_device_key)])
+@router.post("/commands/{command_id}/completed", response_model=StatusResponse,
+             dependencies=[Depends(check_device_key)])
 async def collection_completed(command_id: UUID, report: CollectionReport,
                                db: Annotated[AsyncSession, Depends(get_db)]):
     return await complete_collection(db, str(command_id), str(report.controller_id))

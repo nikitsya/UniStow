@@ -65,15 +65,15 @@ class CommandTestCase(unittest.IsolatedAsyncioTestCase):
 
     async def report(self, ready=True, door='closed', controller=None):
         return await self.client.post('/api/device/heartbeat', headers=self.device_headers,
-                                json={'door_state': door, 'ready': ready,
-                                      'controller_id': controller or self.controller})
+                                      json={'door_state': door, 'ready': ready,
+                                            'controller_id': controller or self.controller})
 
     async def open(self):
         return await self.client.post(f'/api/rentals/{self.rental_id}/open', headers={'X-UniStow-Request': '1'})
 
     async def take(self, controller=None):
         return await self.client.post('/api/device/commands/next', headers=self.device_headers,
-                                json={'controller_id': controller or self.controller})
+                                      json={'controller_id': controller or self.controller})
 
     async def finish(self, confirmed=True):
         headers = {'X-UniStow-Request': '1'}
@@ -83,7 +83,8 @@ class CommandTestCase(unittest.IsolatedAsyncioTestCase):
 
     async def acknowledge(self, command_id, controller=None):
         return await self.client.post(f'/api/device/commands/{command_id}/completed',
-                                headers=self.device_headers, json={'controller_id': controller or self.controller})
+                                      headers=self.device_headers,
+                                      json={'controller_id': controller or self.controller})
 
 
 @unittest.skipUnless(os.environ.get('UNISTOW_TEST_POSTGRES') == '1', 'Requires PostgreSQL; isolated schema rolled back')
@@ -109,7 +110,7 @@ class CommandTests(CommandTestCase):
     async def test_home_continues_only_the_owners_current_rental(self):
         for status in ('pending', 'active', 'overdue'):
             await self.connection.execute(text('UPDATE rentals SET status=:status WHERE id=:id'),
-                                    {'id': self.rental_id, 'status': status})
+                                          {'id': self.rental_id, 'status': status})
             self.client.cookies.set('unistow_session', 'session-1')
             page = await self.client.get('/')
             self.assertEqual(page.status_code, 200)
@@ -177,7 +178,7 @@ class CommandTests(CommandTestCase):
 
     async def test_unpaid_offline_open_and_legacy_report_cannot_unlock(self):
         await self.connection.execute(text("UPDATE payments SET status='pending' WHERE rental_id=:id"),
-                                {'id': self.rental_id})
+                                      {'id': self.rental_id})
         self.assertEqual((await self.open()).status_code, 409)
         await self.connection.execute(text("UPDATE payments SET status='paid' WHERE rental_id=:id"),
                                       {'id': self.rental_id})
@@ -205,7 +206,7 @@ class CommandTests(CommandTestCase):
     async def test_rental_and_payment_are_rechecked_on_dispatch(self):
         self.assertEqual((await self.open()).status_code, 202)
         await self.connection.execute(text("UPDATE payments SET status='expired' WHERE rental_id=:id"),
-                                {'id': self.rental_id})
+                                      {'id': self.rental_id})
         self.assertIsNone((await self.take()).json()['command'])
         await self.connection.execute(text("UPDATE payments SET status='paid' WHERE rental_id=:id"),
                                       {'id': self.rental_id})
@@ -216,14 +217,14 @@ class CommandTests(CommandTestCase):
     async def test_expired_paid_period_cannot_open(self):
         start = (await self.connection.execute(text('SELECT starts_at FROM rentals'))).scalar_one() - timedelta(days=7)
         await self.connection.execute(text('''UPDATE rentals
-                                        SET starts_at=:start,
-                                            created_at=:start,
-                                            overdue_terms_accepted_at=:start,
-                                            reserved_until=:reserved,
-                                            paid_until=:end
-                                        WHERE id = :id'''),
-                                {'id': self.rental_id, 'start': start, 'reserved': start + timedelta(minutes=15),
-                                 'end': rental_end(start, 2)})
+                                              SET starts_at=:start,
+                                                  created_at=:start,
+                                                  overdue_terms_accepted_at=:start,
+                                                  reserved_until=:reserved,
+                                                  paid_until=:end
+                                              WHERE id = :id'''),
+                                      {'id': self.rental_id, 'start': start, 'reserved': start + timedelta(minutes=15),
+                                       'end': rental_end(start, 2)})
         self.assertEqual((await self.open()).status_code, 409)
 
     async def test_button_shown_only_for_ready_paid_owner(self):
@@ -251,7 +252,7 @@ class CommandTests(CommandTestCase):
         self.assertEqual((await self.finish()).status_code, 404)
         self.client.cookies.set('unistow_session', 'session-1')
         await self.connection.execute(text("UPDATE payments SET status='pending' WHERE rental_id=:id"),
-                                {'id': self.rental_id})
+                                      {'id': self.rental_id})
         self.assertEqual((await self.finish()).status_code, 409)
 
     async def test_collection_needs_dispatch_and_matching_controller(self):
@@ -291,15 +292,15 @@ class CommandTests(CommandTestCase):
 
     async def test_overdue_rental_can_finish_but_cannot_open_normally(self):
         await self.connection.execute(text("""
-                                     UPDATE rentals
-                                     SET status='overdue',
-                                         starts_at=starts_at - INTERVAL '4 days',
-                                         paid_until=paid_until - INTERVAL '4 days',
-                                         reserved_until=reserved_until - INTERVAL '4 days',
-                                         created_at=created_at - INTERVAL '4 days',
-                                         overdue_terms_accepted_at=overdue_terms_accepted_at - INTERVAL '4 days'
-                                     WHERE id = :id
-                                     """), {'id': self.rental_id})
+                                           UPDATE rentals
+                                           SET status='overdue',
+                                               starts_at=starts_at - INTERVAL '4 days',
+                                               paid_until=paid_until - INTERVAL '4 days',
+                                               reserved_until=reserved_until - INTERVAL '4 days',
+                                               created_at=created_at - INTERVAL '4 days',
+                                               overdue_terms_accepted_at=overdue_terms_accepted_at - INTERVAL '4 days'
+                                           WHERE id = :id
+                                           """), {'id': self.rental_id})
         page = (await self.client.get(f'/rentals/{self.rental_id}')).text
         self.assertIn('Finish your rental to stop daily charges.', page)
         self.assertRegex(page, r'<button(?=[^>]*id="open-locker-button")(?=[^>]*\bdisabled\b)[^>]*>')
@@ -333,13 +334,13 @@ class CommandTests(CommandTestCase):
 
     async def test_rental_summary_separates_paid_pending_failed_and_waived_charges(self):
         await self.connection.execute(text("""
-                                     INSERT INTO overdue_charges
-                                         (rental_id, charge_date, status, stripe_payment_intent_id, paid_at)
-                                     VALUES (:id, CURRENT_DATE - 3, 'paid', 'pi_summary', clock_timestamp()),
-                                            (:id, CURRENT_DATE - 2, 'pending', NULL, NULL),
-                                            (:id, CURRENT_DATE - 1, 'failed', NULL, NULL),
-                                            (:id, CURRENT_DATE, 'waived', NULL, NULL)
-                                     """), {'id': self.rental_id})
+                                           INSERT INTO overdue_charges
+                                               (rental_id, charge_date, status, stripe_payment_intent_id, paid_at)
+                                           VALUES (:id, CURRENT_DATE - 3, 'paid', 'pi_summary', clock_timestamp()),
+                                                  (:id, CURRENT_DATE - 2, 'pending', NULL, NULL),
+                                                  (:id, CURRENT_DATE - 1, 'failed', NULL, NULL),
+                                                  (:id, CURRENT_DATE, 'waived', NULL, NULL)
+                                           """), {'id': self.rental_id})
         page = (await self.client.get(f'/rentals/{self.rental_id}')).text
         self.assertIn('Payment incomplete', page)
         for label in ('Extra days · paid', 'Extra days · processing', 'Extra days · unpaid'):
@@ -378,8 +379,8 @@ class CommandTests(CommandTestCase):
         await self.connection.execute(
             text("UPDATE lockers SET last_seen_at=CURRENT_TIMESTAMP-INTERVAL '1 minute' WHERE number=5"))
         response = await self.client.post('/api/rentals',
-                                    json={'locker_id': 2, 'days': 1, 'overdue_consent': True},
-                                    headers={'X-UniStow-Request': '1'})
+                                          json={'locker_id': 2, 'days': 1, 'overdue_consent': True},
+                                          headers={'X-UniStow-Request': '1'})
         self.assertEqual(response.status_code, 409)
         self.assertIn('temporarily unavailable', response.json()['detail'])
         from services.lockers import read_lockers
@@ -391,9 +392,9 @@ class CommandTests(CommandTestCase):
 
     async def test_records_explicit_payment_method_consent(self):
         response = await self.client.post('/api/rentals',
-                                    json={'locker_id': 2, 'days': 1, 'overdue_consent': True,
-                                          'payment_method_consent': True},
-                                    headers={'X-UniStow-Request': '1'})
+                                          json={'locker_id': 2, 'days': 1, 'overdue_consent': True,
+                                                'payment_method_consent': True},
+                                          headers={'X-UniStow-Request': '1'})
         self.assertEqual(response.status_code, 201)
         rental = (await self.connection.execute(text(
             "SELECT overdue_terms_version, overdue_terms_accepted_at FROM rentals WHERE id=:id"

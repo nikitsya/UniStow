@@ -55,7 +55,6 @@ async def current_user(db: AsyncSession, request: Request):
     return {"id": user.id, "email": user.email} if user else None
 
 
-
 async def end_session(db: AsyncSession, request: Request, response: Response):
     await remove_session(db, request)
     await db.commit()

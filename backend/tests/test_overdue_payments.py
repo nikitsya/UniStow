@@ -18,11 +18,11 @@ class OutstandingPaymentTests(test_commands.CommandTestCase):
     async def asyncSetUp(self):
         await super().asyncSetUp()
         await self.connection.execute(text("""
-                                     INSERT INTO overdue_charges(rental_id, charge_date, status,
-                                                                 stripe_payment_intent_id, request_params)
-                                     VALUES (:id, CURRENT_DATE, 'failed', 'pi_declined',
-                                             '{"customer":"cus_test","payment_method":"pm_test","metadata":{}}')
-                                     """), {'id': self.rental_id})
+                                           INSERT INTO overdue_charges(rental_id, charge_date, status,
+                                                                       stripe_payment_intent_id, request_params)
+                                           VALUES (:id, CURRENT_DATE, 'failed', 'pi_declined',
+                                                   '{"customer":"cus_test","payment_method":"pm_test","metadata":{}}')
+                                           """), {'id': self.rental_id})
         self.db = AsyncSession(bind=self.connection, join_transaction_mode='create_savepoint')
         self.addAsyncCleanup(self.db.close)
         self.client_stripe = fake_stripe_client()
@@ -155,9 +155,9 @@ class OutstandingPaymentTests(test_commands.CommandTestCase):
     async def test_new_failed_day_is_not_added_to_an_existing_checkout(self):
         await create_outstanding_checkout(self.db, self.rental_id, 1)
         await self.connection.execute(text("""
-                                     INSERT INTO overdue_charges(rental_id, charge_date, status)
-                                     VALUES (:id, CURRENT_DATE + 1, 'failed')
-                                     """), {'id': self.rental_id})
+                                           INSERT INTO overdue_charges(rental_id, charge_date, status)
+                                           VALUES (:id, CURRENT_DATE + 1, 'failed')
+                                           """), {'id': self.rental_id})
         page = (await self.client.get(f'/rentals/{self.rental_id}')).text
         self.assertIn('Continue payment €1.00', page)
         self.pay()
@@ -182,35 +182,37 @@ class OutstandingPaymentTests(test_commands.CommandTestCase):
         await create_outstanding_checkout(self.db, self.rental_id, 1)
         self.assertEqual(
             self.client_stripe.v1.checkout.sessions.create_async.call_args.kwargs['options']['idempotency_key'],
-                         saved[0])
+            saved[0])
         self.assertEqual(await self.db.scalar(text('SELECT count(*) FROM overdue_payments')), 1)
 
     async def test_settlement_leaves_another_rentals_balance_restricted(self):
         other = await self.connection.scalar(text("""
-                                            INSERT INTO rentals(user_id, locker_id, status, prepaid_days,
-                                                                reserved_until, starts_at,
-                                                                paid_until, total_price_cents, overdue_terms_version,
-                                                                overdue_terms_accepted_at, created_at, completed_at)
-                                            SELECT user_id,
-                                                   locker_id,
-                                                   'completed',
-                                                   prepaid_days,
-                                                   reserved_until,
-                                                   starts_at,
-                                                   paid_until,
-                                                   total_price_cents,
-                                                   overdue_terms_version,
-                                                   overdue_terms_accepted_at,
-                                                   created_at,
-                                                   clock_timestamp()
-                                            FROM rentals
-                                            WHERE id = :id
-                                            RETURNING id
-                                            """), {'id': self.rental_id})
+                                                  INSERT INTO rentals(user_id, locker_id, status, prepaid_days,
+                                                                      reserved_until, starts_at,
+                                                                      paid_until, total_price_cents,
+                                                                      overdue_terms_version,
+                                                                      overdue_terms_accepted_at, created_at,
+                                                                      completed_at)
+                                                  SELECT user_id,
+                                                         locker_id,
+                                                         'completed',
+                                                         prepaid_days,
+                                                         reserved_until,
+                                                         starts_at,
+                                                         paid_until,
+                                                         total_price_cents,
+                                                         overdue_terms_version,
+                                                         overdue_terms_accepted_at,
+                                                         created_at,
+                                                         clock_timestamp()
+                                                  FROM rentals
+                                                  WHERE id = :id
+                                                  RETURNING id
+                                                  """), {'id': self.rental_id})
         await self.connection.execute(text("""
-                                     INSERT INTO overdue_charges(rental_id, charge_date, status)
-                                     VALUES (:id, CURRENT_DATE, 'failed')
-                                     """), {'id': other})
+                                           INSERT INTO overdue_charges(rental_id, charge_date, status)
+                                           VALUES (:id, CURRENT_DATE, 'failed')
+                                           """), {'id': other})
         await create_outstanding_checkout(self.db, self.rental_id, 1)
         self.pay()
         await apply_recovery(self.db, self.checkout)

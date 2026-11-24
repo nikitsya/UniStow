@@ -13,8 +13,8 @@ dummy_password_hash = password_hasher.hash("Unused password for timing protectio
 async def authenticate_user(db: AsyncSession, email: str, password: str):
     user = await db.scalar(select(User).where(User.email == email))
     valid = await run_in_threadpool(password_hasher.verify,
-        password, user.password_hash if user else dummy_password_hash
-    )
+                                    password, user.password_hash if user else dummy_password_hash
+                                    )
     if user and valid:
         return {"id": user.id, "email": user.email}
     return None
