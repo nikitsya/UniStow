@@ -60,14 +60,15 @@ class WebhookDatabaseTests(unittest.TestCase):
         self.connection.execute(text(
             "INSERT INTO payments(rental_id,request_key,checkout_params,checkout_session_id) VALUES(:id,:key,'{}',:session)"),
             {'id': self.rental['id'], 'key': token, 'session': self.session_id})
-        self.checkout = {'id': self.session_id, 'livemode': False, 'mode': 'payment',
+        self.checkout: dict[str, str | bool | int | dict[str, str] | None] = {
+                         'id': self.session_id, 'livemode': False, 'mode': 'payment',
                          'amount_total': 200, 'currency': 'eur', 'client_reference_id': str(self.rental['id']),
                          'metadata': {'rental_id': str(self.rental['id'])}, 'status': 'complete',
                          'payment_status': 'paid', 'payment_intent': 'pi_test_' + token}
 
         def test_db():
-            with Session(bind=self.connection, join_transaction_mode='create_savepoint') as db:
-                yield db
+            with Session(bind=self.connection, join_transaction_mode='create_savepoint') as request_db:
+                yield request_db
 
         app.dependency_overrides[get_db] = test_db
         self.client = TestClient(app)
@@ -184,7 +185,9 @@ class WebhookDatabaseTests(unittest.TestCase):
 
     def test_rejects_wrong_customer_without_recording_method(self):
         intent = self.prepare_saved_method()
-        intent['payment_method']['customer'] = 'cus_someone_else'
+        payment_method = intent['payment_method']
+        assert isinstance(payment_method, dict)
+        payment_method['customer'] = 'cus_someone_else'
         with patch('services.payment_confirmation.stripe_client') as client:
             client.return_value.v1.payment_intents.retrieve.return_value.to_dict.return_value = intent
             self.assertEqual(self.send_event().status_code, 409)
