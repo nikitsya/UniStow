@@ -58,9 +58,9 @@ def home(request: Request, db: Annotated[Session, Depends(get_db)]):
     user = current_user(db, request)
     return templates.TemplateResponse(
         request, "pages/home.html", {"title": "UniStow", "lockers": read_lockers(db), "user": user,
-                               "eligibility": booking_eligibility(db, user['id'] if user else None),
-                               "own_rentals": {r["locker_id"]: r for r in current_rentals(db, user)
-                                               if r['status'] != 'completed'}}
+                                     "eligibility": booking_eligibility(db, user['id'] if user else None),
+                                     "own_rentals": {r["locker_id"]: r for r in current_rentals(db, user)
+                                                     if r['status'] != 'completed'}}
     )
 
 
@@ -78,8 +78,8 @@ def my_rentals(request: Request, db: Annotated[Session, Depends(get_db)]):
     reservations = [r for r in current if r["id"] not in completed_ids]
     return templates.TemplateResponse(
         request, "rentals/my_rentals.html", {"title": "My rentals | UniStow", "user": user,
-                                     "eligibility": booking_eligibility(db, user['id']),
-                                     "reservations": reservations, "completed_rentals": completed}
+                                             "eligibility": booking_eligibility(db, user['id']),
+                                             "reservations": reservations, "completed_rentals": completed}
     )
 
 
@@ -132,11 +132,11 @@ def reservation(request: Request, rental_id: int, db: Annotated[Session, Depends
         "additional": sum(additional.values()),
         "total": owned["total_price_cents"] + sum(additional.values()),
         "recovery_pending": db.scalar(text("""
-                                                 SELECT amount_cents
-                                                 FROM overdue_payments
-                                                 WHERE rental_id = :id
-                                                   AND status = 'pending'
-                                                 """), {"id": rental_id}) or 0,
+                                           SELECT amount_cents
+                                           FROM overdue_payments
+                                           WHERE rental_id = :id
+                                             AND status = 'pending'
+                                           """), {"id": rental_id}) or 0,
     }
     billing["checkout_amount"] = billing["recovery_pending"] or billing["failed"]
     billing["unpaid"] = max(0, billing["failed"] - billing["recovery_pending"])
@@ -151,7 +151,7 @@ def reservation(request: Request, rental_id: int, db: Annotated[Session, Depends
         door_state = events.latest(last_seen) or door_state
     open_test = getattr(request.app.state, "open_test_client", None) is not None
     controller_ready = device_online and owned.get("device_ready", False) and owned.get("door_state") in ("open",
-                                                                                                            "closed")
+                                                                                                          "closed")
     physical = getattr(request.app.state, "open_client", None) is not None
     open_ready = (events is not None and bool(events.ready_controller())) if physical else controller_ready
     return templates.TemplateResponse(request, "rentals/reservation.html", {
@@ -179,10 +179,10 @@ def rental(request: Request, locker_id: int, db: Annotated[Session, Depends(get_
     if locker["status"] != "available":
         return templates.TemplateResponse(
             request, "pages/error.html", {"title": "Locker unavailable | UniStow",
-                                    "message": "This locker is temporarily unavailable. Please choose another locker.",
-                                    "retry_url": "/"}, status_code=409
+                                          "message": "This locker is temporarily unavailable. Please choose another locker.",
+                                          "retry_url": "/"}, status_code=409
         )
     return templates.TemplateResponse(
         request, "rentals/rental.html", {"title": f"{locker['name']} | UniStow", "locker": locker,
-                                 "eligibility": booking_eligibility(db, user['id'])}
+                                         "eligibility": booking_eligibility(db, user['id'])}
     )

@@ -18,7 +18,8 @@
     {% if own_rental %}
         Continue rental <span aria-hidden="true">{% include 'components/rental_arrow.svg' %}</span>
     {% elif can_rent %}
-        <span class="small-dot"></span>Available <span aria-hidden="true">{% include 'components/rental_arrow.svg' %}</span>
+        <span class="small-dot"></span>Available
+        <span aria-hidden="true">{% include 'components/rental_arrow.svg' %}</span>
     {% else %}
         Unavailable
     {% endif %}

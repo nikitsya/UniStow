@@ -251,7 +251,7 @@ class BookingConcurrencyTests(test_overdue_billing.OverdueBillingTestCase):
                                                 UPDATE overdue_charges
                                                 SET status='pending',
                                                     paid_at=NULL
-                                                WHERE id=1
+                                                WHERE id = 1
                                                 """))
                         save_status(settlement, 1, status)
                     finally:

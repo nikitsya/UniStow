@@ -61,10 +61,10 @@ class WebhookDatabaseTests(unittest.TestCase):
             "INSERT INTO payments(rental_id,request_key,checkout_params,checkout_session_id) VALUES(:id,:key,'{}',:session)"),
             {'id': self.rental['id'], 'key': token, 'session': self.session_id})
         self.checkout: dict[str, str | bool | int | dict[str, str] | None] = {
-                         'id': self.session_id, 'livemode': False, 'mode': 'payment',
-                         'amount_total': 200, 'currency': 'eur', 'client_reference_id': str(self.rental['id']),
-                         'metadata': {'rental_id': str(self.rental['id'])}, 'status': 'complete',
-                         'payment_status': 'paid', 'payment_intent': 'pi_test_' + token}
+            'id': self.session_id, 'livemode': False, 'mode': 'payment',
+            'amount_total': 200, 'currency': 'eur', 'client_reference_id': str(self.rental['id']),
+            'metadata': {'rental_id': str(self.rental['id'])}, 'status': 'complete',
+            'payment_status': 'paid', 'payment_intent': 'pi_test_' + token}
 
         def test_db():
             with Session(bind=self.connection, join_transaction_mode='create_savepoint') as request_db:
