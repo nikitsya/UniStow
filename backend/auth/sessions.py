@@ -3,10 +3,10 @@ import secrets
 from datetime import datetime, timedelta, timezone
 
 from fastapi import HTTPException, Request, Response
-from sqlalchemy import select, text
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models import User
+from models import User, UserSession
 
 COOKIE_NAME = "unistow_session"
 SESSION_SECONDS = 24 * 60 * 60
@@ -25,18 +25,16 @@ def token_hash(token: str) -> str:
 async def remove_session(db: AsyncSession, request: Request):
     token = request.cookies.get(COOKIE_NAME)
     if token:
-        await db.execute(text("DELETE FROM sessions WHERE token_hash = :token_hash"),
-                   {"token_hash": token_hash(token)})
+        await db.execute(delete(UserSession).where(UserSession.token_hash == token_hash(token)))
 
 
 async def start_session(db: AsyncSession, request: Request, response: Response, user_id: int):
     await remove_session(db, request)
     token = secrets.token_urlsafe(32)
-    await db.execute(text("""
-                    INSERT INTO sessions (token_hash, user_id, expires_at)
-                    VALUES (:token_hash, :user_id, :expires_at)
-                    """), {"token_hash": token_hash(token), "user_id": user_id,
-                           "expires_at": datetime.now(timezone.utc) + timedelta(seconds=SESSION_SECONDS)})
+    db.add(UserSession(
+        token_hash=token_hash(token), user_id=user_id,
+        expires_at=datetime.now(timezone.utc) + timedelta(seconds=SESSION_SECONDS),
+    ))
     await db.commit()
     response.set_cookie(COOKIE_NAME, token, max_age=SESSION_SECONDS,
                         httponly=True, samesite="lax", secure=request.url.scheme == "https")
@@ -47,10 +45,12 @@ async def current_user(db: AsyncSession, request: Request):
     if not token:
         return None
     user = await db.scalar(
-        select(User).where(User.id.in_(text(
-            "SELECT user_id FROM sessions WHERE token_hash = :token_hash AND expires_at > :now"
-        ))),
-        {"token_hash": token_hash(token), "now": datetime.now(timezone.utc)},
+        select(User).where(User.id.in_(
+            select(UserSession.user_id).where(
+                UserSession.token_hash == token_hash(token),
+                UserSession.expires_at > datetime.now(timezone.utc),
+            )
+        ))
     )
     return {"id": user.id, "email": user.email} if user else None
 
