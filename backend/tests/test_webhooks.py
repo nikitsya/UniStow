@@ -83,6 +83,37 @@ class WebhookDatabaseTests(unittest.IsolatedAsyncioTestCase):
         await self.transaction.rollback()
         await self.connection.close()
 
+    async def test_checkout_retry_reuses_saved_request(self):
+        from types import SimpleNamespace
+        from unittest.mock import AsyncMock, Mock
+        from fastapi import HTTPException
+        from services.payments import create_checkout
+
+        await self.connection.execute(text('DELETE FROM payments WHERE rental_id=:id'),
+                                      {'id': self.rental['id']})
+        checkout = SimpleNamespace(id=self.session_id, livemode=False, status='open',
+                                   url='https://checkout.stripe.com/test')
+        client = Mock()
+        client.v1.checkout.sessions.create_async = AsyncMock(
+            side_effect=[stripe.APIConnectionError('test timeout'), checkout])
+        client.v1.checkout.sessions.retrieve_async = AsyncMock(return_value=checkout)
+        with patch('services.payments.stripe_client', return_value=client):
+            for attempt in range(3):
+                async with AsyncSession(bind=self.connection, join_transaction_mode='create_savepoint') as db:
+                    if attempt == 0:
+                        with self.assertRaises(HTTPException) as error:
+                            await create_checkout(db, self.rental['id'], self.rental['user_id'])
+                        self.assertEqual(error.exception.status_code, 503)
+                    else:
+                        result = await create_checkout(db, self.rental['id'], self.rental['user_id'])
+                        self.assertEqual(result, {'url': checkout.url})
+        calls = client.v1.checkout.sessions.create_async.await_args_list
+        self.assertEqual(len(calls), 2)
+        self.assertEqual(calls[0], calls[1])
+        self.assertTrue(calls[0].kwargs['options']['idempotency_key'])
+        self.assertEqual(calls[0].args[0]['metadata'], {'rental_id': str(self.rental['id'])})
+        client.v1.checkout.sessions.retrieve_async.assert_awaited_once_with(self.session_id)
+
     async def send_event(self, suffix='paid', event_type='checkout.session.completed'):
         payload = json.dumps({'object': 'event', 'id': self.session_id + suffix,
                               'livemode': False, 'type': event_type,

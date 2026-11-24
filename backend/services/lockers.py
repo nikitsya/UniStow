@@ -1,16 +1,13 @@
 from datetime import timedelta
 
-from sqlalchemy import and_, column, exists, func, or_, select, table
+from sqlalchemy import and_, exists, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models import Locker, Rental
-
-# Payments remain a SQL expression until their ORM migration.
-payments = table("payments", column("rental_id"))
+from models import Locker, Payment, Rental
 
 
 async def read_lockers(db: AsyncSession, locker_id: int | None = None):
-    has_payment = exists(select(payments.c.rental_id).where(payments.c.rental_id == Rental.id))
+    has_payment = exists(select(Payment.rental_id).where(Payment.rental_id == Rental.id))
     occupied = exists(select(Rental.id).where(
         Rental.locker_id == Locker.id,
         or_(

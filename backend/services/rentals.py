@@ -2,10 +2,10 @@ from datetime import datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException
-from sqlalchemy import DateTime, column, exists, func, select, table, update
+from sqlalchemy import DateTime, exists, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models import Locker, Rental
+from models import Locker, Payment, Rental
 from services.booking_eligibility import require_booking_eligibility
 
 IRELAND = ZoneInfo("Europe/Dublin")
@@ -38,8 +38,7 @@ async def reserve_locker(db: AsyncSession, user_id: int, locker_id: int, days: i
         select(func.clock_timestamp(type_=DateTime(timezone=True)))
     )).scalar_one()
     # Never release a checkout until its payment status has been reconciled.
-    payments = table("payments", column("rental_id"))
-    has_payment = exists(select(payments.c.rental_id).where(payments.c.rental_id == Rental.id))
+    has_payment = exists(select(Payment.rental_id).where(Payment.rental_id == Rental.id))
     await db.execute(
         update(Rental).where(
             Rental.locker_id == locker_id,

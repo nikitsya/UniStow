@@ -1,16 +1,16 @@
-import json
 import os
-from datetime import timedelta
+from datetime import datetime, timedelta
 from functools import lru_cache
 from typing import Literal
 from uuid import uuid4
 
 import stripe
 from fastapi import HTTPException
-from sqlalchemy import text
+from sqlalchemy import DateTime, func, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from stripe.params.checkout import SessionCreateParams, SessionCreateParamsPaymentIntentData
 
+from models import Locker, Payment
 from services.booking_eligibility import require_booking_eligibility
 from services.rentals import PAYMENT_METHOD_TERMS_VERSION
 
@@ -99,39 +99,43 @@ async def create_checkout(db: AsyncSession, rental_id: int, user_id: int):
     rental = await owned_rental(db, rental_id, user_id)
     # Use the same lock order as reservation creation.
     await require_booking_eligibility(db, user_id)
-    await db.execute(text("SELECT id FROM lockers WHERE id = :id FOR UPDATE"), {"id": rental["locker_id"]})
+    await db.execute(select(Locker.id).where(Locker.id == rental["locker_id"]).with_for_update())
     rental = await owned_rental(db, rental_id, user_id)
     if rental["status"] != "pending":
         raise HTTPException(status_code=409, detail="This reservation is not awaiting payment.")
-    now = (await db.execute(text("SELECT clock_timestamp()"))).scalar_one()
-    payment = (
-        await db.execute(text("SELECT * FROM payments WHERE rental_id = :id"), {"id": rental_id})).mappings().first()
+    now: datetime = (await db.execute(
+        select(func.clock_timestamp(type_=DateTime(timezone=True)))
+    )).scalar_one()
+    payment = await db.scalar(select(Payment).where(Payment.rental_id == rental_id)
+                              .execution_options(populate_existing=True))
     if payment is None:
         if rental["reserved_until"] <= now:
             raise HTTPException(status_code=409, detail="This reservation has expired. Please reserve again.")
         base_url = os.environ.get("APP_BASE_URL", "http://127.0.0.1:8000").rstrip("/")
         params = checkout_parameters(rental, base_url, now)
-        payment = (await db.execute(text("""
-                                  INSERT INTO payments (rental_id, request_key, checkout_params)
-                                  VALUES (:id, :key, CAST(:params AS jsonb))
-                                  RETURNING *
-                                  """),
-                                    {"id": rental_id, "key": str(uuid4()),
-                                     "params": json.dumps(params)})).mappings().one()
-    payment = dict(payment)
+        payment = Payment(rental_id=rental_id, request_key=str(uuid4()), checkout_params=dict(params))
+        db.add(payment)
+        await db.flush()
+    # Copy the request before commit, including when the session expires ORM objects.
+    checkout_session_id = payment.checkout_session_id
+    created_at = payment.created_at
+    checkout_params = payment.checkout_params
+    request_key = payment.request_key
     # Keep the durable request even if Stripe times out or the browser disconnects.
     await db.commit()
     try:
-        if payment["checkout_session_id"]:
-            checkout = await client.v1.checkout.sessions.retrieve_async(payment["checkout_session_id"])
+        if checkout_session_id:
+            checkout = await client.v1.checkout.sessions.retrieve_async(checkout_session_id)
         else:
-            if now - payment["created_at"] > timedelta(hours=23):
+            if now - created_at > timedelta(hours=23):
                 raise HTTPException(status_code=409, detail="This checkout needs reconciliation before retrying.")
             checkout = await client.v1.checkout.sessions.create_async(
-                payment["checkout_params"], options={"idempotency_key": payment["request_key"]}
+                checkout_params, options={"idempotency_key": request_key}
             )
-            await db.execute(text("UPDATE payments SET checkout_session_id = :session WHERE rental_id = :id"),
-                       {"id": rental_id, "session": checkout.id})
+            await db.execute(
+                update(Payment).where(Payment.rental_id == rental_id)
+                .values(checkout_session_id=checkout.id)
+            )
             await db.commit()
     except stripe.StripeError:
         raise HTTPException(status_code=503, detail="Could not open Stripe. Please retry this reservation.") from None

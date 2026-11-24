@@ -1,6 +1,8 @@
 from datetime import datetime
+from typing import Any
 
 from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Identity, Text, false, func, text
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from database import Base
@@ -56,4 +58,21 @@ class Rental(Base):
     overdue_daily_fee_cents: Mapped[int] = mapped_column(server_default=text("100"))
     overdue_terms_version: Mapped[str] = mapped_column(Text)
     overdue_terms_accepted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class Payment(Base):
+    __tablename__ = "payments"
+    __table_args__ = (CheckConstraint("status IN ('pending', 'paid', 'expired')"),)
+
+    rental_id: Mapped[int] = mapped_column(ForeignKey("rentals.id", ondelete="RESTRICT"), primary_key=True)
+    request_key: Mapped[str] = mapped_column(Text, unique=True)
+    checkout_params: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    checkout_session_id: Mapped[str | None] = mapped_column(Text, unique=True)
+    status: Mapped[str] = mapped_column(Text, server_default=text("'pending'"))
+    payment_intent_id: Mapped[str | None] = mapped_column(Text, unique=True)
+    stripe_customer_id: Mapped[str | None] = mapped_column(Text)
+    stripe_payment_method_id: Mapped[str | None] = mapped_column(Text)
+    payment_method_saved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
