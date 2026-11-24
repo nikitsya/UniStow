@@ -29,7 +29,7 @@ class CommandTestCase(unittest.TestCase):
             "INSERT INTO users(email,password_hash) VALUES ('owner@example.com','test'),('other@example.com','test')"))
         self.connection.execute(text(
             "INSERT INTO lockers(number,size,price_per_day_cents,is_enabled) VALUES(4,'small',100,true),(5,'small',100,true)"))
-        self.connection.execute(text("UPDATE lockers SET last_seen_at=CURRENT_TIMESTAMP"))
+        self.connection.execute(text("UPDATE lockers SET last_seen_at=CURRENT_TIMESTAMP WHERE number IN (4, 5)"))
         with Session(bind=self.connection, join_transaction_mode='create_savepoint') as db:
             self.rental = reserve_locker(db, 1, 1, 2)
         self.rental_id = self.rental['id']
@@ -43,8 +43,8 @@ class CommandTestCase(unittest.TestCase):
                 {'token': token_hash(f'session-{user}'), 'user': user})
 
         def test_db():
-            with Session(bind=self.connection, join_transaction_mode='create_savepoint') as db:
-                yield db
+            with Session(bind=self.connection, join_transaction_mode='create_savepoint') as request_db:
+                yield request_db
 
         app.dependency_overrides[get_db] = test_db
         self.client = TestClient(app)
@@ -89,7 +89,8 @@ class CommandTestCase(unittest.TestCase):
 class CommandTests(CommandTestCase):
     def test_home_continues_only_the_owners_current_rental(self):
         for status in ('pending', 'active', 'overdue'):
-            self.connection.execute(text('UPDATE rentals SET status=:status'), {'status': status})
+            self.connection.execute(text('UPDATE rentals SET status=:status WHERE id=:id'),
+                                    {'id': self.rental_id, 'status': status})
             self.client.cookies.set('unistow_session', 'session-1')
             page = self.client.get('/')
             self.assertEqual(page.status_code, 200)
@@ -100,12 +101,13 @@ class CommandTests(CommandTestCase):
         self.client.cookies.set('unistow_session', 'session-1')
         for status in ('completed', 'cancelled'):
             self.connection.execute(text(
-                "UPDATE rentals SET status=:status, completed_at=CASE WHEN :status='completed' THEN clock_timestamp() ELSE NULL END"),
-                {'status': status})
+                "UPDATE rentals SET status=:status, completed_at=CASE WHEN :status='completed' THEN clock_timestamp() END WHERE id=:id"),
+                {'id': self.rental_id, 'status': status})
             self.assertNotIn('Continue rental', self.client.get('/').text)
-        self.connection.execute(text('DELETE FROM payments'))
+        self.connection.execute(text('DELETE FROM payments WHERE rental_id=:id'), {'id': self.rental_id})
         self.connection.execute(text(
-            "UPDATE rentals SET status='pending', created_at=CURRENT_TIMESTAMP-INTERVAL '20 minutes', overdue_terms_accepted_at=CURRENT_TIMESTAMP-INTERVAL '20 minutes', reserved_until=CURRENT_TIMESTAMP-INTERVAL '1 minute'"))
+            "UPDATE rentals SET status='pending', created_at=CURRENT_TIMESTAMP-INTERVAL '20 minutes', overdue_terms_accepted_at=CURRENT_TIMESTAMP-INTERVAL '20 minutes', reserved_until=CURRENT_TIMESTAMP-INTERVAL '1 minute' WHERE id=:id"),
+                                    {'id': self.rental_id})
         self.assertNotIn('Continue rental', self.client.get('/').text)
         self.client.cookies.clear()
         self.assertNotIn('Continue rental', self.client.get('/').text)
@@ -154,13 +156,14 @@ class CommandTests(CommandTestCase):
             self.client.post('/api/device/commands/next', json={'controller_id': self.controller}).status_code, 401)
 
     def test_unpaid_offline_open_and_legacy_report_cannot_unlock(self):
-        self.connection.execute(text("UPDATE payments SET status='pending'"))
+        self.connection.execute(text("UPDATE payments SET status='pending' WHERE rental_id=:id"),
+                                {'id': self.rental_id})
         self.assertEqual(self.open().status_code, 409)
-        self.connection.execute(text("UPDATE payments SET status='paid'"))
+        self.connection.execute(text("UPDATE payments SET status='paid' WHERE rental_id=:id"), {'id': self.rental_id})
         self.report(ready=False)
         self.assertEqual(self.open().status_code, 409)
         self.report()
-        self.connection.execute(text("UPDATE lockers SET last_seen_at=CURRENT_TIMESTAMP-INTERVAL '1 minute'"))
+        self.connection.execute(text("UPDATE lockers SET last_seen_at=CURRENT_TIMESTAMP-INTERVAL '1 minute' WHERE number=4"))
         self.assertEqual(self.open().status_code, 409)
         self.client.post('/api/device/heartbeat', headers=self.device_headers, json={'door_state': 'closed'})
         self.assertEqual(self.open().status_code, 409)
@@ -168,7 +171,8 @@ class CommandTests(CommandTestCase):
     def test_expired_command_and_restarted_controller_do_not_open(self):
         self.assertEqual(self.open().status_code, 202)
         self.connection.execute(text(
-            "UPDATE locker_commands SET created_at=created_at-INTERVAL '1 minute', expires_at=expires_at-INTERVAL '1 minute'"))
+            "UPDATE locker_commands SET created_at=created_at-INTERVAL '1 minute', expires_at=expires_at-INTERVAL '1 minute' WHERE rental_id=:id"),
+                                    {'id': self.rental_id})
         self.assertIsNone(self.take().json()['command'])
         self.assertEqual(self.open().status_code, 202)
         new_controller = str(uuid4())
@@ -178,10 +182,11 @@ class CommandTests(CommandTestCase):
 
     def test_rental_and_payment_are_rechecked_on_dispatch(self):
         self.assertEqual(self.open().status_code, 202)
-        self.connection.execute(text("UPDATE payments SET status='expired'"))
+        self.connection.execute(text("UPDATE payments SET status='expired' WHERE rental_id=:id"),
+                                {'id': self.rental_id})
         self.assertIsNone(self.take().json()['command'])
-        self.connection.execute(text("UPDATE payments SET status='paid'"))
-        self.connection.execute(text("UPDATE rentals SET status='cancelled'"))
+        self.connection.execute(text("UPDATE payments SET status='paid' WHERE rental_id=:id"), {'id': self.rental_id})
+        self.connection.execute(text("UPDATE rentals SET status='cancelled' WHERE id=:id"), {'id': self.rental_id})
         self.assertIsNone(self.take().json()['command'])
 
     def test_expired_paid_period_cannot_open(self):
@@ -191,8 +196,9 @@ class CommandTests(CommandTestCase):
                                             created_at=:start,
                                             overdue_terms_accepted_at=:start,
                                             reserved_until=:reserved,
-                                            paid_until=:end'''),
-                                {'start': start, 'reserved': start + timedelta(minutes=15),
+                                            paid_until=:end
+                                        WHERE id=:id'''),
+                                {'id': self.rental_id, 'start': start, 'reserved': start + timedelta(minutes=15),
                                  'end': rental_end(start, 2)})
         self.assertEqual(self.open().status_code, 409)
 
@@ -220,7 +226,8 @@ class CommandTests(CommandTestCase):
         self.client.cookies.set('unistow_session', 'session-2')
         self.assertEqual(self.finish().status_code, 404)
         self.client.cookies.set('unistow_session', 'session-1')
-        self.connection.execute(text("UPDATE payments SET status='pending'"))
+        self.connection.execute(text("UPDATE payments SET status='pending' WHERE rental_id=:id"),
+                                {'id': self.rental_id})
         self.assertEqual(self.finish().status_code, 409)
 
     def test_collection_needs_dispatch_and_matching_controller(self):
@@ -265,7 +272,8 @@ class CommandTests(CommandTestCase):
                                          reserved_until=reserved_until - INTERVAL '4 days',
                                          created_at=created_at - INTERVAL '4 days',
                                          overdue_terms_accepted_at=overdue_terms_accepted_at - INTERVAL '4 days'
-                                     """))
+                                     WHERE id=:id
+                                     """), {'id': self.rental_id})
         page = self.client.get(f'/rentals/{self.rental_id}').text
         self.assertIn('Finish your rental to stop daily charges.', page)
         self.assertRegex(page, r'<button(?=[^>]*id="open-locker-button")(?=[^>]*\bdisabled\b)[^>]*>')
@@ -316,7 +324,8 @@ class CommandTests(CommandTestCase):
         self.assertNotIn('Extra days · unpaid', page)
         self.assertIn('<span>Total</span><strong>€4.00</strong>', page)
         self.connection.execute(text("UPDATE overdue_charges SET status='waived' WHERE status='pending'"))
-        self.connection.execute(text("UPDATE rentals SET status='completed', completed_at=clock_timestamp()"))
+        self.connection.execute(text("UPDATE rentals SET status='completed', completed_at=clock_timestamp() WHERE id=:id"),
+                                {'id': self.rental_id})
         page = self.client.get(f'/rentals/{self.rental_id}').text
         self.assertIn('Rental completed.', page)
         self.assertIn('Extra days · paid', page)
