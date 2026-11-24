@@ -37,7 +37,13 @@ class RentalAccessTests(test_login.LoginTestCase):
         self.assertEqual((await self.client.post('/api/rentals', json=body, headers=headers)).status_code, 401)
         await self.login()
         self.assertEqual((await self.client.post('/api/rentals', json=body)).status_code, 403)
-        with patch('routes.api.reserve_locker', return_value={'id': 1, 'status': 'pending'}) as reserve:
+        rental = {
+            'id': 1, 'user_id': 1, 'locker_id': 4, 'status': 'pending',
+            'prepaid_days': 2, 'total_price_cents': 200,
+            'reserved_until': '2026-11-24T12:15:00Z',
+            'paid_until': '2026-11-26T18:00:00Z',
+        }
+        with patch('routes.api.reserve_locker', return_value=rental) as reserve:
             self.assertEqual((await self.client.post('/api/rentals', json=body, headers=headers)).status_code, 201)
             self.assertEqual(reserve.call_args.args[1:], (1, 4, 2, False))
             body['overdue_consent'] = False

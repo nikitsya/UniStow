@@ -9,6 +9,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_db
+from schemas import CommandPollResponse, HeartbeatResponse, StatusResponse
 from services.commands import take_command, complete_collection
 
 router = APIRouter(prefix="/api/device")
@@ -37,7 +38,7 @@ def check_device_key(request: Request):
         raise HTTPException(401, "Invalid device key.")
 
 
-@router.post("/heartbeat", dependencies=[Depends(check_device_key)])
+@router.post("/heartbeat", response_model=HeartbeatResponse, dependencies=[Depends(check_device_key)])
 async def heartbeat(report: DoorReport, db: Annotated[AsyncSession, Depends(get_db)]):
     # This prototype key belongs only to the physical Locker 4.
     locker = (await db.execute(text("""
@@ -62,7 +63,7 @@ class CommandPoll(BaseModel):
     supports_finish: bool = False
 
 
-@router.post("/commands/next", dependencies=[Depends(check_device_key)])
+@router.post("/commands/next", response_model=CommandPollResponse, dependencies=[Depends(check_device_key)])
 async def next_command(report: CommandPoll, db: Annotated[AsyncSession, Depends(get_db)]):
     return await take_command(db, str(report.controller_id), report.supports_finish)
 
@@ -71,7 +72,7 @@ class CollectionReport(BaseModel):
     controller_id: UUID
 
 
-@router.post("/commands/{command_id}/completed", dependencies=[Depends(check_device_key)])
+@router.post("/commands/{command_id}/completed", response_model=StatusResponse, dependencies=[Depends(check_device_key)])
 async def collection_completed(command_id: UUID, report: CollectionReport,
                                db: Annotated[AsyncSession, Depends(get_db)]):
     return await complete_collection(db, str(command_id), str(report.controller_id))

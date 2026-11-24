@@ -116,7 +116,7 @@ class CommandTests(CommandTestCase):
     async def test_mqtt_open_cannot_be_repeated_or_collected_over_http(self):
         events = Mock()
         events.ready_controller.return_value = self.controller
-        events.open.return_value = {'status': 'opening'}
+        events.open.return_value = {'status': 'opening', 'command_id': 'test-command'}
         with patch.object(app.state, 'open_client', object(), create=True):
             with patch.object(app.state, 'door_events', events, create=True):
                 self.assertEqual((await self.open()).status_code, 202)

@@ -90,7 +90,7 @@ class CheckoutAccessTests(test_login.LoginTestCase):
                   'status': 'active', 'paid_until': now + timedelta(hours=1), 'payment_status': 'paid'}
         events = Mock()
         events.latest.return_value = None
-        events.test_open.return_value = {'status': 'test_acknowledged'}
+        events.test_open.return_value = {'status': 'test_acknowledged', 'command_id': 'test-command'}
         with patch.object(app.state, 'open_test_client', object(), create=True):
             with patch.object(app.state, 'door_events', events, create=True):
                 with patch('routes.pages.owned_rental', return_value=rental):
