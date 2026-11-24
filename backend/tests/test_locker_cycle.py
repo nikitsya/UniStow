@@ -4,6 +4,8 @@ from pathlib import Path
 
 spec = importlib.util.spec_from_file_location('run_locker',
                                               Path(__file__).resolve().parents[2] / 'hardware/run_locker.py')
+if spec is None or spec.loader is None:
+    raise ImportError('Could not load the locker controller for cycle tests.')
 controller = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(controller)
 
@@ -104,21 +106,23 @@ class CollectionDeliveryTests(unittest.TestCase):
             def is_set(self):
                 return self.rounds >= 2
 
-            def wait(self, seconds):
+            def wait(self, _seconds):
                 self.rounds += 1
 
         class Reply:
             def __enter__(self):
                 return self
 
-            def __exit__(self, *args):
+            def __exit__(self, *_args):
                 pass
 
-            def read(self):
+            @staticmethod
+            def read():
                 return b'{}'
 
         class Opener:
-            def open(self, request, timeout):
+            @staticmethod
+            def open(request, **_options):
                 calls.append((request.full_url, json.loads(request.data)))
                 if len(calls) == 1:
                     raise URLError('Connection lost')
