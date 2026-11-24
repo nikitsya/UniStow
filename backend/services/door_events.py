@@ -27,19 +27,20 @@ class DoorEvents:
         self.controller = None
         self.pending = {}
 
-    def connected(self, client, userdata, flags, reason_code, properties):
+    @staticmethod
+    def connected(client, _userdata, _flags, reason_code, _properties):
         if reason_code.is_failure:
             log.warning('MQTT broker refused the server connection: %s', reason_code)
             return
         client.subscribe(EVENTS, qos=0)
 
-    def disconnected(self, client, userdata, flags, reason_code, properties):
+    def disconnected(self, _client, _userdata, _flags, _reason_code, _properties):
         with self.lock:
             self.timestamp = 0
             self.controller = None
             self.state = None
 
-    def message(self, client, userdata, event):
+    def message(self, _client, _userdata, event):
         if event.topic != EVENTS or event.retain:
             return
         try:
