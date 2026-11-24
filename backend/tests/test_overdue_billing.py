@@ -73,7 +73,8 @@ class OverdueBillingTestCase(unittest.TestCase):
         with engine.begin() as connection:
             connection.exec_driver_sql(f'DROP SCHEMA {self.schema} CASCADE')
 
-    def response(self, intent):
+    @staticmethod
+    def response(intent):
         return SimpleNamespace(to_dict=lambda: dict(intent))
 
     def create_intent(self, params, options):
@@ -86,7 +87,7 @@ class OverdueBillingTestCase(unittest.TestCase):
         self.assertFalse(params['confirm'])
         return self.response(self.intents[self.keys[key]])
 
-    def confirm_intent(self, key, params, options):
+    def confirm_intent(self, key, params, **_options):
         self.assertTrue(params['off_session'])
         if self.intents[key]['status'] != 'succeeded':
             self.collected += 1
@@ -109,7 +110,7 @@ class OverdueBillingTestCase(unittest.TestCase):
 @unittest.skipUnless(os.getenv('UNISTOW_TEST_POSTGRES') == '1', 'Requires isolated PostgreSQL schema')
 class OverdueBillingTests(OverdueBillingTestCase):
     def test_decline_with_cleared_payment_method_is_reconciled(self):
-        def decline(key, params, options):
+        def decline(key, _params, **_options):
             intent = self.intents[key]
             intent['status'] = 'requires_payment_method'
             intent['last_payment_error'] = {
@@ -154,7 +155,7 @@ class OverdueBillingTests(OverdueBillingTestCase):
 
     def test_lost_confirmation_response_is_reconciled(self):
         def lost(key, params, options):
-            self.confirm_intent(key, params, options)
+            self.confirm_intent(key, params, options=options)
             raise stripe.APIConnectionError('lost response')
 
         self.client.v1.payment_intents.confirm.side_effect = lost
@@ -169,7 +170,8 @@ class OverdueBillingTests(OverdueBillingTestCase):
         self.run_pass()
         with self.db.begin() as connection:
             connection.execute(
-                text("UPDATE overdue_charges SET first_requested_at=clock_timestamp()-INTERVAL '25 hours'"))
+                text("UPDATE overdue_charges SET first_requested_at=clock_timestamp()-INTERVAL '25 hours' "
+                     "WHERE rental_id = 1"))
         calls = self.client.v1.payment_intents.create.call_count
         self.run_pass()
         self.assertEqual(self.client.v1.payment_intents.create.call_count, calls)
@@ -213,7 +215,7 @@ class OverdueBillingTests(OverdueBillingTestCase):
                 connection.commit()
 
     def test_declined_payment_is_not_confirmed_again(self):
-        def decline(key, params, options):
+        def decline(key, _params, **_options):
             self.intents[key]['status'] = 'requires_payment_method'
             raise stripe.CardError('Declined', 'payment_method', 'card_declined')
 
@@ -262,14 +264,14 @@ class OverdueBillingTests(OverdueBillingTestCase):
                 with self.assertRaises(OperationalError):
                     connection.execute(text("SELECT id FROM lockers WHERE id=1 FOR UPDATE"))
                 connection.rollback()
-            return self.confirm_intent(key, params, options)
+            return self.confirm_intent(key, params, options=options)
 
         self.client.v1.payment_intents.confirm.side_effect = confirm
         self.run_pass()
         self.assertEqual(self.collected, self.expected_days())
 
     def test_processing_payment_waits_for_verified_success(self):
-        def processing(key, params, options):
+        def processing(key, _params, **_options):
             self.intents[key]['status'] = 'processing'
             return self.response(self.intents[key])
 
@@ -285,7 +287,7 @@ class OverdueBillingTests(OverdueBillingTestCase):
 
     def test_paid_response_after_completion_is_reconciled(self):
         def lost(key, params, options):
-            self.confirm_intent(key, params, options)
+            self.confirm_intent(key, params, options=options)
             raise stripe.APIConnectionError('lost response')
 
         self.client.v1.payment_intents.confirm.side_effect = lost
