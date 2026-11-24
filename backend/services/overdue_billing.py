@@ -1,7 +1,8 @@
 import json
 import logging
+from collections.abc import Iterator
 from contextlib import contextmanager
-from datetime import datetime, time, timedelta
+from datetime import date, datetime, time, timedelta
 from threading import Event, Thread
 from uuid import uuid4
 
@@ -19,7 +20,7 @@ WORKER_LOCK = 781493014
 RETRY_WINDOW = timedelta(hours=23)
 
 
-def due_dates(paid_until, now):
+def due_dates(paid_until: datetime, now: datetime) -> Iterator[date]:
     day = paid_until.astimezone(IRELAND).date()
     while datetime.combine(day, time(18), tzinfo=IRELAND) <= now:
         yield day
@@ -90,7 +91,7 @@ def save_status(db, charge_id, status, reason=None):
                     UPDATE overdue_charges
                     SET status=:status,
                         failure_reason=:reason,
-                        paid_at=CASE WHEN :status = 'paid' THEN COALESCE(paid_at, clock_timestamp()) ELSE NULL END
+                        paid_at=CASE WHEN :status = 'paid' THEN COALESCE(paid_at, clock_timestamp()) END
                     WHERE id = :id
                       AND status = 'pending'
                     """), {"id": charge_id, "status": status, "reason": reason})
