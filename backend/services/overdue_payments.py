@@ -1,29 +1,34 @@
-import json
 import os
-from datetime import timedelta
+from datetime import datetime, timedelta
 from uuid import uuid4
 
 from fastapi import HTTPException
-from sqlalchemy import text
+from sqlalchemy import DateTime, func, select, update
+from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from models import Locker, OverdueCharge, OverduePayment, Rental
 
 from services.booking_eligibility import lock_account, lock_rental_account
 from services.overdue_billing import validate_intent
 from services.payments import owned_rental, stripe_client
 
 
-async def apply_recovery(db, checkout):
+async def apply_recovery(db: AsyncSession, checkout):
     recovery_id = (checkout.get('metadata') or {}).get('overdue_payment_id')
     if not recovery_id:
         return False
-    payment = (await db.execute(text('SELECT * FROM overdue_payments WHERE id=:id'),
-                                {'id': recovery_id})).mappings().first()
+    payment = (await db.execute(select(*OverduePayment.__table__.columns).where(
+        OverduePayment.id == recovery_id,
+    ))).mappings().first()
     if not payment:
         raise HTTPException(409, 'Unknown outstanding payment.')
     await lock_rental_account(db, payment['rental_id'])
-    locker = await db.scalar(text('SELECT locker_id FROM rentals WHERE id=:id'), {'id': payment['rental_id']})
-    await db.execute(text('SELECT id FROM lockers WHERE id=:id FOR UPDATE'), {'id': locker})
-    payment = (await db.execute(text('SELECT * FROM overdue_payments WHERE id=:id FOR UPDATE'),
-                                {'id': recovery_id})).mappings().one()
+    locker = await db.scalar(select(Rental.locker_id).where(Rental.id == payment['rental_id']))
+    await db.execute(select(Locker.id).where(Locker.id == locker).with_for_update())
+    payment = (await db.execute(select(*OverduePayment.__table__.columns).where(
+        OverduePayment.id == recovery_id,
+    ).with_for_update())).mappings().one()
     params = payment['checkout_params']
     if (checkout.get('livemode') is not False or checkout.get('mode') != 'payment'
             or checkout.get('amount_total') != payment['amount_cents']
@@ -44,64 +49,55 @@ async def apply_recovery(db, checkout):
         if payment['status'] == 'expired':
             raise HTTPException(409, 'Expired payment needs review.')
         if payment['status'] != 'paid':
-            charges = (await db.execute(text('SELECT * FROM overdue_charges WHERE id = ANY(:ids) FOR UPDATE'),
-                                        {'ids': payment['charge_ids']})).mappings().all()
+            charges = (await db.execute(select(*OverdueCharge.__table__.columns).where(
+                OverdueCharge.id.in_(payment['charge_ids']),
+            ).with_for_update())).mappings().all()
             if (len(charges) != len(payment['charge_ids'])
                     or any(c['rental_id'] != payment['rental_id'] or c['status'] != 'failed' for c in charges)
                     or sum(c['amount_cents'] for c in charges) != payment['amount_cents']):
                 raise HTTPException(409, 'Outstanding charges changed; payment needs review.')
             # Preserve original declined intents for audit; the recovery owns the successful intent.
-            await db.execute(text("""
-                            UPDATE overdue_charges
-                            SET status='paid',
-                                paid_at=clock_timestamp(),
-                                failure_reason=NULL
-                            WHERE id = ANY (:ids)
-                            """), {'ids': payment['charge_ids']})
-            await db.execute(text("""
-                            UPDATE overdue_payments
-                            SET status='paid',
-                                payment_intent_id=:intent,
-                                paid_at=clock_timestamp()
-                            WHERE id = :id
-                            """), {'id': recovery_id, 'intent': intent['id']})
+            await db.execute(update(OverdueCharge).where(
+                OverdueCharge.id.in_(payment['charge_ids']),
+            ).values(status='paid', paid_at=func.clock_timestamp(), failure_reason=None))
+            await db.execute(update(OverduePayment).where(OverduePayment.id == recovery_id).values(
+                status='paid', payment_intent_id=intent['id'], paid_at=func.clock_timestamp(),
+            ))
     elif checkout.get('status') == 'expired' and checkout.get('payment_status') == 'unpaid':
-        await db.execute(text("UPDATE overdue_payments SET status='expired' WHERE id=:id AND status='pending'"),
-                   {'id': recovery_id})
+        await db.execute(update(OverduePayment).where(
+            OverduePayment.id == recovery_id, OverduePayment.status == 'pending',
+        ).values(status='expired'))
     await db.commit()
     return True
 
 
-async def reconcile_outstanding(db, rental_id, user_id):
+async def reconcile_outstanding(db: AsyncSession, rental_id, user_id):
     await owned_rental(db, rental_id, user_id)
-    payments = (await db.execute(text("""
-                               SELECT checkout_session_id
-                               FROM overdue_payments
-                               WHERE rental_id = :id
-                                 AND status = 'pending'
-                                 AND checkout_session_id IS NOT NULL
-                                      """), {'id': rental_id})).scalars().all()
+    payments = (await db.scalars(select(OverduePayment.checkout_session_id).where(
+        OverduePayment.rental_id == rental_id,
+        OverduePayment.status == 'pending',
+        OverduePayment.checkout_session_id.is_not(None),
+    ))).all()
     for session_id in payments:
         await apply_recovery(db, (await stripe_client().v1.checkout.sessions.retrieve_async(session_id)).to_dict())
     return {'status': 'checked'}
 
 
-async def create_outstanding_checkout(db, rental_id, user_id):
+async def create_outstanding_checkout(db: AsyncSession, rental_id, user_id):
     client = stripe_client()
     rental = await owned_rental(db, rental_id, user_id)
     await lock_account(db, user_id)
-    await db.execute(text('SELECT id FROM lockers WHERE id=:id FOR UPDATE'), {'id': rental['locker_id']})
-    payment = (await db.execute(text("SELECT * FROM overdue_payments WHERE rental_id=:id AND status='pending'"),
-                                {'id': rental_id})).mappings().first()
-    now = await db.scalar(text('SELECT clock_timestamp()'))
+    await db.execute(select(Locker.id).where(Locker.id == rental['locker_id']).with_for_update())
+    payment = (await db.execute(select(*OverduePayment.__table__.columns).where(
+        OverduePayment.rental_id == rental_id, OverduePayment.status == 'pending',
+    ))).mappings().first()
+    now: datetime = (await db.execute(
+        select(func.clock_timestamp(type_=DateTime(timezone=True)))
+    )).scalar_one()
     if not payment:
-        charges = (await db.execute(text("""
-                                  SELECT *
-                                  FROM overdue_charges
-                                  WHERE rental_id = :id
-                                    AND status = 'failed'
-                                  ORDER BY id FOR UPDATE
-                                         """), {'id': rental_id})).mappings().all()
+        charges = (await db.execute(select(*OverdueCharge.__table__.columns).where(
+            OverdueCharge.rental_id == rental_id, OverdueCharge.status == 'failed',
+        ).order_by(OverdueCharge.id).with_for_update())).mappings().all()
         if not charges:
             raise HTTPException(409, 'There is no unpaid balance to collect.')
         # Cancel declined intents before a replacement can collect the same debt.
@@ -139,13 +135,10 @@ async def create_outstanding_checkout(db, rental_id, user_id):
             'cancel_url': f'{base}/rentals/{rental_id}',
             'expires_at': int((now + timedelta(minutes=31)).timestamp()),
         }
-        payment = (await db.execute(text("""
-                                  INSERT INTO overdue_payments(id, rental_id, charge_ids, amount_cents, checkout_params)
-                                  VALUES (:id, :rental, CAST(:charges AS jsonb), :amount, CAST(:params AS jsonb))
-                                  RETURNING *
-                                  """),
-                             {'id': recovery_id, 'rental': rental_id, 'charges': json.dumps([c['id'] for c in charges]),
-                              'amount': amount, 'params': json.dumps(params)})).mappings().one()
+        payment = (await db.execute(insert(OverduePayment).values(
+            id=recovery_id, rental_id=rental_id, charge_ids=[c['id'] for c in charges],
+            amount_cents=amount, checkout_params=params,
+        ).returning(*OverduePayment.__table__.columns))).mappings().one()
     payment = dict(payment)
     await db.commit()
     if payment['checkout_session_id']:
@@ -156,8 +149,9 @@ async def create_outstanding_checkout(db, rental_id, user_id):
         checkout = (await client.v1.checkout.sessions.create_async(
             payment['checkout_params'], options={'idempotency_key': payment['id']}
         )).to_dict()
-        await db.execute(text('UPDATE overdue_payments SET checkout_session_id=:session WHERE id=:id'),
-                   {'session': checkout['id'], 'id': payment['id']})
+        await db.execute(update(OverduePayment).where(OverduePayment.id == payment['id']).values(
+            checkout_session_id=checkout['id'],
+        ))
         await db.commit()
     await apply_recovery(db, checkout)
     if checkout['status'] != 'open' or not checkout.get('url'):
