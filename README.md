@@ -4,6 +4,8 @@ UniStow is a mobile-friendly campus locker prototype. Users register, reserve a 
 pay through Stripe in test mode and open it from their account. A Raspberry Pi 400
 controls the servo latch and reports the magnetic door sensor.
 
+[Website](https://unistow.app) · [Source repository](https://github.com/nikitsya/UniStow)
+
 ## How it works
 
 1. Sign in and choose Locker 4, the only physical locker. The other eight are placeholders.
@@ -37,10 +39,8 @@ illustrative.
 - [Servo and door sensor](docs/images/prototype/physical-prototype/unistow-prototype-mechanism-ai-background.png).
 
 The [future UniStow prototype](docs/images/prototype/future-prototype/unistow-future-prototype.png)
-is an AI-generated concept based on the physical prototype. It shows a sage-grey
-metal locker bank on a white background, with compartment 04 open, concealed
-electronics, a raised metal latch arm and a thin door. It illustrates a proposed
-future design; the QR patterns in the image are illustrative.
+is an AI-generated concept based on the physical prototype, not an installed
+locker bank. Its QR patterns are illustrative.
 
 | Before · Campus canteen                                                                   | After · Proposed locker placement (AI visualisation)                                                                                              |
 |-------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -76,12 +76,6 @@ flowchart LR
     Sensor[Door sensor] --> Pi
 ```
 
-The live rental application and Locker 4 use the Eclipse Mosquitto broker on EC2.
-On 10 November 2026 the Raspberry Pi acknowledged a test command over MQTT.
-After its controller service restarted, EC2 received the door sensor reading
-and the controller's readiness. After the prototype wiring was corrected, the Pi
-reported a closed door and PostgreSQL recorded rental 45 as completed. See the
-[deployment checks](deploy/README.md#ec2-deployment-on-10-november-2026).
 Passwords use Argon2; session tokens are stored as hashes. Sessions last 24 hours and
 use an HttpOnly cookie, with Secure enabled on HTTPS. Rental access requires ownership
 and confirmed payment. Device requests require a separate key; commands expire and
@@ -158,31 +152,32 @@ uv run python -m unittest discover -s tests -v
 ```
 
 Database access uses `AsyncSession` in request handlers and the overdue billing task.
-Existing SQL queries and database tables are retained.
+Queries use SQLAlchemy models; [schema.sql](database/schema.sql) defines the
+PostgreSQL structure. Model changes do not migrate an existing database.
 
 To include database tests, start PostgreSQL and prefix the command with
 `UNISTOW_TEST_POSTGRES=1`. These tests use isolated database schemas.
 
-## Project files and remaining work
+## Project files
 
 - `backend/main.py` — Application setup; `routes/` — Page, API and device routes.
 - `backend/auth/` — Accounts and sessions; `services/` — Rental, payment and command logic.
 - `backend/database.py` — Connection; `database/` — SQL schema and locker seed.
 - `frontend/` — Templates, CSS and JavaScript served by FastAPI.
 - `hardware/` — Pi scripts, configuration example and systemd services.
-- [Database](docs/database.md), [implementation plan](docs/implementation-plan.md)
-  and [AI assistance log](docs/AI_Chat_Log.md).
-- [AI usage cover sheet](docs/submission/ai-usage-cover-sheet.pdf) for the individual IoT submission.
-- [Completed CA cover sheet](docs/submission/ca-cover-sheet.pdf) for the individual IoT submission.
 
-The daily EUR 1 overdue billing worker runs on EC2 in Stripe test mode. On a new
-installation the worker is off by default. See the [billing instructions](docs/database.md#daily-test-billing).
-Rental 44 demonstrated outstanding-balance recovery in Stripe test Checkout.
-[Rental 45](docs/usability-testing.md#after-the-automatic-billing-deadline--rental-45)
-shows the deployed page after the daily billing deadline. Renters can call the locker operator from the public Contact
-page at `/contact`. See the
-plan for deployment and submission tasks.
+| Document                                                                                                                  | Contents                                                |
+|---------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------|
+| [Database](docs/database.md)                                                                                              | Schema, rental rules and payment safeguards             |
+| [Deployment](deploy/README.md)                                                                                            | EC2, TLS, MQTT, backups and update instructions         |
+| [Hardware](hardware/README.md)                                                                                            | Fritzing diagram, wiring and Pi services                |
+| [Testing record](docs/usability-testing.md)                                                                               | Dated observations, screenshots and verification limits |
+| [Submission checklist](docs/implementation-plan.md)                                                                       | Remaining checks, deadline and submission files         |
+| [AI assistance log](docs/AI_Chat_Log.md)                                                                                  | Recorded use of AI during development                   |
+| [CA cover sheet](docs/submission/ca-cover-sheet.pdf) and [AI usage cover sheet](docs/submission/ai-usage-cover-sheet.pdf) | Completed submission documents                          |
 
-The [November progress review](docs/presentations/UniStow-Progress-Review-2026-11-11.pptx)
-covers the deployed project. The [Checkpoint 1 slides](docs/presentations/UniStow-ICA-Checkpoint-1.pptx)
-preserve the original proposal.
+The [Checkpoint 1 slides](docs/presentations/UniStow-ICA-Checkpoint-1.pptx)
+and [11 November review](docs/presentations/UniStow-Progress-Review-2026-11-11.pptx)
+are historical snapshots. Their proposed technologies, designs and issue lists
+reflect those stages, including plans later changed or removed. Use the guides
+above for the current implementation and remaining work.

@@ -1,54 +1,46 @@
 # Implementation plan
 
-See the [README](../README.md) for the current stack and startup instructions.
-
-## Working now
-
-- Mobile-friendly locker list, registration, sign-in and account menu.
-- PostgreSQL reservations, ownership checks and **Continue rental** for the owner.
-- Stripe test checkout, verified webhooks and payment reconciliation.
-- Automatic updates for availability, rental status and door state.
-- Raspberry Pi 400 with an SG92R servo and magnetic door sensor.
-- Authorised opening, closure checks and rental completion after collection.
-- Automatic startup of pigpiod and the Pi controller.
-
-The production site runs on AWS EC2 at https://unistow.app. Nginx verifies the
-FastAPI certificate, and FastAPI verifies the PostgreSQL certificate. Eclipse Mosquitto runs on the same EC2 host.
-The production app and Locker 4 connect to the broker over TLS. The Pi
-acknowledged a test command and resumed reporting its door state after a
-controller service restart. It uses authenticated HTTPS for heartbeats and
-collection acknowledgements. See the [deployment guide](../deploy/README.md)
-for the security settings and EC2 evidence.
+See the [README](../README.md) for the current implementation and
+[testing record](usability-testing.md) for completed checks. This file tracks
+work still needed for the individual IoT submission.
 
 ## Assessment checklist
 
 The individual IoT assessment is due on **8 December 2026 at 17:00 (Ireland time)**.
 Use this checklist alongside the original brief before submitting to Moodle.
 
-- [ ] Record an end-to-end run with the empty physical locker: sign in, reserve,
-  pay in Stripe test mode, open, collect and close. Show the sensor reading,
-  the resulting rental state in PostgreSQL and when the locker becomes available.
-- [ ] Review the architecture diagram in the project README. Label the internal
-  TLS connections and explain device access, channel permissions, database and
-  web server access, encryption in transit and EBS encryption at rest.
-- [ ] Prepare a Fritzing sketch showing the actual Raspberry Pi, servo and door
-  sensor connections. Check it against the physical wiring.
-- [ ] Record the screencast: explain the code and architecture, demonstrate the
-  deployed application and secured MQTT exchange live, and discuss known issues.
+- [ ] Check the [architecture diagram](../README.md#current-stack) against the
+  deployed system. Explain TLS, device authentication, MQTT topic permissions,
+  restricted server access and EBS encryption at rest in the demonstration.
+- [ ] Check the existing [Fritzing sketch](../hardware/unistow-wiring.fzz) and
+  [wiring guide](../hardware/README.md#wiring-diagram) against the physical leads,
+  including the Pi 5V and ground connections.
+- [ ] Record the screencast with an empty locker: explain the code and architecture,
+  then sign in, reserve, pay in Stripe test mode, open, collect and close. Show
+  the secured MQTT exchange, sensor reading, resulting PostgreSQL rental state
+  and restored availability. Explain known limitations.
 - [ ] Review the completed [CA cover sheet](submission/ca-cover-sheet.pdf) and the
   [AI usage cover sheet](submission/ai-usage-cover-sheet.pdf). Bring the
   [AI chat log](AI_Chat_Log.md) up to date before submission.
-- [ ] Include the GitHub repository link in the submission README, verify the
-  lecturer has access and commit the final project files.
+- [ ] Verify that the [repository link](https://github.com/nikitsya/UniStow) in the
+  README works for the lecturer and commit the final project files.
 - [ ] Package the source, diagrams, recording and required documents in one ZIP
-  that extracts to `iot_ica_firstname_lastname`. Check the extracted contents
+  that extracts to `iot_ica_nikita_smiichyk`. Check the extracted contents
   for credentials before uploading. Keep the deployed site available for testing
   after submission.
 
+The viva is on **9 December 2026 at 14:00 in P1111**.
+
 ## Additional prototype testing
 
-Repeat
-the [disconnected-controller test](usability-testing.md#7-november-2026--opening-locker-4-while-its-controller-was-stopped-7)
-with Mosquitto and an empty locker. Let an opening command expire while the Pi
-is offline, reconnect it and verify that the latch moves only after a fresh
-authorised request.
+- [ ] Repeat
+  the [disconnected-controller test](usability-testing.md#7-november-2026--opening-locker-4-while-its-controller-was-stopped-7)
+  with Mosquitto. Let an opening command expire while the Pi is offline, reconnect
+  it and verify that the latch moves only after a fresh authorised request.
+- [ ] Repeat the light-closure test with an empty locker. Confirm automatic latch
+  retraction when the door comes ajar and secure closure after a full close.
+- [ ] On a phone, check pull-to-refresh, dialogue dismissal, cancellation and
+  resuming a valid unpaid reservation after signing out and back in. Verify
+  availability from a second account and that recent history remains visible.
+- [ ] Check the extra-day summary and outstanding-payment flow on a physical phone;
+  the existing billing screenshots and browser previews do not establish this.

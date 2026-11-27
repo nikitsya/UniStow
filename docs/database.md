@@ -113,19 +113,13 @@ back it up, compare its structure with `database/schema.sql` and prepare the
 required SQL changes. Do not rerun the initial schema or delete the volume to
 update it.
 
-## Saved payment method verification
+## Verification records
 
-On 9 November 2026, all 70 automated backend tests passed against local
-PostgreSQL. Stripe responses were mocked. Checks cover consent-gated Checkout
-parameters, verified method storage, duplicate events, lookup failure and retry,
-a mismatched Customer, and legacy single-payment behaviour.
+The [billing verification record](usability-testing.md#billing-verification--910-november-2026)
+contains the dated local and EC2 results. Current test commands are in the
+[README](../README.md#tests).
 
-On EC2, the payment records for rentals 41 and 45 contained the Stripe Customer
-ID, PaymentMethod ID and saved timestamp. Rental 45 subsequently incurred one
-successful EUR 1 sandbox charge at its actual deadline. See the
-[deadline check](usability-testing.md#after-the-automatic-billing-deadline--rental-45).
-
-See [Stripe's documentation on saving payment details during payment](https://docs.stripe.com/payments/checkout/save-during-payment).
+Reference: [saving payment details during payment](https://docs.stripe.com/payments/checkout/save-during-payment).
 
 ## Daily test billing
 
@@ -172,61 +166,9 @@ application. Production Compose passes this variable through, defaulting to 0.
 The worker accepts only a Stripe test secret key. Setting the flag to 0 and
 restarting the application disables the worker.
 
-### Verification on 9 November 2026
-
-All 86 backend tests passed with local PostgreSQL. Billing tests use isolated
-schemas and mocked Stripe responses. They cover the exact deadline, both Dublin
-clock changes, missed days, repeat runs, competing workers, lost creation and
-confirmation responses, the creation retry window, declines, processing payments,
-legacy consent, completion races and reconciliation after completion. Migration
-003 was applied twice locally to verify repeatability.
-
-### EC2 Stripe test-mode verification on 9 November 2026
-
-Commit `5e1d586` and migration 003 were deployed to EC2. The application passed
-its health check and the public site returned HTTP 200. Automatic billing was
-disabled for that test (`UNISTOW_OVERDUE_BILLING=0`).
-
-Rental 41 had a confirmed payment, saved payment method and the new consent.
-Its original rental record was backed up on EC2 before the related rental dates
-were moved back one day, making one EUR 1 charge due on 9 November at 18:00 Dublin
-time. The controller was not operated during this billing check.
-
-Two manual runs of the deployed billing worker produced the following results:
-
-| Check                 | Result                                                      |
-|-----------------------|-------------------------------------------------------------|
-| First run             | One charge record, amount 100 cents, status `paid`          |
-| Stripe result         | `succeeded`, amount received 100 cents, `livemode=false`    |
-| Second run            | Same database record, PaymentIntent and Stripe charge       |
-| Stripe reconciliation | Exactly one PaymentIntent for rental 41 and the charge date |
-
-A second check moved the related rental dates back one further day after saving
-another snapshot on EC2. This simulated an additional missed daily deadline,
-rather than waiting for a future deadline. The worker added one EUR 1 payment
-for 8 November and preserved the existing payment for 9 November. A repeat run
-kept both database records, PaymentIntents and Stripe charges unchanged. Stripe
-confirmed exactly two successful test payments totalling EUR 2.
-
-These checks verify successful test-mode collection, catch-up for an additional
-missed day and duplicate protection on repeat runs. No real money was collected.
-Automatic billing was disabled during these checks. Scheduled execution and
-failure recovery had not yet been verified against Stripe on EC2 at this stage.
-Later recovery verification and worker activation are recorded below.
-
-### Collection completion verification on 10 November 2026
-
-Commit `8bba849` enabled collection for overdue rentals while retaining owner,
-payment and controller checks. All 87 backend tests passed before deployment.
-The user completed rental 41 through Finish rental. The EC2 database recorded
-`completed` at 00:08:15 UTC on 10 November.
-
-Two further manual billing runs left both existing charge records unchanged.
-Stripe still contained the same two successful test PaymentIntents, totalling
-EUR 2, with no additional payment for rental 41. Automatic billing remained
-disabled during this check. The subsequent scheduled run for rental 45 is
-recorded below. The automated tests separately verify that
-completed rentals accrue no new charges.
+The worker was enabled on EC2 on 10 November 2026. Preserve the production
+flag during updates. The [rental 45 record](usability-testing.md#after-the-automatic-billing-deadline--rental-45)
+documents the real deadline check and repeated observations of the same charge.
 
 References: [Stripe idempotent requests](https://docs.stripe.com/api/idempotent_requests)
 and [PaymentIntent confirmation](https://docs.stripe.com/api/payment_intents/confirm).
@@ -239,18 +181,12 @@ processing and unpaid extra days. Waived charges are excluded. The summary
 remains visible after completion and refreshes with the existing live page
 updates. It does not estimate days for which the worker has not created a record.
 
-Pending charges display Payment processing; failed charges display Payment
-incomplete. Neither is presented as successfully collected money. Payment
-recovery is not included in this change.
+Pending charges display **Payment processing**; failed charges display **Payment incomplete**. Neither is presented as
+collected money. Failed
+charges can be paid through the recovery flow below.
 
-All 89 backend tests passed locally, including mixed charge statuses, waived
-amounts, completed rentals, unchanged totals without extra charges and access
-restrictions. The summary was deployed in release `8972ef3`, including feature
-commit `545f1d7`. On 10 November, rental 43 received one successful EUR 1
-Stripe test payment for its extra day. The supplied desktop screenshot confirms
-a EUR 1 rental cost, EUR 1 paid extra-day charge and EUR 2 total. See the
-[visual test evidence](usability-testing.md#extra-day-payment-summary--10-november-2026).
-A physical-phone check of the summary is still pending.
+See the [rental 43 screenshot](usability-testing.md#extra-day-payment-summary--10-november-2026)
+for the paid-charge presentation.
 
 ### Paying an outstanding balance
 
@@ -281,24 +217,13 @@ intent IDs remain on the daily charge records for audit; the successful
 replacement intent is stored in `overdue_payments`.
 
 Recovery does not reopen a completed rental, waive other debt or replace the
-saved method used for future automatic charges. Completed rentals with failed
-or pending charges remain listed in My rentals. Finish rental remains available
+saved method used for future automatic charges. Completed rentals with failed,
+pending or review charges remain listed in My rentals. Finish rental remains available
 under the existing ownership and controller checks.
 
-Local verification: 101 backend tests passed. A Chrome check at 390 × 844
-confirmed the layout, Finish rental dialogue, single request on double click,
-friendly checkout failure message and retry. Stripe responses were simulated
-for these local recovery tests.
-
-Release `d006a3c` and migration 004 were deployed on 10 November 2026. The renter
-completed rental 44 before paying its outstanding EUR 1 through hosted Stripe
-Checkout. Read-only checks confirmed one paid recovery record, one successful
-test recovery payment receiving 100 cents, and a cancelled original declined
-intent receiving zero. The daily charge became paid without reopening the rental.
-The supplied desktop screenshots show the retained balance before payment and
-its paid state afterwards. See [the before-and-after evidence](usability-testing.md#paying-after-collection--rental-44).
-Automatic billing was disabled during recovery verification; no future-deadline
-execution was tested during that check.
+The [rental 44 record](usability-testing.md#paying-after-collection--rental-44)
+shows successful sandbox recovery after collection, including the cancelled
+original intent and unchanged completed rental status.
 
 References: [Stripe Checkout Sessions](https://docs.stripe.com/api/checkout/sessions/create)
 and [Checkout fulfilment](https://docs.stripe.com/checkout/fulfillment).
@@ -320,10 +245,11 @@ amount. Cancelling or expiring an unpaid recovery restores the unpaid wording;
 verified settlement clears only the charge IDs covered by that payment. Remaining
 balances on the same rental or another rental continue to restrict booking.
 
-The home page, booking page, My rentals and individual rental pages list each
-affected rental and amount, with links to its existing recovery flow and Contact.
-The home page and rental pages refresh their notices from server state. Signing
-out, returning from Stripe or changing client-side controls cannot clear a balance.
+The home page, booking page, My rentals and pending rental pages show the
+account balance notice, affected rental links and Contact. Active and completed
+rental details show their own payment summary without repeating that notice.
+Live updates refresh the displayed state. Signing out, returning from Stripe or
+changing client-side controls cannot clear a balance.
 Signed webhooks and server reconciliation retain their amount, identity, test-mode
 and successful-payment checks. Repeated or reordered callbacks do not reapply a
 settlement or reinstate a cleared balance.
@@ -364,7 +290,7 @@ before starting the application. The historical upgrade scripts are available in
 Git history; see [initial setup](#initial-setup) for the current approach.
 
 Automated tests use isolated PostgreSQL schemas and mocked Stripe responses.
-They cover a EUR 1 balance, account-wide and older debt, pending/review wording,
+They cover an EUR 1 balance, account-wide and older debt, pending/review wording,
 direct reservation and checkout requests, unaffected paid access and collection,
 partial and duplicate settlements, account-lock races
 and a checkout authorised immediately before another rental's debt appears.
@@ -372,23 +298,3 @@ and a checkout authorised immediately before another rental's debt appears.
 The [deployed-site visual evidence for issue #19](usability-testing.md#22-november-2026--unpaid-balance-restriction)
 records the unpaid Locker 5 balance, zero available new rentals, the notice
 above rental history and the recovery action on the completed rental page.
-
-### Automatic worker activation on 10 November 2026
-
-Set `UNISTOW_OVERDUE_BILLING=1` in the private EC2 `.env.production` and
-recreated the app container. The configuration was backed up before the change.
-Stripe test-mode validation passed, the app became healthy and the public
-homepage returned HTTP 200. The running container reports the flag as 1.
-
-There were no active or overdue rentals and no pending charges when the worker
-was enabled. The four existing paid daily charges remained unchanged. The
-worker now checks every minute; eligible overdue rentals are charged according
-to the 18:00 Europe/Dublin rules above. Future deployments should preserve the
-flag in `.env.production` rather than override it with 0.
-
-[The before-and-after screenshots for rental 45](usability-testing.md#after-the-automatic-billing-deadline--rental-45)
-show the total increasing from EUR 1 to EUR 2 after the deadline. The page
-marks the extra day paid. A read-only Stripe sandbox search found one matching
-successful EUR 1 PaymentIntent. At 21:26 and 21:28 UTC on 10 November, read-only checks on EC2 found
-one paid charge row for that rental and date. Both checks matched the same
-Stripe test PaymentIntent and 100 cents received. The automatic worker was enabled.

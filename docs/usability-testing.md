@@ -1,22 +1,27 @@
 # Usability testing
 
+This is a dated record of observations and verification, not a description of
+every current screen. Earlier entries include PayBox, PubNub and previous colours.
+Test totals refer to separate runs, not a combined or current test count.
+Outstanding checks are tracked in the [submission checklist](implementation-plan.md).
+
 ## 25–26 October 2026 — Local PayBox prototype
 
 These checks took place before the November phone session, when the backend ran on the Mac. Most were developer
-walkthroughs. Arthur tested the physical door.
+walkthroughs. Artur tested the physical door.
 
-| What we tried                                                       | What the tester saw                                                                                                                                                                                                                                                                  | Outcome or follow-up                                                                                                                                                                                                                                                        |
-|---------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Create an account, then register the same email again.              | The first request returned 201 and the email. The second returned 409. An invalid request initially gave a server error (500).                                                                                                                                                       | After the fix, invalid input returned 422; the tester confirmed the email error. The registration form also created an account.                                                                                                                                             |
-| Sign in, refresh, sign out and refresh again.                       | The email appeared after sign-in and stayed after refreshing. After sign-out it disappeared and stayed gone. A wrong password showed **Incorrect email or password** and left the user signed out.                                                                                   | These observations cover the session. Resuming a reservation after signing back in is a separate check below.                                                                                                                                                               |
-| Select Locker 4 while signed out.                                   | After signing in, the renter reached the rental form for the locker they had selected.                                                                                                                                                                                               | The tester confirmed the destination.                                                                                                                                                                                                                                       |
-| Reserve Locker 4, return to the list and try to continue.           | Initially the form showed a demo message and nothing appeared in Rentals. After the fix, the tester saw a **Pending** booking and Locker 4 became **Unavailable**. On returning to the list, it was unclear how to continue their own booking.                                       | The owner's card gained **Continue rental**. Check on the final version that leaving the page, or signing out and back into the same account, returns the renter to the same unpaid booking while the hold is valid. A second account should see the locker as unavailable. |
-| Leave an unpaid reservation without starting checkout.              | After 15 minutes Locker 4 became available. Reserving again left the old record **Cancelled** and the new one **Pending**.                                                                                                                                                           | The tester checked both records.                                                                                                                                                                                                                                            |
-| Pay for a reservation in the Stripe sandbox and return.             | Checkout showed the expected price. After refreshing, the rental showed **Active** and the **Pay** button had disappeared. The sandbox account name on Checkout was confusing.                                                                                                       | The tester confirmed the paid state after refresh. Automatic page updates and clearer Checkout branding were later changes; the chat did not confirm the new branding on a fresh checkout.                                                                                  |
-| Open and close the real door while watching its state.              | The magnetic contact reported open and closed as the door moved. The tester later saw the same changes in PayBox and confirmed the latch returned after opening.                                                                                                                     | This checked the sensor and normal movement. It did not cover a door held just short of closure.                                                                                                                                                                            |
-| Bring the door slowly towards the frame, then ease it back (Artur). | The magnet triggered before the door was fully seated. The servo moved the latch into the closed position, but the door was still ajar. The sensor then correctly showed **Open**. The projecting latch blocked closure, and the tester reported having to remove and refit the arm. | The local prototype added a stable-closure check and allowed the renter to request another opening to clear the latch. The November version uses automatic retraction. Its slow-closure retest is listed below.                                                             |
-| Run the servo test, then reboot the Pi.                             | The arm initially trembled while the programme ran, and one angle setting moved it towards the wall. With pigpio and the tested opening direction, the tester saw a clean movement. A roughly 30 cm lead extension worked.                                                           | After reboot the tester confirmed pigpiod was active and the hardware test still worked.                                                                                                                                                                                    |
-| Reopen the local site with the database stopped.                    | The browser showed the service-unavailable page and Pi heartbeats returned 503. The site appeared again once the database was running.                                                                                                                                               | A separate **Internal Server Error** was also reported on a rental page; its cause was not confirmed in that report.                                                                                                                                                        |
+| Check                         | Observation and follow-up                                                                                                                                                                                                 |
+|-------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Registration                  | A new account returned 201; a duplicate email returned 409. Invalid input initially returned 500, then 422 after the fix. The tester confirmed the email error and form submission.                                       |
+| Session                       | Sign-in survived refresh; sign-out remained effective after refresh. A wrong password showed **Incorrect email or password**. Resuming a booking needed a separate check.                                                 |
+| Signed-out booking            | Selecting Locker 4 before sign-in returned the renter to that locker's rental form afterwards.                                                                                                                            |
+| Reserve and continue          | Replaced a demo response with a stored **Pending** rental and **Unavailable** locker. Added **Continue rental** for the owner. Returning after sign-out and checking access from a second account remained follow-ups.    |
+| Expired unpaid hold           | After 15 minutes without checkout, Locker 4 became available. Reserving again cancelled the old record and created a pending one. Both records were checked.                                                              |
+| Stripe sandbox payment        | Checkout showed the expected price. After refresh, the rental became **Active** and **Pay** disappeared. Clearer Checkout branding and automatic updates were later changes, not verified in this check.                  |
+| Door sensor                   | The displayed state followed physical opening and closing; the latch returned after opening. This did not test a door held just short of closure.                                                                         |
+| Slow closure, tested by Artur | The magnet triggered before the door was seated. The lowered latch blocked closure and the arm needed refitting. A stable-closure check and another opening request were added; November introduced automatic retraction. |
+| Servo and reboot              | Initial trembling and an incorrect direction were resolved with pigpio and tested pulse settings. A roughly 30 cm extension worked. After reboot, pigpiod was active and the hardware test worked.                        |
+| Database outage               | The site showed a service-unavailable page and heartbeats returned 503, then recovered with PostgreSQL. A separate rental-page 500 had no confirmed cause in this record.                                                 |
 
 The October walkthrough also shaped the interface: keep the rental deadline and price easy to find, show the account
 menu from the person icon, keep **My rentals** on its own page, and hide device and door details before payment. The
@@ -34,13 +39,13 @@ during development. Later refinements were deployed through commit `7dd8e97`.
 
 ### Finding a locker and moving around
 
-| What the renter noticed                                                                                                                                                            | What changed and why                                                                                                                                                                                                                                                           |
-|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| On the phone, the available locker showed a blue arrow emoji. The desktop screenshot showed a thin diagonal arrow.                                                                 | Locker and rental links now use a drawn SVG arrow. It takes its colour from the link, so the phone cannot substitute a coloured emoji.                                                                                                                                         |
-| In the nine-locker grid, the cards looked tall and narrow. A line below the grid added another visual boundary.                                                                    | Made the cards square and removed the divider. The locker number, size and daily price stay together. A pale green card labelled **Available** stands out among neutral cards labelled **Unavailable**. The words carry the meaning as well as the colours.                    |
-| Switching to **My rentals** changed the header, removed the familiar account icon and offered a redundant **Back to lockers** link.                                                | Both list pages now share the branded header and bottom navigation. The renter can switch directly between **Lockers** and **My rentals** in either direction.                                                                                                                 |
-| Booking repeated “Locker 4” in several places. Returning to the list made the change in header size and layout especially noticeable. The payment page had the same inconsistency. | Reused the home header throughout the site. Only the short line describing the page changes. Detail pages put a round back button where the account control sits on the list pages. The illustrated locker keeps its **04**, where the number helps identify the physical box. |
-| The U looked off-centre in its frame.                                                                                                                                              | Centred the U and reused the same mark in the shared header and browser tab so the site is recognisable throughout the journey.                                                                                                                                                |
+| Observation                                                                 | Change                                                                                                  |
+|-----------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------|
+| The phone substituted a blue arrow emoji for the desktop arrow.             | Replaced it with an SVG that inherits the link colour.                                                  |
+| Locker cards looked tall and narrow, with an extra divider below.           | Made the cards square and removed the divider. Availability uses words as well as colour.               |
+| My rentals changed the header and removed the account icon.                 | Shared the branded header and bottom navigation across the list pages; removed the redundant back link. |
+| Booking and payment repeated the locker number and changed the header size. | Reused the shared header, kept the short page hint and used a round back button on detail pages.        |
+| The U looked off-centre.                                                    | Centred it and reused the mark in the header and browser tab.                                           |
 
 ### Reserving, paying and changing your mind
 
@@ -58,14 +63,14 @@ during development. Later refinements were deployed through commit `7dd8e97`.
 
 ### Opening the door, closing it and finishing
 
-| Situation                                                              | User-facing decision or observed result                                                                                                                                                                                                                                                                     |
-|------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| The renter taps **Open locker**.                                       | Show **Unlocking…**, then **Open the door once it unlocks.** The user needs to know when to pull the door, without having to interpret a command acknowledgement or motor movement.                                                                                                                         |
-| The door is already open.                                              | Keep **Open locker** visible but disabled. **Your locker door is open.** explains why, including when the renter returns to the page after walking away.                                                                                                                                                    |
-| The renter closes the door.                                            | The page briefly used to flash a “not ready” warning while the latch was moving. Allow time for relocking and show **Securing your locker…** during that transition. In the physical test the page showed **Closed** and the renter checked that the door held shut.                                        |
-| A light closure triggers the magnetic sensor, but the door comes ajar. | The renter observed the lowered latch blocking the next attempt to shut the door. The controller was changed to retract the latch if the sensor reports an open door during or after closing, including at startup. A sensor reading and a door that physically holds shut are separate checks.             |
-| The renter chooses **Finish rental**.                                  | Use pale orange for the action that ends the rental and ask for confirmation first. The white **Cancel** button dismisses the dialogue. Both this button and **Keep** in the reservation dialogue have no thick brown outline or underline. Keyboard focus uses heavier text.                               |
-| The renter confirms and collects their belongings.                     | Keep **Take all your belongings, then close the door to finish your rental.** above the disabled actions throughout collection. It takes precedence over the payment confirmation and ordinary door-open message. The renter confirmed on the phone that opening and closing the door led to **Completed**. |
+| Situation                              | Decision or observed result                                                                                                                                               |
+|----------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Tap **Open locker**.                   | Show **Unlocking…**, then **Open the door once it unlocks.**                                                                                                              |
+| Door already open.                     | Disable opening and explain **Your locker door is open**, including on return to the page.                                                                                |
+| Close the door.                        | Show **Securing your locker…** while relocking instead of briefly flashing a not-ready warning. The renter checked both **Closed** and the physical hold.                 |
+| Door comes ajar after a light closure. | Retract the latch when the sensor reports open during or after closing, including at startup. A sensor reading alone does not prove a secure latch.                       |
+| Choose **Finish rental**.              | Ask for confirmation. The pale orange action ends the rental; the white **Cancel** dismisses the dialogue. Cancel/Keep controls have no brown outline or underline.       |
+| Collect belongings.                    | Keep **Take all your belongings, then close the door to finish your rental.** above disabled actions. The renter confirmed that opening and closing led to **Completed**. |
 
 **Finish rental follow-up on the phone.** The renter confirmed that after confirming **Finish rental** and opening
 the door, the button stayed visible and disabled. Tapping it again could not reopen the confirmation dialogue.
@@ -74,12 +79,12 @@ still shows it as closed.
 
 ### Touch, dialogues and interrupted connections
 
-| Test or observation                                              | Result and scope                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-|------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Pull the page past an edge on a phone.                           | The renter wanted the content to stay in place without revealing the background, but still expected a downward pull at the top to refresh. The shared page styles suppress overscroll. A deliberate downward pull of at least 80 CSS pixels refreshes on release. Six scripted gesture cases covered a valid pull, a short pull, sideways and upward movement, a pull starting partway down the page and a two-finger gesture.                                                                   |
-| Open a confirmation and interact with the background.            | A Chrome check found that scrolling was locked while a modal was open. A tap inside kept it open. A tap on the backdrop dismissed it and the page retained its scroll position. Dismissing the dialogue does not confirm cancellation or collection. This behaviour is shared across the site.                                                                                                                                                                                                   |
-| Open each dialogue and inspect its initially focused button.     | Chrome checks on **Keep** and **Cancel** found no outline, border width or underline. The published stylesheet was compared with the checked version.                                                                                                                                                                                                                                                                                                                                            |
-| Leave the site open during a server restart or loss of internet. | The renter saw unsolicited red connection messages while simply viewing a page. Background updates now retry quietly on the locker list, rental list and rental detail. The last loaded content stays visible. Scripted checks exercised a connection failure and an HTTP 503 response. Background payment checks left the existing message alone. Locker controls can be disabled while their state cannot be verified. Feedback still appears if an action the renter actually requests fails. |
+| Check                   | Result and scope                                                                                                                                                                                                                                                             |
+|-------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Pull-to-refresh         | Suppressed overscroll; a downward pull of at least 80 CSS pixels refreshes on release. Six scripted cases covered a valid pull, a short pull, sideways/upward movement, a start partway down and a two-finger gesture.                                                       |
+| Dialogue interaction    | Chrome confirmed scroll locking, no dismissal for an inside tap, and backdrop dismissal without losing scroll position. Dismissal did not confirm the action.                                                                                                                |
+| Initial button focus    | Chrome showed no outline, border width or underline on **Keep** and **Cancel**. The published stylesheet matched the checked version.                                                                                                                                        |
+| Connection interruption | Background refreshes retained the last content and retried quietly. Scripted failure/503 checks preserved existing payment messages and could disable unverifiable controls. Requested actions still reported failures. The later repeated-failure notice is recorded below. |
 
 ### Physical tests on the earlier PubNub deployment
 
@@ -119,18 +124,11 @@ payment-confirmation run. These totals are separate runs of overlapping suites. 
 cases, and one physical-command test run recorded 17 errors when the test process could not connect to local PostgreSQL.
 The phone observations above come from the real locker, independently of those automated runs.
 
-After the final deployment, the public home page referenced the updated assets and the published dialogue, payment and
-live-update scripts and styles matched the local release. The following checks still need a recorded result on the final
-version:
-
-- On iPhone Safari, pull down from the top to refresh, then try a short sideways drag. Open each dialogue and try to
-  scroll behind it before tapping the backdrop.
-- With an unpaid test reservation, choose **Keep** first and confirm that payment is still available. Then choose
-  **Cancel** and check that the released locker becomes available to another renter.
-- With the locker empty, repeat the light-closure case. Check that the latch retracts when the door comes ajar and that
-  the next full closure holds.
-- With a valid paid rental, try opening Locker 4 more than an hour after the initial token was issued and record the
-  result.
+After that deployment, the published dialogue, payment and live-update assets
+matched the checked release. The [submission checklist](implementation-plan.md#additional-prototype-testing)
+retains the phone, cancellation and light-closure checks still needing a result.
+The one-hour token-renewal check applied to PubNub and is no longer part of the
+Mosquitto setup.
 
 ## Service interruptions — 9 November 2026
 
@@ -163,13 +161,44 @@ Payment and collection status still depend on confirmed server responses.
 Content follows
 the [GOV.UK service problem guidance](https://design-system.service.gov.uk/patterns/problem-with-the-service-pages/).
 
+## Billing verification — 9–10 November 2026
+
+All payments in this record used Stripe test mode. Local automated checks used
+isolated PostgreSQL schemas and mocked Stripe responses.
+
+| Run                                       | Result and scope                                                                                                                                                                     |
+|-------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 9 November: saved payment methods         | 70 tests passed, covering consent, verified storage, duplicate events, lookup retries, mismatched Customers and legacy payments.                                                     |
+| 9 November: daily billing                 | 86 tests passed, covering Dublin clock changes, missed days, competing workers, retries, declined/processing payments and completion races. Migration 003 was applied twice locally. |
+| 10 November: overdue collection           | 87 tests passed before commit `8bba849` was deployed. Collection remained subject to ownership, payment and controller checks.                                                       |
+| 10 November: payment summary              | 89 tests passed, covering mixed statuses, waived amounts, completed rentals and access restrictions. Release `8972ef3` included feature commit `545f1d7`.                            |
+| 10 November: outstanding-payment recovery | 101 tests passed. A local 390 × 844 Chrome preview checked the layout, Finish rental dialogue, double-click handling and checkout failure/retry with simulated Stripe responses.     |
+
+Separate EC2 checks found Customer and PaymentMethod IDs and a saved timestamp
+on the payment records for rentals 41 and 45.
+
+**Manual EC2 billing check, rental 41.** Commit `5e1d586` and migration 003
+were deployed on 9 November. Automatic billing was disabled. After saving a
+backup, the related rental dates were moved back one day to make a EUR 1 charge
+due. Two manual worker runs produced one paid record and one successful
+PaymentIntent receiving 100 cents. The second run reused both records.
+
+A further backed-up date adjustment simulated another missed deadline. The
+worker added one EUR 1 payment for 8 November and retained the 9 November
+payment. Repeating the run left exactly two successful test payments totalling
+EUR 2. The physical controller was not operated during these billing checks.
+
+The renter subsequently completed rental 41; EC2 recorded completion at
+00:08:15 UTC on 10 November. Two further manual runs left those payments
+unchanged and created no additional charge. Automatic billing remained disabled.
+
+**Worker activation.** On 10 November, `UNISTOW_OVERDUE_BILLING=1` was set in
+the backed-up EC2 environment and the app was recreated. Health and HTTPS checks
+passed. No active/overdue rentals or pending charges existed at activation; the
+four paid daily records stayed unchanged. Rental 45 later tested the actual
+deadline, as recorded [below](#after-the-automatic-billing-deadline--rental-45).
+
 ## Extra-day payment summary — 10 November 2026
-
-### Purpose
-
-Make the total understandable by separating the original rental cost from
-extra-day charges. A renter should be able to see which charges have been paid
-and how they contribute to the total.
 
 ### Deployed-site check
 
@@ -198,39 +227,21 @@ successful test-mode extra-day payment.*
 
 This screenshot confirms the paid-charge presentation. It does not verify the
 processing or failed-payment presentation, a physical-phone layout, or automatic
-execution at the next daily deadline. Those distinctions are covered separately
-in the [billing verification notes](database.md#rental-payment-summary).
+execution at the next daily deadline. Local checks are recorded
+[above](#billing-verification--910-november-2026);
+the actual deadline check for rental 45 is [below](#after-the-automatic-billing-deadline--rental-45).
 
 ## Why Finish rental remains available with unpaid charges
 
-During the failed-payment test on 10 November 2026, my first idea was to disable
-Finish rental until the outstanding charge had been paid. This appeared to be
-consistent with preventing further use of a locker when payment was incomplete.
+On 10 November I considered blocking Finish rental until the extra-day charge
+was paid. I kept collection separate from payment so a declined card would not
+trap belongings or force more daily charges to accrue.
 
-On reflection, finishing a rental serves a different purpose: it allows the
-renter to collect their belongings and release the locker. Blocking that action
-could leave important belongings inaccessible because a card was declined, a
-bank was unavailable or the renter could not complete payment at that moment.
-It could also create a cycle in which the renter cannot end the rental, so more
-daily charges accumulate while they are trying to resolve the payment problem.
-
-I therefore chose to keep collection and payment settlement separate. The
-renter can use Finish rental, collect their belongings and close the door.
-Confirmed completion stops new daily charges. It does not waive or erase any
-existing unpaid charge: that balance remains associated with the rental and
-can be settled separately through Pay outstanding.
-
-The intended message explains both actions in ordinary language: the extra-day
-payment did not go through, the remaining balance needs paying, and the renter
-can still finish the rental to stop further charges. Ordinary opening remains
-restricted after the paid period; collection is still subject to ownership,
-confirmed initial payment and controller checks.
-
-This is a deliberate usability decision for UniStow, rather than a claim that
-all storage services use the same policy. It avoids using access to belongings
-as the payment-recovery mechanism while keeping the outstanding balance visible.
-The recovery button was subsequently deployed and verified through Stripe
-test-mode Checkout; the before-and-after evidence is recorded below.
+Confirmed collection ends the rental and stops new charges. Existing debt remains
+payable through **Pay outstanding**. Ordinary opening stays unavailable after
+the paid period; collection still requires ownership, confirmed initial payment
+and a ready controller. The screenshots below show the failed payment and its
+later settlement after collection.
 
 ### Failed-payment evidence — rental 44
 
@@ -275,10 +286,8 @@ received. The original declined PaymentIntent was cancelled with zero received.
 The daily charge was marked paid and the rental remained completed. No new
 payment was created by this verification, and no real money was collected.
 
-These desktop screenshots demonstrate the chosen separation of collection and
-payment settlement: belongings can be collected first, the debt remains visible,
-and payment can be completed afterwards. They do not demonstrate automatic
-billing at a future deadline or a physical-phone check of the recovery flow.
+These desktop captures do not demonstrate automatic billing at a future
+deadline or the recovery flow on a physical phone.
 
 ### Before the automatic billing deadline — rental 45
 
@@ -292,7 +301,7 @@ door is Closed. The total is EUR 1.00, with the rental ending on 10 November
 The automatic test billing worker had been enabled on EC2. A preceding
 read-only database check confirmed the saved payment method, consent version
 and deadline for this rental. The deadline was left unchanged so that the next
-check can observe the passage of time rather than a manually backdated rental.
+check observed a real deadline rather than a manually backdated rental.
 
 Expected result after 18:00 Europe/Dublin: one EUR 1 test charge for the extra
 day, Extra days · paid EUR 1.00 and a total of EUR 2.00. Subsequent automatic
@@ -326,53 +335,22 @@ opening over MQTT needs a separate test with an active rental.
 
 ### Recent completed rentals — issue #17
 
-I initially considered showing only the last completed rental. I chose the last
-five instead because a renter may notice a mistake later: they may have left
-belongings inside and finished the rental, remembered an earlier visit, or
-noticed that something was missing and wanted to report a possible theft.
-These are reasons to help the renter identify the relevant booking, not proof
-that a theft occurred.
+I chose five recent completed rentals so a renter can identify an earlier visit
+when reporting forgotten belongings or another concern. Each entry contains
+the rental reference, locker number and completion time in Europe/Dublin.
+The display limit does not delete older database records. Completed rentals
+with outstanding charges remain accessible for payment even outside the last five.
 
-The renter needs a clear rental reference, locker number and completion time
-to explain the situation over the phone. Five recent entries provide useful
-context without filling My rentals with the entire history. Current rentals
-remain above the completed list, with distinct status text. Completion times
-are displayed in Europe/Dublin time, and the support link opens the existing
-phone contact page.
+Local PostgreSQL fixtures covered completion ordering, seven rentals reduced to
+five entries, repeated loads, an empty current list, restored sessions and owner-only
+access. A 390 × 844 Chrome preview showed no horizontal overflow. These were
+local checks; the signed-out/signed-in check on the deployed site remains in the
+[submission checklist](implementation-plan.md#additional-prototype-testing).
 
-The five-entry limit applies only to the recent-history display. Older records
-are not deleted. An authorised operator can investigate the full stored history
-through controlled database access; this change does not introduce an operator
-history interface. Completed rentals with outstanding charges remain accessible
-for payment even if they fall outside the last five. They cannot be reopened or
-finished again through the completed-rental page.
-
-Local verification uses isolated PostgreSQL fixtures: seven completed rentals
-are inserted with completion times in a different order from their IDs. Only
-the latest five appear in completion order after repeated page loads. Checks
-also cover an empty current list, restoration of the owner's session, another
-account being denied the rental details, and absence of opening and finishing
-controls on completed rentals. The existing session test is updated to isolate
-both current and completed rental queries.
-
-A local Chrome preview at 390 × 844 shows five completed entries without
-horizontal overflow. These are local checks with synthetic rentals, not an EC2
-or physical-phone acceptance result. The history view is included in the
-deployed release. A signed-out/signed-in check on the deployed site remains.
-
-### Make completed history informational rather than actionable
-
-After checking the history on a phone, the renter found that clickable completed
-entries suggested there was still something to manage. Their detail pages also
-showed the current door state, which is not historical evidence about that rental.
-
-Completed entries now use muted grey, non-clickable summaries with the rental
-reference, locker number and completion time. They have no arrow or hover effect.
-The support link remains available for forgotten belongings or later concerns.
-Only an outstanding payment has a separate actionable link. Existing completed
-rental detail URLs no longer display the door state, and rental details link back
-to My rentals. Future email confirmations will complement these references;
-they do not remove the need to identify a recent rental on the website.
+After a phone review, completed entries became muted, non-clickable summaries.
+They no longer imply that the renter can reopen or finish the rental. Only an
+outstanding payment has a separate action, and completed detail pages no longer
+display the current door state. Support remains available through Contact.
 
 ## 22 November 2026 — Unpaid-balance restriction
 
@@ -385,30 +363,24 @@ been completed by the author before the updated application was checked.
 
 ### Account balance and locker availability
 
-The home-page notice shows **Balance to settle**, EUR 1.00 unpaid and a link to **Rental #50 · Locker 5**. The
-underlined, bold rental link has no list bullet or
-repeated payment caption beneath it. The notice explains the restriction on new
-rentals, retained
-paid access and collection, and how to contact support about an incorrect
-balance. The filter shows **All lockers 9** and **Available 0**. The visible
-locker cards are grey; completed debt is no longer presented as **Continue rental**.
-Existing current rentals retain their management link and normal access checks.
+The home page shows **Balance to settle**, EUR 1.00 unpaid and a link to **Rental #50 · Locker 5**. It explains the
+booking restriction, retained paid
+access/collection and support. **Available 0** and grey cards reflect the restriction;
+completed debt is no longer labelled **Continue rental**. Current rentals retain
+their management links and normal access checks.
 
 ![Updated home page showing the spaced balance notice, underlined rental link and Available 0](images/testing/unpaid-balance-ec2-lockers.png)
 
-The home-page content now matches the width and side padding of My rentals and
-Contact. The notice also has the same gap below the header on both pages.
-The layout check confirmed matching 544-pixel content widths in a 1512-pixel
-viewport and 320-pixel content widths in a 360-pixel viewport, without horizontal
-overflow. All four captures use the same narrow-screen viewport.
+The layout check found matching content widths across the home, My rentals and
+Contact pages: 544 pixels at a 1512-pixel viewport and 320 pixels at 360 pixels,
+without horizontal overflow.
 
 ### Balance above rental history
 
-My rentals places the same pale red notice above **No current rentals** and **Recently completed**. The panel uses
-square corners and a uniform one-pixel
-border. Completed rental summaries also use square corners following the
-author's visual review. Colour is accompanied by explanatory text, amounts
-and links, following the [W3C guidance on use of colour](https://www.w3.org/WAI/WCAG21/Understanding/use-of-color.html).
+My rentals places the pale red notice above **No current rentals** and **Recently completed**. The panel and history
+cards use square corners. Text,
+amounts and links accompany colour, following
+the [W3C guidance on use of colour](https://www.w3.org/WAI/WCAG21/Understanding/use-of-color.html).
 A separate amber treatment is used for payments awaiting confirmation without
 a confirmed unpaid balance; that state is not shown in these captures.
 
@@ -438,10 +410,8 @@ recovery action appear directly below the header.
 ### EC2 check: debt on Locker 5 blocks a new Locker 4 rental
 
 Earlier functional verification passed all 113 backend tests with isolated
-local PostgreSQL schemas and mocked Stripe responses. An existing payment-summary
-assertion now accepts whitespace
-between Payment and processing, matching the text rendered by the browser.
-The page tests cover completed debt on another locker, disabled cards,
+local PostgreSQL schemas and mocked Stripe responses. The page tests cover
+completed debt on another locker, disabled cards,
 balance notice placement, pending-payment styling and availability restoration
 after the test charge is waived. Existing paid-rental access remains covered.
 Earlier local browser checks also confirmed that settling all preview balances

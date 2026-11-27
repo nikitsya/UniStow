@@ -6,10 +6,9 @@ pin numbers on the header when reconnecting the prototype.
 
 ## Wiring diagram
 
-Open [unistow-wiring.fzz](unistow-wiring.fzz) in Fritzing and select **Breadboard**. The diagram uses a half+ breadboard
-and shows the Locker 4
-servo and magnetic door contact. An [SVG export](../docs/images/hardware/unistow-wiring.svg)
-is also available.
+Open [unistow-wiring.fzz](unistow-wiring.fzz) in Fritzing and select **Breadboard**.
+The diagram uses a half+ breadboard and shows the Locker 4 servo and magnetic
+door contact. The PNG export is shown below.
 
 ![Locker 4 breadboard wiring](../docs/images/hardware/unistow-wiring.png)
 
@@ -94,7 +93,7 @@ see [database setup](../docs/database.md#initial-setup).
    automatically.
 
 Reports arrive every two seconds. After 15 seconds without a report, the device is
-treated as offline, the door reads `Unknown` and opening is unavailable. Door closed does not prove the latch is locked.
+treated as offline, the door reads `Unknown` and opening is unavailable.
 HTTP is for this trusted local prototype only; use HTTPS on untrusted networks.
 Do not forward port 8000 on the router or expose pigpiod to the network.
 Stop the reporting script before running the locker test.
@@ -113,13 +112,11 @@ or after the latch has settled. The controller waits for a full second of
 continuous closed readings before lowering it again. After three failed retries
 it leaves the latch retracted for assistance. Mount the sensor so it reports
 closed only when the door is seated and the latch can clear the frame. **Finish rental** requires
-a closed door and a ready controller. Local closing continues if the network connection drops. Opening requests expire
-after
-10 seconds and are dispatched only once. Wait for the button to become available
+a closed door and a ready controller. Local closing continues if the network connection drops.
+Opening requests expire after 10 seconds and are dispatched only once. Wait for the button to become available
 before requesting another opening.
 Opening is limited to the paid rental period. An overdue renter can still request collection.
 For automatic controller startup, follow the section below.
-The sensor reports the door position, not confirmation that the latch is locked.
 
 ## Start pigpiod automatically
 
@@ -173,11 +170,9 @@ needs checking by the operator. Use the Contact page if the controller is unavai
 This service uses the Pi user `nikitsya` and expects `run_locker.py`,
 `locker_mqtt.py` and `device_config.json` in `/home/nikitsya/Desktop`.
 Stop all GPIO scripts in Thonny and close the door before starting the service.
-Copy `uniflow-locker.service` to the Pi Desktop, then run in the Pi terminal:
-
-When upgrading an existing installation, stop and disable the previously installed
-locker controller service before enabling this one. Only one controller service
-must run at a time. Keep the existing device key in `device_config.json`.
+Copy `uniflow-locker.service` to the Pi Desktop. The commands below disable earlier
+controller services before starting this one. Keep the existing device key in
+`device_config.json` and run only one controller at a time.
 
 ```bash
 sudo install -m 644 ~/Desktop/uniflow-locker.service /etc/systemd/system/uniflow-locker.service
@@ -199,10 +194,10 @@ Expected: `active`. Check messages with:
 journalctl -u uniflow-locker.service -b --no-pager -n 20
 ```
 
-On the deployed Locker 4, `pigpiod` and `uniflow-locker` start at boot. The
-existing unit runs `/usr/bin/python3`, with Paho installed for the service
-user. On 10 November 2026 a service restart reconnected it to the EC2 broker
-and resumed door readings. To check after a power cycle, run
+The supplied unit runs `/home/nikitsya/.venvs/unistow/bin/python`; install the
+virtual environment described above before enabling it. The 10 November
+deployment used `/usr/bin/python3`, so update the unit when adopting this version.
+To check after a power cycle, run
 `systemctl is-active pigpiod uniflow-locker` on the Pi and open the rental
 page to check that the displayed door state follows the sensor.
 

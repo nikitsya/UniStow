@@ -187,12 +187,11 @@ with the current schema before preparing an update.
 ### Unpaid-balance rollout on 22 November 2026
 
 EC2 was updated from merged commit `5243267` with the local changes on
-`master`: clearer balance styling, unavailable booking
-cards and the associated test updates. These additional changes remain local
-for review and have not been pushed to GitHub. The release manifest at
+`master`: clearer balance styling, unavailable booking cards and test updates.
+At deployment time, those additional changes had not yet been pushed to GitHub.
+The release manifest at
 `/opt/unistow/release-issue19.json` records the source archive checksum and
-deployed image. The final presentation uses square corners and an equal-width
-border on all four sides, as requested by the author.
+deployed image.
 
 The previous application image and source were retained under
 `/var/backups/unistow/issue19-20261122T023222`. A private database backup was
@@ -266,8 +265,9 @@ physical mode, EC2 received a fresh `open` reading with `ready=true`. The live
 FastAPI container connected as `unistow-app` with `UNISTOW_MQTT_OPEN=1`, and
 the public site returned HTTP 200. After the prototype wiring was corrected, the
 broker received `closed` and PostgreSQL recorded rental 45 as completed at
-22:45 Dublin time. A physical opening from the website during an active paid
-rental still needs to be demonstrated with Mosquitto.
+22:45 Dublin time. That check did not demonstrate ordinary website opening during
+an active paid rental; the Mosquitto demonstration remains in the
+[submission checklist](../docs/implementation-plan.md#assessment-checklist).
 
 EC2 instance metadata identified `launch-wizard-2` as the attached security
 group. If the Pi moves to a different network, check that this group allows
@@ -300,11 +300,10 @@ attempt to publish to the other client's topic.
 
 ## Daily overdue test billing
 
-Before enabling daily test charges, ensure the database matches the current schema.
-Set `UNISTOW_OVERDUE_BILLING=1` in `.env.production` and recreate the app
-container. The default is 0. The worker runs every minute and uses a database
-lock to coordinate multiple application processes. See the
-[billing rules and verification](../docs/database.md#daily-test-billing).
+Follow the [worker configuration and billing rules](../docs/database.md#daily-test-billing).
+For production, set the flag in `.env.production` and recreate the app container.
+The [rental 45 record](../docs/usability-testing.md#after-the-automatic-billing-deadline--rental-45)
+documents the deadline check; use Stripe sandbox keys for commissioning.
 
 ## Outstanding payment recovery
 
