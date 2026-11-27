@@ -219,6 +219,8 @@ A read-only SSH check of the running EC2 deployment confirmed:
 
 ![MQTT authentication check on 27 November showing successful app login and rejection of an anonymous connection](../docs/images/deployment/unistow-mqtt-authentication-2026-11-27.png)
 
+![MQTT broker configuration and topic access rules on 27 November showing anonymous access disabled and separate command and event permissions for the app and device](../docs/images/deployment/unistow-mqtt-access-rules-2026-11-27.png)
+
 Compared with repository commit `c950b85`, 17 of the 22 backend Python files
 matched byte for byte. The other five differed only in whitespace and line
 wrapping; their parsed Python syntax trees were identical. The production
