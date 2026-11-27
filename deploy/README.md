@@ -209,6 +209,8 @@ A read-only SSH check of the running EC2 deployment confirmed:
 
 ![UniStow EC2 instance summary on 27 November showing Running and IMDSv2 Required](../docs/images/deployment/unistow-ec2-instance-summary-2026-11-27.png)
 
+![EC2 containers on 27 November showing four running services, app and database health, and published ports](../docs/images/deployment/unistow-ec2-containers-2026-11-27.png)
+
 Compared with repository commit `c950b85`, 17 of the 22 backend Python files
 matched byte for byte. The other five differed only in whitespace and line
 wrapping; their parsed Python syntax trees were identical. The production
