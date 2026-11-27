@@ -727,5 +727,9 @@ completed rentals.
 |-----------------------|-------------------------------|
 | ![Reservation 62 showing Cancelled and Not paid, with payment and cancellation controls removed](images/testing/rental-62-cancelled-2026-11-27.png) | ![My rentals showing no current rentals and retained completed history after cancelling reservation 62](images/testing/rental-62-my-rentals-after-cancellation-2026-11-27.png) |
 
-Dialogue dismissal and cancellation passed. Restored availability on the
-Lockers page remains to be captured separately.
+The final Lockers capture showed the **Available** filter selected with a count
+of **1**, displaying Locker 4 as **Available** at **EUR 1.00 per day**. This
+confirms that displayed availability was restored after cancelling reservation
+#62. Dialogue dismissal, cancellation and restored availability passed.
+
+![Lockers page after cancelling reservation 62, showing Available 1 and Locker 4 available at EUR 1.00 per day](images/testing/locker-4-available-after-cancellation-62-2026-11-27.png)
