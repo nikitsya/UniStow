@@ -446,3 +446,16 @@ The author's main account had no unpaid or processing balance and remained
 eligible to book. This confirmed that a debt on Locker 5 blocks new rentals
 of other lockers for the same account, while another account remains free
 of that balance restriction.
+
+## 27 November 2026 — Locker availability before booking
+
+The author supplied a capture of the Lockers page showing **All lockers 9**
+and **Available 1**. Locker 4 was labelled **Small**, **EUR 1.00 per day** and
+**Available**; the other fully visible cards were labelled **Unavailable**.
+
+![Lockers page on 27 November showing Locker 4 available at EUR 1.00 per day and one available locker out of nine](images/testing/locker-4-available-2026-11-27.png)
+
+This records the displayed availability before booking, not a completed rental
+or physical opening. The capture does not include the browser address bar.
+Separate HTTPS and device checks are recorded in the
+[27 November architecture verification](../deploy/README.md#architecture-check-on-27-november-2026).
