@@ -172,7 +172,8 @@ To include database tests, start PostgreSQL and prefix the command with
 - `hardware/` — Pi scripts, configuration example and systemd services.
 - [Database](docs/database.md), [implementation plan](docs/implementation-plan.md)
   and [AI assistance log](docs/AI_Chat_Log.md).
-- [AI usage cover sheet](output/pdf/unistow-ai-usage-cover-sheet.pdf) for the individual IoT submission.
+- [AI usage cover sheet](docs/submission/ai-usage-cover-sheet.pdf) for the individual IoT submission.
+- [Completed CA cover sheet](docs/submission/ca-cover-sheet.pdf) for the individual IoT submission.
 
 The daily EUR 1 overdue billing worker runs on EC2 in Stripe test mode. On a new
 installation the worker is off by default. See the [billing instructions](docs/database.md#daily-test-billing).

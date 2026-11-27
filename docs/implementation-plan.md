@@ -35,8 +35,8 @@ Use this checklist alongside the original brief before submitting to Moodle.
   sensor connections. Check it against the physical wiring.
 - [ ] Record the screencast: explain the code and architecture, demonstrate the
   deployed application and secured MQTT exchange live, and discuss known issues.
-- [ ] Complete the CA cover sheet and review the
-  [AI usage cover sheet](../output/pdf/unistow-ai-usage-cover-sheet.pdf). Bring the
+- [ ] Review the completed [CA cover sheet](submission/ca-cover-sheet.pdf) and the
+  [AI usage cover sheet](submission/ai-usage-cover-sheet.pdf). Bring the
   [AI chat log](AI_Chat_Log.md) up to date before submission.
 - [ ] Include the GitHub repository link in the submission README, verify the
   lecturer has access and commit the final project files.
