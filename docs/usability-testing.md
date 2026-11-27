@@ -673,3 +673,31 @@ ajar, without another **Open locker** request, and held the door shut after it
 was fully closed. The journal records controller commands and reported sensor
 states; the physical movement and secure closure were checked by the author.
 The manual light-closure and recovery test passed.
+
+## 27 November 2026 — Resuming an unpaid reservation on a phone (#62)
+
+The author reserved Locker 4 without starting payment, signed out and signed
+back into the same account on a physical phone. Reservation **#62** remained
+**Pending** and **Not paid**, with a one-day period ending at **18:00 on
+28 November 2026** and a total of **EUR 1.00**.
+
+The signed-out account menu offered **Create account** and **Sign in**, and
+Locker 4 appeared unavailable. After signing in, the account menu offered
+**Sign out** and the locker card showed **Continue rental**. Reopening it
+returned to the same unpaid reservation.
+
+| Signed out | Signed back in |
+|------------|----------------|
+| ![Signed-out account menu offering Create account and Sign in, with Locker 4 unavailable](images/testing/rental-62-signed-out-2026-11-27.png) | ![Signed-in account menu and Locker 4 offering Continue rental](images/testing/rental-62-signed-in-2026-11-27.png) |
+
+The supplied reservation-detail captures before and after signing in are
+identical; one copy is retained below.
+
+![Reservation 62 before and after signing in, showing Pending, Not paid, one day and EUR 1.00](images/testing/rental-62-pending-before-and-after-sign-in-2026-11-27.png)
+
+The author also confirmed that pulling down to refresh on the phone preserved
+reservation #62 and the completed-rental history in **My rentals**. The captures
+show the account and reservation states; the refresh gesture and retained
+history are recorded from the author's manual check. Reservation resumption,
+refresh and history retention passed. Dialogue dismissal and cancellation
+remain to be checked separately.

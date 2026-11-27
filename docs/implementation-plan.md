@@ -52,8 +52,10 @@ The viva is on **9 December 2026 at 14:00 in P1111**.
   after payment.
   The [27 November two-account check](usability-testing.md#27-november-2026--availability-between-two-accounts-60)
   records the author's reservation result and screenshots of the paid phase.
-- [ ] On a phone, check pull-to-refresh, dialogue dismissal, cancellation and
-  resuming a valid unpaid reservation after signing out and back in. Verify
-  that recent history remains visible after signing back in.
+- [x] On a phone, check pull-to-refresh and resuming an unpaid reservation after
+  signing out and back in, with recent history retained. The
+  [reservation #62 check](usability-testing.md#27-november-2026--resuming-an-unpaid-reservation-on-a-phone-62)
+  records the screenshots and the author's phone refresh and history check.
+- [ ] On a phone, check dialogue dismissal and reservation cancellation.
 - [ ] Check the extra-day summary and outstanding-payment flow on a physical phone;
   the existing billing screenshots and browser previews do not establish this.
