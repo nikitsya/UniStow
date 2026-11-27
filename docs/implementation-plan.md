@@ -9,9 +9,13 @@ work still needed for the individual IoT submission.
 The individual IoT assessment is due on **8 December 2026 at 17:00 (Ireland time)**.
 Use this checklist alongside the original brief before submitting to Moodle.
 
-- [ ] Check the [architecture diagram](../README.md#current-stack) against the
-  deployed system. Explain TLS, device authentication, MQTT topic permissions,
-  restricted server access and EBS encryption at rest in the demonstration.
+- [ ] Finish checking the [architecture diagram](../README.md#current-stack)
+  against the deployed system. The
+  [EC2 code, configuration and TLS checks](../deploy/README.md#architecture-check-on-27-november-2026)
+  passed on 27 November; current AWS security group rules, EBS settings and the
+  running Pi still need verification. Explain TLS, device authentication, MQTT
+  topic permissions, restricted server access and encryption at rest in the
+  demonstration.
 - [ ] Check the existing [Fritzing sketch](../hardware/unistow-wiring.fzz) and
   [wiring guide](../hardware/README.md#wiring-diagram) against the physical leads,
   including the Pi 5V and ground connections.

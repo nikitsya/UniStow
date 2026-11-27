@@ -169,6 +169,42 @@ This evidence covers the EC2 volume only. See the
 [device security limitations](../hardware/README.md#device-credentials-and-physical-access)
 for credential storage and unverified protection on the Raspberry Pi.
 
+## Architecture check on 27 November 2026
+
+A read-only SSH check of the running EC2 deployment confirmed:
+
+- FastAPI, PostgreSQL, Nginx and Mosquitto were running. The app and database
+  containers passed their configured health checks.
+- The public website returned HTTP 200 over verified HTTPS. The Nginx
+  configuration enables upstream certificate verification; a separate request
+  to FastAPI using its trusted certificate also returned HTTP 200.
+- An async SQLAlchemy connection used `PGSSLMODE=verify-full`.
+  PostgreSQL's `pg_stat_ssl` reported TLS 1.3 for that connection.
+- The MQTT certificate passed hostname and trust verification over TLS 1.3.
+  The app identity connected successfully; an anonymous connection was rejected.
+  Broker and topic ACL files matched the repository configuration.
+- Docker published only ports 80, 443 and 8883. The database network was
+  internal, with neither PostgreSQL's port 5432 nor FastAPI's port 8000
+  published. The production environment file, broker password file and the
+  MQTT, app and database private key files all had permissions `600`.
+- Instance metadata identified `launch-wizard-2` and rejected a request
+  without an IMDSv2 token with HTTP 401.
+
+Compared with repository commit `c950b85`, 17 of the 22 backend Python files
+matched byte for byte. The other five differed only in whitespace and line
+wrapping; their parsed Python syntax trees were identical. The production
+Compose file, Nginx configuration, broker configuration, topic ACL and
+PostgreSQL TLS access rules also matched byte for byte. Physical MQTT opening
+and overdue billing were enabled; delivery-test mode was disabled, and the
+Stripe key was a sandbox key.
+
+The current AWS security group rules and EBS encryption settings still need
+checking in the AWS Console, which required sign-in. The encryption evidence
+above remains the observation from 6 November. The Pi responded to SSH, but
+authentication was not completed, so its service, file permissions and storage
+were not verified. This check did not exercise the physical locker or make a
+payment.
+
 ## Backups and updates
 
 Before an update, take a database backup and copy it to a separate secure location:
