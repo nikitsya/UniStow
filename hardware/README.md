@@ -114,10 +114,17 @@ A further check of the configuration file and established TCP connections showed
 
 ![Pi configuration and established TCP connection on 27 November showing the HTTPS address, physical MQTT mode, credential presence and connection to the EC2 broker](../docs/images/hardware/unistow-pi-network-check-2026-11-27.png)
 
+The EC2 app log showed five recent `POST /api/device/heartbeat` requests returning
+HTTP 200. At 19:52:38 UTC, PostgreSQL recorded Locker 4 as `closed` and
+`device_ready = true`, with its last heartbeat 1.8 seconds earlier. This confirms
+fresh updates through the API endpoint protected by the device key; it is not
+an independent check of the physical latch.
+
+![EC2 heartbeat evidence on 27 November showing successful device API requests and a Locker 4 database update 1.8 seconds before the check](../docs/images/hardware/unistow-pi-heartbeat-2026-11-27.png)
+
 The socket listing does not show the negotiated TLS version or MQTT messages.
-Fresh HTTPS heartbeats and MQTT telemetry from the running controller still
-need to be evidenced. These checks did not exercise a physical opening or
-collection cycle.
+Fresh MQTT telemetry from the running controller still needs to be evidenced.
+These checks did not exercise a physical opening or collection cycle.
 
 ## Optional local sensor test
 

@@ -235,9 +235,10 @@ and [EBS encryption](#storage-encryption). The author also supplied
 The Pi's running unit uses the system Python interpreter rather than the virtual
 environment in the supplied unit. Its configuration file specifies the production
 HTTPS address and physical MQTT mode, and its controller process had an established
-TCP connection to the broker on port 8883. Fresh HTTPS heartbeats and MQTT telemetry
-from the running controller still need to be evidenced. These checks did not
-exercise the physical locker or make a payment.
+TCP connection to the broker on port 8883. Successful heartbeat requests and a
+database update 1.8 seconds before the check confirmed fresh device API activity.
+Fresh MQTT telemetry from the running controller still needs to be evidenced.
+These checks did not exercise the physical locker or make a payment.
 
 ## Backups and updates
 
