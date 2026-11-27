@@ -215,6 +215,8 @@ A read-only SSH check of the running EC2 deployment confirmed:
 
 ![HTTPS checks on 27 November showing HTTP 200 and successful certificate verification for the public website and internal FastAPI endpoint](../docs/images/deployment/unistow-https-verification-2026-11-27.png)
 
+![MQTT TLS check on 27 November showing TLS 1.3 and successful certificate and hostname verification for unistow.app on port 8883](../docs/images/deployment/unistow-mqtt-tls-2026-11-27.png)
+
 Compared with repository commit `c950b85`, 17 of the 22 backend Python files
 matched byte for byte. The other five differed only in whitespace and line
 wrapping; their parsed Python syntax trees were identical. The production
