@@ -22,7 +22,7 @@ for the security settings and EC2 evidence.
 
 ## Assessment checklist
 
-The individual IoT assessment is due on **8 December 2026 at 23:55**.
+The individual IoT assessment is due on **8 December 2026 at 17:00 (Ireland time)**.
 Use this checklist alongside the original brief before submitting to Moodle.
 
 - [ ] Record an end-to-end run with the empty physical locker: sign in, reserve,
@@ -35,8 +35,9 @@ Use this checklist alongside the original brief before submitting to Moodle.
   sensor connections. Check it against the physical wiring.
 - [ ] Record the screencast: explain the code and architecture, demonstrate the
   deployed application and secured MQTT exchange live, and discuss known issues.
-- [ ] Complete the CA cover sheet and AI usage cover sheet. Bring the
-  [AI chat log](AI_Chat_Log.md) up to date.
+- [ ] Complete the CA cover sheet and review the
+  [AI usage cover sheet](../output/pdf/unistow-ai-usage-cover-sheet.pdf). Bring the
+  [AI chat log](AI_Chat_Log.md) up to date before submission.
 - [ ] Include the GitHub repository link in the submission README, verify the
   lecturer has access and commit the final project files.
 - [ ] Package the source, diagrams, recording and required documents in one ZIP
