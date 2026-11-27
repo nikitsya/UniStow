@@ -4,6 +4,34 @@ The door contact connects GPIO17 (physical pin 11) to ground when closed.
 The servo receives its control signal on GPIO18 (physical pin 12). Check the
 pin numbers on the header when reconnecting the prototype.
 
+## Wiring diagram
+
+Open [unistow-wiring.fzz](unistow-wiring.fzz) in Fritzing and select **Breadboard**. The diagram uses a half+ breadboard
+and shows the Locker 4
+servo and magnetic door contact. An [SVG export](../docs/images/hardware/unistow-wiring.svg)
+is also available.
+
+![Locker 4 breadboard wiring](../docs/images/hardware/unistow-wiring.png)
+
+| Connection    | Raspberry Pi header                | Breadboard connection                           | Wire colour |
+|---------------|------------------------------------|-------------------------------------------------|-------------|
+| Servo supply  | 5V, physical pin 2 in the diagram  | Positive rail to servo VCC                      | Red         |
+| Common ground | GND, physical pin 6 in the diagram | Negative rail to servo GND and door contact     | Black       |
+| Servo pulse   | GPIO18, physical pin 12            | Row 12, A to E, then servo signal               | Yellow      |
+| Door contact  | GPIO17, physical pin 11            | Row 20, A to E, then contact; other lead to GND | Green       |
+
+The author confirmed that the servo is powered from the Raspberry Pi 5V
+supply through the breadboard. The drawing uses physical pins 2 and 6 for
+power and ground; check these two positions against the actual leads before
+using the diagram as an exact wiring record. Breadboard rows and wire
+colours are diagram conventions, rather than a record of the physical layout.
+
+The Pi 4B library symbol represents the Pi 400's 40-pin GPIO connections;
+it does not represent the Pi 400 case. The servo and reed switch are generic
+symbols for the SG92R and the magnetic door contact. The controller enables
+the internal pull-up on GPIO17, so the closed contact connects the input to
+GND. It reports door position, not proof that the latch is locked.
+
 ## Python dependencies
 
 Hardware dependencies are listed separately in `requirements.txt`.
