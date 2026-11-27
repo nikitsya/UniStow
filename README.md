@@ -62,19 +62,38 @@ Other images are grouped into [deployment evidence](docs/images/deployment/),
 | Hosting           | AWS EC2, Nginx and Let's Encrypt certificates                                     |
 | Device connection | Eclipse Mosquitto (MQTT over TLS) for opening and telemetry, HTTPS for collection |
 
+The diagram shows the production configuration defined in this repository.
+
 ```mermaid
 flowchart LR
-    Browser -->|HTTPS| Proxy[Nginx on EC2]
-    Proxy -->|HTTPS| App[FastAPI]
-    App -->|TLS| DB[(PostgreSQL in Docker)]
-    App -->|Checkout| Stripe[Stripe sandbox]
+   subgraph EC2["AWS EC2 · Docker"]
+      Proxy[Nginx]
+      App[FastAPI]
+      DB[(PostgreSQL)]
+      Broker[Eclipse Mosquitto]
+   end
+   Browser[Web browser] -->|HTTPS| Proxy
+   Proxy -->|Internal HTTPS| App
+   App -->|SQL over TLS| DB
+   Browser -->|HTTPS hosted Checkout| Stripe[Stripe sandbox]
+   App -->|HTTPS API requests| Stripe
     Stripe -->|HTTPS webhook| Proxy
-    App <-->|MQTT over TLS| Broker[Eclipse Mosquitto on EC2]
-    Broker <-->|MQTT over TLS| Pi[Raspberry Pi]
-    Pi -->|HTTPS heartbeat and collection| Proxy
-    Pi --> Latch[Servo latch]
-    Sensor[Door sensor] --> Pi
+   App -->|MQTT/TLS: opening commands| Broker
+   Broker -->|MQTT/TLS: opening commands| Pi[Raspberry Pi 400]
+   Pi -->|MQTT/TLS: door state and acknowledgements| Broker
+   Broker -->|MQTT/TLS: door state and acknowledgements| App
+   Pi -->|HTTPS: heartbeat and collection| Proxy
+   Pi -->|GPIO18: control pulses| Latch[Servo latch]
+   Sensor[Door sensor] -->|GPIO17: contact state| Pi
 ```
+
+FastAPI publishes opening commands to `unistow/locker-4/commands`. The Pi
+subscribes to that topic and publishes door readings and opening acknowledgements
+to `unistow/locker-4/events`, which FastAPI subscribes to. Both MQTT connections
+use TLS. Separately, the Pi sends HTTPS heartbeats, polls for collection commands
+and acknowledges collection after verifying that the door has closed. Collection
+commands return in the polling response. Nginx forwards these requests to FastAPI
+over internal HTTPS; FastAPI uses async SQLAlchemy to access PostgreSQL over TLS.
 
 Passwords use Argon2; session tokens are stored as hashes. Sessions last 24 hours and
 use an HttpOnly cookie, with Secure enabled on HTTPS. Rental access requires ownership
