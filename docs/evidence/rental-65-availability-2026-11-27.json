@@ -1,0 +1,14 @@
+{
+  "checked_at_utc": "2026-11-27T23:39:28.521242+00:00",
+  "source": "GET https://unistow.app/api/lockers (curl, certificate verification enabled)",
+  "locker": {
+    "id": 4,
+    "number": 4,
+    "name": "Locker 4",
+    "size": "Small",
+    "price_per_day_cents": 100,
+    "status": "available",
+    "door_state": "closed",
+    "last_seen_at": "2026-11-27T23:39:27.018963Z"
+  }
+}

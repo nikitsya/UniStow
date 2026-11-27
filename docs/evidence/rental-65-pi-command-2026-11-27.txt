@@ -1,0 +1,5 @@
+Author-supplied Raspberry Pi terminal output, 27 November 2026
+The observer subscribed to commands with the device identity; it did not publish or actuate the servo.
+
+READY
+2026-11-27T23:36:19.750586+00:00 unistow/locker-4/commands {"type": "open", "id": "6ee62ab8-3287-4b19-83b0-86f1ae05e158", "expires_at": 1795822589.718736}

@@ -42,6 +42,15 @@ The viva is on **9 December 2026 at 14:00 in P1111**.
 
 ## Additional prototype testing
 
+- [x] Run the full backend suite with local PostgreSQL and record the result.
+  The [27 November regression](usability-testing.md#27-november-2026--full-backend-regression-with-local-postgresql)
+  passed all 122 tests without skips, using isolated schemas and mocked Stripe
+  and device operations.
+- [x] Correlate a physical opening with the MQTT command, acknowledgement, door
+  readings and stored state, then verify collection and restored availability.
+  The [rental #65 check](usability-testing.md#27-november-2026--correlated-mqtt-and-collection-check-65)
+  records both MQTT topics, the PostgreSQL transitions, the collection
+  acknowledgement and the author's successful physical cycle.
 - [x] Repeat the disconnected-controller test with Mosquitto. The
   [27 November check](usability-testing.md#27-november-2026--controller-interruption-and-restart-61)
   records the offline state, an interrupted opening and service recovery. The

@@ -1,0 +1,15 @@
+BEGIN
+-[ RECORD 1 ]-----------------+-------------------------------------
+rental_id                     | 65
+rental_status                 | completed
+payment_status                | paid
+total_price_cents             | 100
+rental_completed_at           | 2026-11-27 23:37:41.714064+00
+collection_command_id         | 1ee30f9a-4304-48e3-b49c-a5d966e0a7d3
+dispatched_at                 | 2026-11-27 23:36:57.250482+00
+acknowledgement_recorded_at   | 2026-11-27 23:37:41.71519+00
+door_state                    | closed
+device_ready                  | t
+unfinished_rentals_for_locker | 0
+
+COMMIT

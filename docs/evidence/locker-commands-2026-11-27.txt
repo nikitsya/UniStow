@@ -1,0 +1,86 @@
+Read-only EC2 PostgreSQL verification on 27 November 2026
+Locker 4, rentals 59 and 61. All displayed timestamps are UTC.
+Open commands do not populate completed_at; this field records collection completion.
+
+BEGIN
+-[ RECORD 1 ]-------+-------------------------------------
+rental_id           | 59
+command_id          | 85565a31-5cb6-4455-9013-b61689f08eba
+action              | open
+created_at          | 2026-11-27 20:04:12.516366+00
+dispatched_at       | 2026-11-27 20:04:12.516366+00
+completed_at        | 
+rental_status       | completed
+rental_completed_at | 2026-11-27 20:05:48.05678+00
+-[ RECORD 2 ]-------+-------------------------------------
+rental_id           | 59
+command_id          | 8c22475c-2da0-443a-ab9b-d90bbb96a6fe
+action              | open
+created_at          | 2026-11-27 20:04:33.315077+00
+dispatched_at       | 2026-11-27 20:04:33.315077+00
+completed_at        | 
+rental_status       | completed
+rental_completed_at | 2026-11-27 20:05:48.05678+00
+-[ RECORD 3 ]-------+-------------------------------------
+rental_id           | 59
+command_id          | d4c20ebe-81bc-4b1b-9937-0966876e1840
+action              | finish
+created_at          | 2026-11-27 20:05:24.432722+00
+dispatched_at       | 2026-11-27 20:05:25.930366+00
+completed_at        | 2026-11-27 20:05:48.0583+00
+rental_status       | completed
+rental_completed_at | 2026-11-27 20:05:48.05678+00
+-[ RECORD 4 ]-------+-------------------------------------
+rental_id           | 61
+command_id          | d6bbc77e-720e-4fd5-886e-b1746e222fdf
+action              | open
+created_at          | 2026-11-27 20:28:14.742193+00
+dispatched_at       | 2026-11-27 20:28:14.742193+00
+completed_at        | 
+rental_status       | completed
+rental_completed_at | 2026-11-27 22:49:40.505321+00
+-[ RECORD 5 ]-------+-------------------------------------
+rental_id           | 61
+command_id          | 17250a85-8440-47b9-a3f8-a254b9acdea1
+action              | open
+created_at          | 2026-11-27 20:29:05.106923+00
+dispatched_at       | 2026-11-27 20:29:05.106923+00
+completed_at        | 
+rental_status       | completed
+rental_completed_at | 2026-11-27 22:49:40.505321+00
+-[ RECORD 6 ]-------+-------------------------------------
+rental_id           | 61
+command_id          | b7587104-bf6d-4174-975d-4b36c598aa05
+action              | open
+created_at          | 2026-11-27 22:45:23.268015+00
+dispatched_at       | 2026-11-27 22:45:23.268015+00
+completed_at        | 
+rental_status       | completed
+rental_completed_at | 2026-11-27 22:49:40.505321+00
+-[ RECORD 7 ]-------+-------------------------------------
+rental_id           | 61
+command_id          | 131f26ab-3b68-4544-ae9b-3bdf0bd4d3ed
+action              | open
+created_at          | 2026-11-27 22:45:42.909268+00
+dispatched_at       | 2026-11-27 22:45:42.909268+00
+completed_at        | 
+rental_status       | completed
+rental_completed_at | 2026-11-27 22:49:40.505321+00
+-[ RECORD 8 ]-------+-------------------------------------
+rental_id           | 61
+command_id          | 669fbe08-ad3c-43e4-81d9-f220d42ff93e
+action              | finish
+created_at          | 2026-11-27 22:49:26.147322+00
+dispatched_at       | 2026-11-27 22:49:27.184433+00
+completed_at        | 2026-11-27 22:49:40.506524+00
+rental_status       | completed
+rental_completed_at | 2026-11-27 22:49:40.505321+00
+
+-[ RECORD 1 ]+------------------------------
+number       | 4
+door_state   | closed
+device_ready | t
+last_seen_at | 2026-11-27 23:32:21.443994+00
+checked_at   | 2026-11-27 23:32:23.084372+00
+
+COMMIT

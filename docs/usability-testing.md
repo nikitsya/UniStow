@@ -557,6 +557,20 @@ session (`stripe_event_recorded = true`).
 
 ![EC2 PostgreSQL result for rental 59 showing completed status, paid status, 200 cents, confirmation and completion times, and a matching payment-event record](images/testing/rental-59-database-completion-2026-11-27.png)
 
+A further read-only check at 23:32 UTC found the stored collection command
+`d4c20ebe-81bc-4b1b-9937-0966876e1840` for rental #59. It was dispatched at
+20:05:25.930366 UTC and marked completed at 20:05:48.058300 UTC, alongside the
+rental completion at 20:05:48.056780 UTC. The completion endpoint matches the
+controller acknowledgement to a dispatched `finish` command before updating
+both records. This verifies the stored acknowledgement outcome; it is not a
+capture of the original HTTP request.
+
+The same query confirmed the collection command for rental #61 was completed
+at 22:49:40.506524 UTC. The [saved query output](evidence/locker-commands-2026-11-27.txt)
+includes both rentals. The empty `completed_at` fields on ordinary `open`
+commands are expected: that field records collection completion, while MQTT
+opening acknowledgements are handled in memory.
+
 This record combines interface captures, the author's physical opening and
 latch check, and the stored database outcome. A continuous demonstration
 recording remains to be captured.
@@ -733,3 +747,90 @@ confirms that displayed availability was restored after cancelling reservation
 #62. Dialogue dismissal, cancellation and restored availability passed.
 
 ![Lockers page after cancelling reservation 62, showing Available 1 and Locker 4 available at EUR 1.00 per day](images/testing/locker-4-available-after-cancellation-62-2026-11-27.png)
+
+## 27 November 2026 — Full backend regression with local PostgreSQL
+
+All **122 backend tests passed**, with **no skips**, in **11.304 seconds**
+against source commit `39f61fd`. Docker Desktop and the existing PostgreSQL 16
+container were started before the run. Database cases used isolated schemas;
+Stripe calls and device actions were mocked. This run does not replace the
+physical checks above.
+
+The [complete test output](evidence/backend-tests-2026-11-27.txt) records the
+command and individual results. Coverage includes accounts, ownership checks,
+reservations, payment confirmation, overdue billing, collection, MQTT delivery
+rules, controller outages and rental history.
+
+The earlier 27 November attempt failed because local PostgreSQL on port 5433
+was unavailable. A separate run without database tests skipped 72 cases. The
+successful full run above resolves that environment-related verification gap;
+no application changes were needed.
+
+## 27 November 2026 — Correlated MQTT and collection check (#65)
+
+The author repeated the physical cycle with the empty Locker 4 and the deployed
+website. The server observer first recorded rental **#65** as **active** and
+**paid**. The author confirmed that **Open locker** opened the real door, the
+latch held it shut after closing, and **Finish rental**, followed by opening
+and closing the door, led to **Completed** on the phone.
+
+Two temporary subscribers used the existing MQTT credentials and verified TLS:
+one on the Pi read `unistow/locker-4/commands`, while the EC2 observer read
+`unistow/locker-4/events`. Both used separate client IDs, subscribed at QoS 0
+and ignored retained messages. Neither observer published commands or controlled
+the servo. No broker permissions were changed, and credentials were not printed.
+The EC2 observer also polled PostgreSQL in read-only transactions once per second,
+recording changes to the locker and command rows. Stored door state is updated
+through HTTPS heartbeats; MQTT readings also supply the live application state.
+
+### Opening command and matching acknowledgement
+
+The same command ID appears in all three observations:
+`6ee62ab8-3287-4b19-83b0-86f1ae05e158`.
+
+| Time (UTC) | Evidence |
+|------------|----------|
+| 23:36:19.718736 | PostgreSQL recorded the `open` command for rental #65 as dispatched. |
+| 23:36:19.750586 | The Pi subscriber received `type: open` on `unistow/locker-4/commands`. |
+| 23:36:19.785555 | The EC2 subscriber received `type: open_ack` with the matching ID on `unistow/locker-4/events`. |
+
+The [author-supplied Pi output](evidence/rental-65-pi-command-2026-11-27.txt)
+includes the command expiry. The original screenshot is retained unchanged:
+
+![Pi subscriber receiving the MQTT open command for rental 65, with its command ID and expiry](images/hardware/unistow-pi-mqtt-command-rental-65-2026-11-27.png)
+
+### Door state and collection
+
+The [EC2 observation log](evidence/rental-65-mqtt-database-2026-11-27.jsonl)
+distinguishes received MQTT messages from database query results. Times below
+are the observer's UTC receipt or query times, except where a stored timestamp
+is explicitly identified. Only state changes are printed; database polling does
+not capture every intermediate instant.
+
+| Stage | MQTT sensor observation | PostgreSQL observation |
+|-------|-------------------------|------------------------|
+| Initial opening | `open` at 23:36:21.451 | `door_state = open` at 23:36:23.797 |
+| First closure | `closed`, not ready, at 23:36:46.987; ready again at 23:36:49.991 | `closed` at 23:36:47.928; ready at 23:36:52.957 |
+| Opening for collection | `open`, not ready, at 23:36:58.306 | `door_state = open` at 23:36:59.996 |
+| Final closure | `closed` at 23:37:37.171; ready at 23:37:41.879 | `closed` at 23:37:40.226; ready at 23:37:44.248 |
+
+Collection used HTTPS polling and acknowledgement. Command
+`1ee30f9a-4304-48e3-b49c-a5d966e0a7d3` was stored as dispatched at
+**23:36:57.250482 UTC**. Its `completed_at` timestamp was
+**23:37:41.715190 UTC**, alongside the rental's completion at
+**23:37:41.714064 UTC**. These records show the completion endpoint accepted
+the acknowledgement for that dispatched collection command.
+
+The [final read-only database result](evidence/rental-65-final-database-2026-11-27.txt)
+confirmed **completed**, **paid**, **100 cents**, a closed and ready locker,
+and **zero unfinished rentals** for Locker 4. At **23:39:28 UTC**, a verified
+HTTPS request to the public locker-list API returned
+[`status: available` and `door_state: closed`](evidence/rental-65-availability-2026-11-27.json).
+
+The physical cycle and the technical checks above passed. The temporary EC2
+observer was stopped after verification; the Pi subscriber had a five-minute
+limit. The earlier #59 record supplies the reservation and Stripe Sandbox
+checkout screenshots, and #61 supplies the disconnected-controller check.
+Together with the full backend regression, these records complete the
+pre-recording rental-cycle verification. The assessed screencast remains a
+separate submission task.
