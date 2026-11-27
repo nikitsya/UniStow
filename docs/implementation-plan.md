@@ -23,6 +23,8 @@ Use this checklist alongside the original brief before submitting to Moodle.
   the secured MQTT exchange, sensor reading, resulting PostgreSQL rental state
   and restored availability. Explain authentication, topic permissions and
   encryption, including the public MQTT port and Pi storage limitations.
+  Use the [rental #59 walkthrough](usability-testing.md#27-november-2026--locker-4-rental-walkthrough-59)
+  as the recording sequence; its screenshots do not replace the video.
 - [ ] Review the completed [CA cover sheet](submission/ca-cover-sheet.pdf) and the
   [AI usage cover sheet](submission/ai-usage-cover-sheet.pdf). Bring the
   [AI chat log](AI_Chat_Log.md) up to date before submission.
@@ -43,8 +45,11 @@ The viva is on **9 December 2026 at 14:00 in P1111**.
   it and verify that the latch moves only after a fresh authorised request.
 - [ ] Repeat the light-closure test with an empty locker. Confirm automatic latch
   retraction when the door comes ajar and secure closure after a full close.
+- [x] Check availability from a second account during an unpaid reservation and
+  after payment. The [27 November two-account check](usability-testing.md#27-november-2026--availability-between-two-accounts-60)
+  records the author's reservation result and screenshots of the paid phase.
 - [ ] On a phone, check pull-to-refresh, dialogue dismissal, cancellation and
   resuming a valid unpaid reservation after signing out and back in. Verify
-  availability from a second account and that recent history remains visible.
+  that recent history remains visible after signing back in.
 - [ ] Check the extra-day summary and outstanding-payment flow on a physical phone;
   the existing billing screenshots and browser previews do not establish this.
