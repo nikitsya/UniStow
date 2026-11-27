@@ -67,6 +67,29 @@ the server to physical opening and restart both services. Confirm that opening,
 sensor updates and collection work together. A lost acknowledgement leaves
 delivery uncertain. Check the door before issuing a new request.
 
+## Device credentials and physical access
+
+The controller reads its HTTPS device key and separate MQTT password from
+`device_config.json` beside the script. The supplied service expects this file
+in `/home/nikitsya/Desktop`. It contains plaintext credentials and should be
+owned by the service user, `nikitsya`, with permissions `600`. These permissions
+restrict ordinary file access to that user; they do not encrypt the contents or
+prevent access by root. The repository ignores `hardware/device_config.json`;
+use the blank example when sharing the project. The Pi does not need database
+credentials or Stripe secrets.
+
+TLS protects the network connections. The documented
+[EBS encryption](../deploy/README.md#storage-encryption) protects the EC2 disk,
+not the Pi's SD card. Encryption of the Pi's storage, a tamper-resistant enclosure
+and controls restricting physical access to the Pi have not been verified.
+File permissions alone do not protect credentials if someone removes and reads
+the storage, or prevent interference with the wiring.
+
+During demonstrations, keep the Pi, its storage and wiring under the operator's
+control. This is an operating precaution, not a verified physical safeguard.
+The running Pi's file ownership and permissions still need checking before
+claiming that the documented credential restrictions are in place.
+
 ## Optional local sensor test
 
 This first connection step reports the sensor only; it does not unlock the locker.

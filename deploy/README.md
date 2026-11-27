@@ -165,6 +165,10 @@ at rest for the PostgreSQL data stored on that disk.
 
 ![EC2 volume encryption details showing Encrypted and the aws/ebs key alias](../docs/images/deployment/unistow-ebs-encryption.png)
 
+This evidence covers the EC2 volume only. See the
+[device security limitations](../hardware/README.md#device-credentials-and-physical-access)
+for credential storage and unverified protection on the Raspberry Pi.
+
 ## Backups and updates
 
 Before an update, take a database backup and copy it to a separate secure location:
