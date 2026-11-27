@@ -213,6 +213,8 @@ A read-only SSH check of the running EC2 deployment confirmed:
 
 ![PostgreSQL TLS evidence on 27 November showing the app's verify-full setting and two TLS 1.3 connections](../docs/images/deployment/unistow-postgres-tls-2026-11-27.png)
 
+![HTTPS checks on 27 November showing HTTP 200 and successful certificate verification for the public website and internal FastAPI endpoint](../docs/images/deployment/unistow-https-verification-2026-11-27.png)
+
 Compared with repository commit `c950b85`, 17 of the 22 backend Python files
 matched byte for byte. The other five differed only in whitespace and line
 wrapping; their parsed Python syntax trees were identical. The production
