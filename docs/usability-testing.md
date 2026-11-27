@@ -156,7 +156,9 @@ Payment and collection status still depend on confirmed server responses.
   brief-interruption, repeated-failure and recovery checks.
 - The same browser check confirmed that an unknown opening retains its warning
   after refresh and sends exactly one opening request.
-- Physical-phone checks with the deployed site and an offline Pi are pending.
+- The later [27 November controller check](#27-november-2026--controller-interruption-and-restart-61)
+  records the deployed offline state, an interrupted opening request and recovery
+  after restarting the Pi controller.
 
 Content follows
 the [GOV.UK service problem guidance](https://design-system.service.gov.uk/patterns/problem-with-the-service-pages/).
@@ -452,8 +454,8 @@ of that balance restriction.
 ### Availability before booking
 
 The author supplied a capture of the Lockers page showing **All lockers 9**
-and **Available 1**. Locker 4 was labelled **Small**, **EUR 1.00 per day** and
-**Available**; the other fully visible cards were labelled **Unavailable**.
+and **Available 1**. Locker 4 was labelled **Small**, **EUR 1.00 per day** and **Available**; the other fully visible
+cards were labelled **Unavailable**.
 
 ![Lockers page on 27 November showing Locker 4 available at EUR 1.00 per day and one available locker out of nine](images/testing/locker-4-available-2026-11-27.png)
 
@@ -463,47 +465,46 @@ Separate HTTPS and device checks are recorded in the
 
 ### Booking consent
 
-The form showed two calendar days at EUR 1.00 per day, totalling **EUR 2.00**.
-**Reserve locker** appeared disabled while the overdue-charge consent was
+The form showed two calendar days at EUR 1.00 per day, totalling **EUR 2.00**. **Reserve locker** appeared disabled
+while the overdue-charge consent was
 unchecked and enabled once it was checked. These captures show the two interface
 states; they do not test whether the server rejects a request without consent.
 
-| Consent unchecked | Consent checked |
-|-------------------|-----------------|
+| Consent unchecked                                                                                                                                         | Consent checked                                                                                                                                       |
+|-----------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------|
 | ![Two-day Locker 4 booking with unchecked consent and a disabled Reserve locker button](images/testing/locker-4-booking-consent-unchecked-2026-11-27.png) | ![Two-day Locker 4 booking with checked consent and an enabled Reserve locker button](images/testing/locker-4-booking-consent-checked-2026-11-27.png) |
 
 ### Pending reservation and cancellation dialogue
 
 Reservation **#59** showed **Pending**, **Not paid**, a two-day rental ending
 at **18:00 on 29 November 2026**, and a total of **EUR 2.00**. The page offered
-payment and cancellation. The cancellation dialogue offered **Keep** and
-**Cancel**; no capture shows cancellation being confirmed or the locker being
+payment and cancellation. The cancellation dialogue offered **Keep** and **Cancel**; no capture shows cancellation being
+confirmed or the locker being
 released through that action.
 
-| Pending reservation | Cancellation dialogue |
-|---------------------|-----------------------|
+| Pending reservation                                                                                         | Cancellation dialogue                                                                                                            |
+|-------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------|
 | ![Reservation 59 pending payment of EUR 2.00 for Locker 4](images/testing/rental-59-pending-2026-11-27.png) | ![Reservation cancellation dialogue with Keep and Cancel actions](images/testing/rental-59-cancellation-dialogue-2026-11-27.png) |
 
 ### Sandbox checkout and active rental
 
-Stripe Checkout displayed **Sandbox**, **UniStow Locker 4 — 2 day(s)** and
-**EUR 2.00**. The subsequent UniStow page for reservation **#59** displayed
-**Active**, **Paid**, **Door: Closed** and **Payment confirmed. Your rental is
-active.** The total and end date were unchanged, and **Open locker** and
-**Finish rental** were shown as available actions.
+Stripe Checkout displayed **Sandbox**, **UniStow Locker 4 — 2 day(s)** and **EUR 2.00**. The subsequent UniStow page for
+reservation **#59** displayed **Active**, **Paid**, **Door: Closed** and **Payment confirmed. Your rental is
+active.** The total and end date were unchanged, and **Open locker** and **Finish rental** were shown as available
+actions.
 
-| Stripe sandbox checkout | Active, paid rental |
-|-------------------------|---------------------|
+| Stripe sandbox checkout                                                                                                           | Active, paid rental                                                                                                                                      |
+|-----------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|
 | ![Stripe Sandbox checkout showing EUR 2.00 for a two-day Locker 4 rental](images/testing/rental-59-stripe-sandbox-2026-11-27.png) | ![Reservation 59 showing Active, Paid, a closed door and the locker opening and collection actions](images/testing/rental-59-active-paid-2026-11-27.png) |
 
 ### Opening and securing the locker
 
-The opening request showed **Open the door once it unlocks.**, followed by
-**Door: Open** and **Your locker door is open.** Both opening and finishing
+The opening request showed **Open the door once it unlocks.**, followed by **Door: Open** and **Your locker door is
+open.** Both opening and finishing
 actions appeared disabled in those captures.
 
-| Opening requested | Door reported open |
-|-------------------|--------------------|
+| Opening requested                                                                                                                                  | Door reported open                                                                                                                |
+|----------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------|
 | ![Reservation 59 asking the renter to open the door once unlocked, with actions disabled](images/testing/rental-59-opening-request-2026-11-27.png) | ![Reservation 59 showing Door Open and disabled opening and finishing actions](images/testing/rental-59-door-open-2026-11-27.png) |
 
 After closing, the page showed **Door: Closed** and **Securing your locker…**.
@@ -512,8 +513,8 @@ remained disabled; the finishing dialogue was accessible in a subsequent capture
 The author separately confirmed that the real door opened after the button
 request and that the latch held it shut after closing.
 
-| Securing the locker | Subsequent closed-door view |
-|---------------------|-----------------------------|
+| Securing the locker                                                                                                                    | Subsequent closed-door view                                                                                                                                           |
+|----------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | ![Reservation 59 showing Door Closed and Securing your locker with actions disabled](images/testing/rental-59-securing-2026-11-27.png) | ![Reservation 59 showing a closed door, an available Open locker action and a disabled Finish rental action](images/testing/rental-59-closed-controls-2026-11-27.png) |
 
 ### Collection and completion
@@ -524,18 +525,18 @@ close. The subsequent rental page displayed the collection instruction with
 both action buttons disabled. Two identical captures of that waiting state
 were supplied; one is retained here.
 
-| Active rental in My rentals | Finishing dialogue |
-|-----------------------------|--------------------|
+| Active rental in My rentals                                                                                                   | Finishing dialogue                                                                                                                    |
+|-------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------|
 | ![My rentals showing active rental 59 above previous completed rentals](images/testing/rental-59-current-list-2026-11-27.png) | ![Finish rental dialogue explaining collection and door opening and closing](images/testing/rental-59-finish-dialogue-2026-11-27.png) |
 
-| Collection in progress | Completed rental |
-|------------------------|------------------|
+| Collection in progress                                                                                                                 | Completed rental                                                                                                                                        |
+|----------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------|
 | ![Reservation 59 displaying the collection instruction with both actions disabled](images/testing/rental-59-collecting-2026-11-27.png) | ![Reservation 59 showing Completed, Paid and the rental completion message without opening controls](images/testing/rental-59-completed-2026-11-27.png) |
 
 The final detail page showed **Completed**, **Paid** and **EUR 2.00**, with
 opening and finishing controls removed. My rentals then showed **No current
-rentals**, with **Rental #59 · Locker 4** first in the completed history at
-**20:05 on 27 November 2026** (Ireland time).
+rentals**, with **Rental #59 · Locker 4** first in the completed history at **20:05 on 27 November 2026** (Ireland
+time).
 
 ![My rentals showing no current rentals and rental 59 completed at 20:05 on 27 November](images/testing/rental-59-completed-history-2026-11-27.png)
 
@@ -547,10 +548,10 @@ completing the displayed journey from availability through rental to release.
 
 ### Database confirmation
 
-A read-only query on the EC2 PostgreSQL container confirmed rental **#59** for
-**Locker 4** as `completed`, its payment as `paid`, and its total as **200 cents**.
-Payment confirmation was stored at **20:03:51 UTC** and completion at
-**20:05:48 UTC** on 27 November 2026, matching the completion minute shown in
+A read-only query on the EC2 PostgreSQL container confirmed rental **#59** for **Locker 4** as `completed`, its payment
+as `paid`, and its total as **200 cents**.
+Payment confirmation was stored at **20:03:51 UTC** and completion at **20:05:48 UTC** on 27 November 2026, matching the
+completion minute shown in
 My rentals. The query also found a `payment_events` row for the same Checkout
 session (`stripe_event_recorded = true`).
 
@@ -568,13 +569,13 @@ created for the [22 November test](#separate-test-account--22-november-2026).
 This is not a new charge on rental #59.
 
 My rentals displayed **Balance to settle**, **EUR 1.00** unpaid and **No current
-rentals**, with a link to rental #52. The detail page showed **Completed** and
-**Payment incomplete**, separating the **EUR 1.00** rental cost from **EUR 1.00**
+rentals**, with a link to rental #52. The detail page showed **Completed** and **Payment incomplete**, separating the
+**EUR 1.00** rental cost from **EUR 1.00**
 in unpaid extra days. The **EUR 2.00** total includes both; the payment action
 requests only the outstanding **EUR 1.00**.
 
-| Separate-account balance notice | Completed rental with an outstanding balance |
-|---------------------------------|----------------------------------------------|
+| Separate-account balance notice                                                                                                                 | Completed rental with an outstanding balance                                                                                                                    |
+|-------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | ![My rentals showing the separate account's EUR 1.00 balance for rental 52 on Locker 5](images/testing/rental-52-balance-notice-2026-11-27.png) | ![Completed rental 52 showing EUR 1.00 in unpaid extra days and a Pay outstanding EUR 1.00 action](images/testing/rental-52-outstanding-payment-2026-11-27.png) |
 
 The same account's Lockers page showed the balance notice, **Available 0** and
@@ -593,23 +594,61 @@ while the balance remains unpaid.
 
 The author tested Locker 4 using two accounts and confirmed that it became
 unavailable to the second account both during an unpaid reservation and after
-payment. The four supplied captures show the paid phase: rental **#60** was
-**Active** and **Paid**, costing **EUR 1.00** for one calendar day ending at
-**18:00 on 28 November 2026**.
+payment. The four supplied captures show the paid phase: rental **#60** was **Active** and **Paid**, costing **EUR
+1.00** for one calendar day ending at **18:00 on 28 November 2026**.
 
 The owner's Lockers page offered **Continue rental** for Locker 4, and My rentals
-listed **Rental #60 · Active**. The other account's Lockers page showed
-**Unavailable** for Locker 4, with **Available 0** and no visible balance warning.
+listed **Rental #60 · Active**. The other account's Lockers page showed **Unavailable** for Locker 4, with **Available
+0** and no visible balance warning.
 The owner's available count was also zero: access to their existing rental
 remained available through **Continue rental**.
 
-| Owner's Lockers page | Other account's Lockers page |
-|---------------------|------------------------------|
+| Owner's Lockers page                                                                                                                | Other account's Lockers page                                                                                                                                         |
+|-------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | ![Owner's Lockers page showing Continue rental for Locker 4 and Available 0](images/testing/rental-60-owner-lockers-2026-11-27.png) | ![Other account's Lockers page showing Locker 4 unavailable and Available 0 without a balance notice](images/testing/rental-60-other-account-lockers-2026-11-27.png) |
 
-| Paid rental details | Owner's My rentals page |
-|---------------------|-------------------------|
+| Paid rental details                                                                                                               | Owner's My rentals page                                                                                                    |
+|-----------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------|
 | ![Rental 60 showing Active, Paid and EUR 1.00 for a one-day Locker 4 rental](images/testing/rental-60-active-paid-2026-11-27.png) | ![Owner's My rentals page listing active rental 60 for Locker 4](images/testing/rental-60-owner-my-rentals-2026-11-27.png) |
 
 The unpaid-reservation result is recorded from the author's manual test report;
 no pending-phase capture was supplied for this two-account check.
+
+## 27 November 2026 — Controller interruption and restart (#61)
+
+The author tested the deployed Mosquitto setup with active, paid rental **#61**
+for Locker 4. The initial page showed **Door: Closed**, with opening and finishing
+actions available.
+
+Stopping `uniflow-locker` on the Pi produced `inactive`. The rental page then
+showed **Door: Unknown**, a temporary-unavailability notice and both actions
+disabled. Starting the service produced `active`; the page returned to
+**Door: Closed** with the controls available.
+
+| Controller stopped | Controller restarted |
+|--------------------|----------------------|
+| ![Pi terminal showing uniflow-locker inactive after systemctl stop](images/hardware/unistow-pi-controller-stopped-2026-11-27.png) | ![Pi terminal showing uniflow-locker active after systemctl start](images/hardware/unistow-pi-controller-restarted-2026-11-27.png) |
+
+| Before stopping the controller | Controller offline |
+|--------------------------------|--------------------|
+| ![Active paid rental 61 showing a closed door and available controls before the interruption](images/testing/rental-61-before-controller-stop-2026-11-27.png) | ![Rental 61 showing Door Unknown, temporary unavailability and disabled opening and finishing controls](images/testing/rental-61-controller-offline-2026-11-27.png) |
+
+![Rental 61 showing Door Closed and available controls after the controller was restarted](images/testing/rental-61-controller-restored-2026-11-27.png)
+
+The author also pressed **Open locker** at approximately the same time as
+stopping the service. The interface first displayed **Unlocking…**, then
+**We couldn’t confirm whether the locker opened. Check the door before trying
+again.** The author observed that the real door did not open during this attempt.
+The initial message describes a request in progress; it does not confirm latch
+movement.
+
+| Request in progress | Opening unconfirmed |
+|---------------------|---------------------|
+| ![Rental 61 showing Unlocking with both actions disabled during the interrupted request](images/testing/rental-61-interrupted-unlocking-2026-11-27.png) | ![Rental 61 warning that opening could not be confirmed and asking the renter to check the door](images/testing/rental-61-opening-unconfirmed-2026-11-27.png) |
+
+After waiting and restarting the controller following that failed attempt, the
+author confirmed that the door stayed shut without any button presses. A fresh
+**Open locker** request then opened it. No delayed opening from the previous
+request was observed. This completes the manual interruption and restart check;
+the screenshots record service and interface states, while the physical outcome
+is confirmed by the author.

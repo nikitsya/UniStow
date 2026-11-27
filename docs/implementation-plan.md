@@ -39,14 +39,16 @@ The viva is on **9 December 2026 at 14:00 in P1111**.
 
 ## Additional prototype testing
 
-- [ ] Repeat
-  the [disconnected-controller test](usability-testing.md#7-november-2026--opening-locker-4-while-its-controller-was-stopped-7)
-  with Mosquitto. Let an opening command expire while the Pi is offline, reconnect
-  it and verify that the latch moves only after a fresh authorised request.
+- [x] Repeat the disconnected-controller test with Mosquitto. The
+  [27 November check](usability-testing.md#27-november-2026--controller-interruption-and-restart-61)
+  records the offline state, an interrupted opening and service recovery. The
+  author confirmed no delayed opening after restart and successful opening only
+  after a fresh request.
 - [ ] Repeat the light-closure test with an empty locker. Confirm automatic latch
   retraction when the door comes ajar and secure closure after a full close.
 - [x] Check availability from a second account during an unpaid reservation and
-  after payment. The [27 November two-account check](usability-testing.md#27-november-2026--availability-between-two-accounts-60)
+  after payment.
+  The [27 November two-account check](usability-testing.md#27-november-2026--availability-between-two-accounts-60)
   records the author's reservation result and screenshots of the paid phase.
 - [ ] On a phone, check pull-to-refresh, dialogue dismissal, cancellation and
   resuming a valid unpaid reservation after signing out and back in. Verify
