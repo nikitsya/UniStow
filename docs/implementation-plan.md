@@ -15,9 +15,12 @@ Use this checklist alongside the original brief before submitting to Moodle.
   covers EC2 code, TLS, AWS network rules and EBS, plus Pi service status, file
   permissions, storage, configuration, established broker TCP connection and
   fresh device API heartbeats and MQTT telemetry from the running Pi.
-- [ ] Check the existing [Fritzing sketch](../hardware/unistow-wiring.fzz) and
+- [x] Check the existing [Fritzing sketch](../hardware/unistow-wiring.fzz) and
   [wiring guide](../hardware/README.md#wiring-diagram) against the physical leads,
-  including the Pi 5V and ground connections.
+  including the Pi 5V and ground connections. The author supplied photographs
+  and confirmed pins 2, 6, 9, 11 and 12 on 27 November. The corrected drawing
+  shows the servo connected directly to the Pi and the contact joined through
+  breadboard rows 10 and 15; the guide identifies the generic symbol details.
 - [ ] Record the screencast with an empty locker: explain the code and architecture,
   then sign in, reserve, pay in Stripe test mode, open, collect and close. Show
   the secured MQTT exchange, sensor reading, resulting PostgreSQL rental state

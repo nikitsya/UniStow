@@ -12,18 +12,39 @@ door contact. The PNG export is shown below.
 
 ![Locker 4 breadboard wiring](../docs/images/hardware/unistow-wiring.png)
 
-| Connection    | Raspberry Pi header                | Breadboard connection                           | Wire colour |
-|---------------|------------------------------------|-------------------------------------------------|-------------|
-| Servo supply  | 5V, physical pin 2 in the diagram  | Positive rail to servo VCC                      | Red         |
-| Common ground | GND, physical pin 6 in the diagram | Negative rail to servo GND and door contact     | Black       |
-| Servo pulse   | GPIO18, physical pin 12            | Row 12, A to E, then servo signal               | Yellow      |
-| Door contact  | GPIO17, physical pin 11            | Row 20, A to E, then contact; other lead to GND | Green       |
+| Connection          | Raspberry Pi header     | Route                                  | Wire colour |
+|---------------------|-------------------------|----------------------------------------|-------------|
+| Servo supply        | 5V, physical pin 2      | Directly to servo VCC                  | Red         |
+| Door contact ground | GND, physical pin 6     | A10, joined to one white contact lead  | Black       |
+| Servo ground        | GND, physical pin 9     | Directly to servo GND                  | Brown       |
+| Door contact input  | GPIO17, physical pin 11 | A15, joined to the other white lead    | Orange      |
+| Servo pulse         | GPIO18, physical pin 12 | Directly to servo signal               | Yellow      |
 
-The author confirmed that the servo is powered from the Raspberry Pi 5V
-supply through the breadboard. The drawing uses physical pins 2 and 6 for
-power and ground; check these two positions against the actual leads before
-using the diagram as an exact wiring record. Breadboard rows and wire
-colours are diagram conventions, rather than a record of the physical layout.
+On 27 November 2026, the author supplied the photographs below and confirmed
+all five physical header positions in the table. The servo connects directly
+to the Pi; only the magnetic door contact uses the breadboard. The breadboard
+power rails are unused. This corrects the earlier drawing, which routed the
+servo through the rails and used different sensor rows and colours.
+
+The two white contact leads join the black and orange jumpers on rows 10 and
+15 respectively. The diagram places these white leads at E10 and E15 to show
+the same-row connections clearly; their precise hole letters were not recorded.
+White leads are drawn in pale grey for visibility. The generic servo symbol
+has a black ground lead, while the physical servo ground lead is brown.
+
+Physical header positions differ from GPIO numbers. The Pi 400's header
+orientation also differs from the Pi 4B symbol: use the **PIN1** marking on the
+actual Pi 400 and the [official Raspberry Pi GPIO reference](https://www.raspberrypi.com/documentation/computers/raspberry-pi.html)
+when identifying contacts.
+
+![Pi 400 header with red, black, brown, orange and yellow jumper wires, photographed on 27 November 2026](../docs/images/hardware/unistow-pi-header-2026-11-27.jpeg)
+
+![Magnetic contact joined to black and orange jumpers at breadboard A10 and A15, with the servo leads connected separately](../docs/images/hardware/unistow-contact-breadboard-2026-11-27.jpeg)
+
+These original photographs record the physical connections. The
+[rental #59 walkthrough](../docs/usability-testing.md#27-november-2026--locker-4-rental-walkthrough-59)
+records the operating sequence and the author's confirmation that the door
+opened and the latch held it closed afterwards.
 
 The Pi 4B library symbol represents the Pi 400's 40-pin GPIO connections;
 it does not represent the Pi 400 case. The servo and reed switch are generic
