@@ -161,6 +161,8 @@ On 27 November, the AWS Console showed six inbound IPv4 rules for the attached
 `0.0.0.0/0`, while SSH (22) was limited to three individual `/32` addresses.
 There were no inbound rules for 5432 or 8000. Outbound traffic was unrestricted.
 
+![Six inbound rules on 27 November showing restricted SSH and public HTTP, HTTPS and MQTT over TLS](../docs/images/deployment/unistow-ec2-inbound-rules-2026-11-27.png)
+
 The MQTT source rule is broader than the setup recommendation above: the broker
 is reachable from any IPv4 address, not just the Pi's network. TLS, passwords
 and topic ACLs remain required, but IP restriction must not be claimed for
@@ -177,6 +179,8 @@ at rest for the PostgreSQL data stored on that disk.
 
 The AWS Console check on 27 November reconfirmed that the attached root volume
 was a 20 GiB gp3 volume marked **Encrypted**, with the key alias `aws/ebs`.
+
+![UniStow root volume on 27 November showing its instance attachment, encryption and aws/ebs key alias](../docs/images/deployment/unistow-ebs-encryption-2026-11-27.png)
 
 This evidence covers the EC2 volume only. See the
 [device security limitations](../hardware/README.md#device-credentials-and-physical-access)
