@@ -122,8 +122,14 @@ an independent check of the physical latch.
 
 ![EC2 heartbeat evidence on 27 November showing successful device API requests and a Locker 4 database update 1.8 seconds before the check](../docs/images/hardware/unistow-pi-heartbeat-2026-11-27.png)
 
-The socket listing does not show the negotiated TLS version or MQTT messages.
-Fresh MQTT telemetry from the running controller still needs to be evidenced.
+An authenticated, read-only MQTT subscriber on EC2 received two non-retained
+messages from `unistow/locker-4/events` over TLS. Both reported `door: closed`
+and `ready: True`; their ages, calculated from `observed_at` using the EC2 clock,
+rounded to `0.0` seconds. The probe deliberately disconnected after the second
+reading; the trailing disconnected-client log refers to that test subscriber.
+
+![Live MQTT telemetry on 27 November showing two Locker 4 readings with closed door state, readiness and ages rounded to 0.0 seconds](../docs/images/hardware/unistow-pi-mqtt-telemetry-2026-11-27.png)
+
 These checks did not exercise a physical opening or collection cycle.
 
 ## Optional local sensor test
