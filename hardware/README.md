@@ -103,8 +103,21 @@ The author supplied the following output from an authenticated SSH session:
 
 ![Pi service status, credential file permissions and SD-card layout on 27 November](../docs/images/hardware/unistow-pi-security-check-2026-11-27.png)
 
-This verifies service status and file permissions, not a complete physical
-opening/collection cycle or the controller's current MQTT and HTTPS connections.
+A further check of the configuration file and established TCP connections showed:
+
+- The HTTPS server was `https://unistow.app`, with a non-empty device key.
+- MQTT was configured for `unistow.app:8883` in `physical` mode, with a
+  non-empty password and no custom CA file. The supplied controller uses the
+  system trust store when no CA file is specified. Neither secret was displayed.
+- `python3` PID `1309`, matching the earlier service output, had an established
+  TCP connection from the Pi to `13.61.161.1:8883`.
+
+![Pi configuration and established TCP connection on 27 November showing the HTTPS address, physical MQTT mode, credential presence and connection to the EC2 broker](../docs/images/hardware/unistow-pi-network-check-2026-11-27.png)
+
+The socket listing does not show the negotiated TLS version or MQTT messages.
+Fresh HTTPS heartbeats and MQTT telemetry from the running controller still
+need to be evidenced. These checks did not exercise a physical opening or
+collection cycle.
 
 ## Optional local sensor test
 

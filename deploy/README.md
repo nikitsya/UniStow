@@ -231,11 +231,13 @@ Stripe key was a sandbox key.
 
 The AWS Console check confirmed the [current network rules](#ec2-inbound-access)
 and [EBS encryption](#storage-encryption). The author also supplied
-[Pi service, file permission and storage evidence](../hardware/README.md#device-check-on-27-november-2026).
+[Pi service, file permission, storage and network evidence](../hardware/README.md#device-check-on-27-november-2026).
 The Pi's running unit uses the system Python interpreter rather than the virtual
-environment in the supplied unit. Its current MQTT/HTTPS configuration and
-connections were not inspected directly. These checks did not exercise the
-physical locker or make a payment.
+environment in the supplied unit. Its configuration file specifies the production
+HTTPS address and physical MQTT mode, and its controller process had an established
+TCP connection to the broker on port 8883. Fresh HTTPS heartbeats and MQTT telemetry
+from the running controller still need to be evidenced. These checks did not
+exercise the physical locker or make a payment.
 
 ## Backups and updates
 
