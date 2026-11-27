@@ -44,8 +44,10 @@ The viva is on **9 December 2026 at 14:00 in P1111**.
   records the offline state, an interrupted opening and service recovery. The
   author confirmed no delayed opening after restart and successful opening only
   after a fresh request.
-- [ ] Repeat the light-closure test with an empty locker. Confirm automatic latch
-  retraction when the door comes ajar and secure closure after a full close.
+- [x] Repeat the light-closure test. The
+  [27 November check](usability-testing.md#27-november-2026--light-closure-and-latch-recovery)
+  records the Pi journal and the author's confirmation of automatic latch
+  retraction when the door came ajar and secure closure after a full close.
 - [x] Check availability from a second account during an unpaid reservation and
   after payment.
   The [27 November two-account check](usability-testing.md#27-november-2026--availability-between-two-accounts-60)

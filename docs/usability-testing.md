@@ -126,7 +126,7 @@ The phone observations above come from the real locker, independently of those a
 
 After that deployment, the published dialogue, payment and live-update assets
 matched the checked release. The [submission checklist](implementation-plan.md#additional-prototype-testing)
-retains the phone, cancellation and light-closure checks still needing a result.
+tracks remaining manual checks and links to later results.
 The one-hour token-renewal check applied to PubNub and is no longer part of the
 Mosquitto setup.
 
@@ -652,3 +652,24 @@ author confirmed that the door stayed shut without any button presses. A fresh
 request was observed. This completes the manual interruption and restart check;
 the screenshots record service and interface states, while the physical outcome
 is confirmed by the author.
+
+## 27 November 2026 — Light closure and latch recovery
+
+The author repeated the light-closure check on the physical Locker 4 prototype
+and supplied the `uniflow-locker` journal. The relevant sequence is shown below;
+times are as displayed in the Pi journal.
+
+| Time | Journal observation |
+|------|---------------------|
+| 22:45:47 | Door reported closed; `Closing commanded (1500 us).` |
+| 22:45:48 | `Latch retracted (2250 us).` |
+| 22:45:49 | Door reported open. |
+| 22:45:51 | Closing commanded again at 1500 us; door reported closed. |
+
+![Pi journal showing closing at 22:45:47, latch retraction at 22:45:48, an open door report at 22:45:49 and renewed closing with a closed door report at 22:45:51](images/hardware/unistow-pi-light-closure-2026-11-27.png)
+
+The author confirmed that the latch retracted automatically when the door came
+ajar, without another **Open locker** request, and held the door shut after it
+was fully closed. The journal records controller commands and reported sensor
+states; the physical movement and secure closure were checked by the author.
+The manual light-closure and recovery test passed.
