@@ -80,15 +80,31 @@ credentials or Stripe secrets.
 
 TLS protects the network connections. The documented
 [EBS encryption](../deploy/README.md#storage-encryption) protects the EC2 disk,
-not the Pi's SD card. Encryption of the Pi's storage, a tamper-resistant enclosure
-and controls restricting physical access to the Pi have not been verified.
+not the Pi's SD card. A tamper-resistant enclosure and controls restricting
+physical access to the Pi have not been verified.
 File permissions alone do not protect credentials if someone removes and reads
 the storage, or prevent interference with the wiring.
 
 During demonstrations, keep the Pi, its storage and wiring under the operator's
 control. This is an operating precaution, not a verified physical safeguard.
-The running Pi's file ownership and permissions still need checking before
-claiming that the documented credential restrictions are in place.
+
+### Device check on 27 November 2026
+
+The author supplied the following output from an authenticated SSH session:
+
+- `pigpiod` and `uniflow-locker` were both `active`.
+- The controller ran as `nikitsya`, using `/usr/bin/python3` and the working
+  directory `/home/nikitsya/Desktop`.
+- `device_config.json` had permissions `600` and owner/group
+  `nikitsya:nikitsya`, matching the credential file restrictions above.
+- The root filesystem was mounted directly from `/dev/mmcblk0p2` as `ext4`.
+  The block-device listing showed no LUKS/dm-crypt layer protecting that root
+  partition. File-level encryption was not checked.
+
+![Pi service status, credential file permissions and SD-card layout on 27 November](../docs/images/hardware/unistow-pi-security-check-2026-11-27.png)
+
+This verifies service status and file permissions, not a complete physical
+opening/collection cycle or the controller's current MQTT and HTTPS connections.
 
 ## Optional local sensor test
 
@@ -218,8 +234,10 @@ journalctl -u uniflow-locker.service -b --no-pager -n 20
 ```
 
 The supplied unit runs `/home/nikitsya/.venvs/unistow/bin/python`; install the
-virtual environment described above before enabling it. The 10 November
-deployment used `/usr/bin/python3`, so update the unit when adopting this version.
+virtual environment described above before enabling it. The
+[27 November check](#device-check-on-27-november-2026) confirmed that the running
+unit still uses `/usr/bin/python3`, as it did on 10 November. Update the unit
+when adopting the supplied virtual-environment version.
 To check after a power cycle, run
 `systemctl is-active pigpiod uniflow-locker` on the Pi and open the rental
 page to check that the displayed door state follows the sensor.

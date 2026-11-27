@@ -156,6 +156,16 @@ SSH (22). This screenshot predates the Pi's successful TLS connection on port
 
 ![Five inbound rules on 10 November, cropped to their types and ports](../docs/images/deployment/unistow-ec2-inbound-ports-nov-10.png)
 
+On 27 November, the AWS Console showed six inbound IPv4 rules for the attached
+`launch-wizard-2` group: HTTP (80), HTTPS (443) and MQTT/TLS (8883) allowed
+`0.0.0.0/0`, while SSH (22) was limited to three individual `/32` addresses.
+There were no inbound rules for 5432 or 8000. Outbound traffic was unrestricted.
+
+The MQTT source rule is broader than the setup recommendation above: the broker
+is reachable from any IPv4 address, not just the Pi's network. TLS, passwords
+and topic ACLs remain required, but IP restriction must not be claimed for
+port 8883. The rule was inspected without changing it.
+
 ## Storage encryption
 
 On 6 November 2026, the EC2 console showed **Encrypted** for the 20 GiB gp3
@@ -164,6 +174,9 @@ The volume uses the AWS-managed EBS key (`aws/ebs`). This provides encryption
 at rest for the PostgreSQL data stored on that disk.
 
 ![EC2 volume encryption details showing Encrypted and the aws/ebs key alias](../docs/images/deployment/unistow-ebs-encryption.png)
+
+The AWS Console check on 27 November reconfirmed that the attached root volume
+was a 20 GiB gp3 volume marked **Encrypted**, with the key alias `aws/ebs`.
 
 This evidence covers the EC2 volume only. See the
 [device security limitations](../hardware/README.md#device-credentials-and-physical-access)
@@ -198,12 +211,13 @@ PostgreSQL TLS access rules also matched byte for byte. Physical MQTT opening
 and overdue billing were enabled; delivery-test mode was disabled, and the
 Stripe key was a sandbox key.
 
-The current AWS security group rules and EBS encryption settings still need
-checking in the AWS Console, which required sign-in. The encryption evidence
-above remains the observation from 6 November. The Pi responded to SSH, but
-authentication was not completed, so its service, file permissions and storage
-were not verified. This check did not exercise the physical locker or make a
-payment.
+The AWS Console check confirmed the [current network rules](#ec2-inbound-access)
+and [EBS encryption](#storage-encryption). The author also supplied
+[Pi service, file permission and storage evidence](../hardware/README.md#device-check-on-27-november-2026).
+The Pi's running unit uses the system Python interpreter rather than the virtual
+environment in the supplied unit. Its current MQTT/HTTPS configuration and
+connections were not inspected directly. These checks did not exercise the
+physical locker or make a payment.
 
 ## Backups and updates
 

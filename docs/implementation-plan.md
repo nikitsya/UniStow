@@ -11,11 +11,11 @@ Use this checklist alongside the original brief before submitting to Moodle.
 
 - [ ] Finish checking the [architecture diagram](../README.md#current-stack)
   against the deployed system. The
-  [EC2 code, configuration and TLS checks](../deploy/README.md#architecture-check-on-27-november-2026)
-  passed on 27 November; current AWS security group rules, EBS settings and the
-  running Pi still need verification. Explain TLS, device authentication, MQTT
-  topic permissions, restricted server access and encryption at rest in the
-  demonstration.
+  [27 November record](../deploy/README.md#architecture-check-on-27-november-2026)
+  covers EC2 code, TLS, AWS network rules and EBS, plus Pi service status, file
+  permissions and storage. Verify the Pi's current MQTT/HTTPS configuration
+  and connections. Explain authentication, topic permissions and encryption in
+  the demonstration, including the public MQTT port and Pi storage limitations.
 - [ ] Check the existing [Fritzing sketch](../hardware/unistow-wiring.fzz) and
   [wiring guide](../hardware/README.md#wiring-diagram) against the physical leads,
   including the Pi 5V and ground connections.
