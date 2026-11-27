@@ -207,6 +207,8 @@ A read-only SSH check of the running EC2 deployment confirmed:
 - Instance metadata identified `launch-wizard-2` and rejected a request
   without an IMDSv2 token with HTTP 401.
 
+![UniStow EC2 instance summary on 27 November showing Running and IMDSv2 Required](../docs/images/deployment/unistow-ec2-instance-summary-2026-11-27.png)
+
 Compared with repository commit `c950b85`, 17 of the 22 backend Python files
 matched byte for byte. The other five differed only in whitespace and line
 wrapping; their parsed Python syntax trees were identical. The production
