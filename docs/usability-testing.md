@@ -699,5 +699,33 @@ The author also confirmed that pulling down to refresh on the phone preserved
 reservation #62 and the completed-rental history in **My rentals**. The captures
 show the account and reservation states; the refresh gesture and retained
 history are recorded from the author's manual check. Reservation resumption,
-refresh and history retention passed. Dialogue dismissal and cancellation
-remain to be checked separately.
+refresh and history retention passed.
+
+### Dialogue dismissal and cancellation
+
+Further captures show **Cancel your reservation?** with **Keep** and **Cancel**
+actions, reservation #62 still **Pending** and **Not paid**, and the Lockers page
+offering **Continue rental** for Locker 4 with **Available 0**. The pending-detail
+capture is identical to the one retained above. The author confirmed that these
+views were captured before confirming **Cancel**, and that both **Keep** and
+tapping outside the dialogue closed it without cancelling the reservation.
+
+| Confirmation dialogue | Reservation still held |
+|-----------------------|------------------------|
+| ![Reservation cancellation dialogue offering Keep and Cancel](images/testing/rental-62-cancellation-dialogue-2026-11-27.png) | ![Locker 4 offering Continue rental with Available 0 during the reservation 62 cancellation check](images/testing/rental-62-retained-locker-card-2026-11-27.png) |
+
+After confirming **Cancel**, reservation #62 showed **Cancelled** and **Not
+paid**, with the message **This reservation has been cancelled. You can choose
+an available locker again.** Payment and cancellation controls were removed.
+My rentals then showed **No current rentals**, while the completed history
+remained visible, including rental #61 at **22:49 on 27 November 2026** and the
+earlier rental #59. The cancelled, unpaid reservation #62 did not appear in
+**Recently completed**, as the author also confirmed; that list contains
+completed rentals.
+
+| Cancelled reservation | My rentals after cancellation |
+|-----------------------|-------------------------------|
+| ![Reservation 62 showing Cancelled and Not paid, with payment and cancellation controls removed](images/testing/rental-62-cancelled-2026-11-27.png) | ![My rentals showing no current rentals and retained completed history after cancelling reservation 62](images/testing/rental-62-my-rentals-after-cancellation-2026-11-27.png) |
+
+Dialogue dismissal and cancellation passed. Restored availability on the
+Lockers page remains to be captured separately.

@@ -56,6 +56,9 @@ The viva is on **9 December 2026 at 14:00 in P1111**.
   signing out and back in, with recent history retained. The
   [reservation #62 check](usability-testing.md#27-november-2026--resuming-an-unpaid-reservation-on-a-phone-62)
   records the screenshots and the author's phone refresh and history check.
-- [ ] On a phone, check dialogue dismissal and reservation cancellation.
+- [ ] On a phone, check dialogue dismissal, reservation cancellation and restored
+  locker availability. The [reservation #62 result](usability-testing.md#dialogue-dismissal-and-cancellation)
+  confirms both dismissal methods, cancellation and removal from current rentals;
+  restored availability on the Lockers page remains to be captured.
 - [ ] Check the extra-day summary and outstanding-payment flow on a physical phone;
   the existing billing screenshots and browser previews do not establish this.
