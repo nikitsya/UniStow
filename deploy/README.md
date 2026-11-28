@@ -288,6 +288,35 @@ References: [Docker on Ubuntu](https://docs.docker.com/engine/install/ubuntu/),
 [Certbot renewal](https://eff-certbot.readthedocs.io/en/stable/using.html#renewing-certificates), and
 [Stripe webhooks](https://docs.stripe.com/webhooks).
 
+### Checkout recovery rollout on 28 November 2026
+
+Commit `7f15c09bf11e0407d61615be2ed03365ef24be4f`, including the checkout
+recovery and rental cutoff fixes from `d259adf`, was deployed at 00:52 UTC.
+The [release record](../docs/evidence/deployment-2026-11-28.json) identifies
+the source archive, running image, rollback image and verification results.
+The same manifest is stored at `/opt/unistow/release-7f15c09.json`.
+
+A PostgreSQL backup was copied to a private off-server directory and restored
+successfully into an isolated local database, which was then removed. The
+server retains the backup and previous source under
+`/var/backups/unistow/checkout-7f15c09-20261128`, with the previous image tagged
+`unistow-app:rollback-7f15c09`.
+
+Only the application container was recreated. Nginx passed its configuration
+check and was reloaded; PostgreSQL and Mosquitto continued running. The database
+schema, dependencies and production configuration were unchanged. All 75
+runtime source files matched the release, and the app became healthy without
+startup errors. The home page, sign-in page and locker API returned HTTP 200;
+the three updated JavaScript files matched the committed bytes. Anonymous
+requests to both checkout endpoints returned HTTP 401.
+
+A read-only check from the application confirmed PostgreSQL TLS with
+`verify-full`, an established MQTT connection and unchanged rental and payment
+counts. Four cutoff calculations passed inside the deployed image. These
+checks did not create a Stripe payment or send a door command. Locker 4's
+heartbeat was already stale before deployment, and the public API correctly
+reported it offline. A physical check requires the controller to reconnect.
+
 ## Self-hosted MQTT
 
 The Compose service `mosquitto` runs Eclipse Mosquitto on EC2. Both the Pi and

@@ -873,3 +873,9 @@ JavaScript errors were reported. The captured pages were visually inspected.
 These are local automated checks, not new physical-phone or deployed Stripe
 results. No production configuration or database schema was changed. The
 physical-phone extra-day payment check and final screencast remain separate work.
+
+The fixes were subsequently deployed on 28 November at 00:52 UTC. See the
+[deployment record](../deploy/README.md#checkout-recovery-rollout-on-28-november-2026)
+for the backup restoration, runtime file verification and live HTTPS checks.
+The controller was already offline before deployment, so these checks do not
+add a new physical rental cycle or an authenticated Stripe payment result.

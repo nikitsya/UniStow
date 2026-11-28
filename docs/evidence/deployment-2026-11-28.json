@@ -1,0 +1,72 @@
+{
+  "commit": "7f15c09bf11e0407d61615be2ed03365ef24be4f",
+  "deployed_at": "2026-11-28T00:52:03.040569135Z",
+  "archive_sha256": "f67f694003cfd2cbf6cc8683031d5bb5da3818e1929f5a41c68709e9cdf52e6d",
+  "image": "sha256:b607f9c950b20652310c2dc8543c9c9317a2209cd7a5ea527ad8448c1a60db05",
+  "rollback_image": "unistow-app:rollback-7f15c09",
+  "backup_directory": "/var/backups/unistow/checkout-7f15c09-20261128",
+  "source_directory": "/opt/unistow-releases/7f15c09-20261128/source",
+  "database_backup_restoration_verified": true,
+  "database_schema_changed": false,
+  "runtime_checks": {
+    "commit": "7f15c09bf11e0407d61615be2ed03365ef24be4f",
+    "image": "sha256:b607f9c950b20652310c2dc8543c9c9317a2209cd7a5ea527ad8448c1a60db05",
+    "healthy": true,
+    "runtime_files_verified": 75,
+    "startup_errors": 0
+  },
+  "service_checks": {
+    "database_tls": true,
+    "database_sslmode": "verify-full",
+    "rentals_by_status": {
+      "completed": 49,
+      "cancelled": 16
+    },
+    "payment_records": 48,
+    "cutoff_checks_passed": 4,
+    "mqtt_tcp_established": true,
+    "locker_4_heartbeat_age_seconds": 2836
+  },
+  "https_checks": [
+    {
+      "path": "/",
+      "status": 200
+    },
+    {
+      "path": "/api/lockers",
+      "status": 200,
+      "lockers": 9,
+      "locker_4_status": "offline"
+    },
+    {
+      "path": "/login",
+      "status": 200
+    },
+    {
+      "path": "/static/js/rentals/payment.js",
+      "status": 200,
+      "matches_commit": true
+    },
+    {
+      "path": "/static/js/rentals/rental.js",
+      "status": 200,
+      "matches_commit": true
+    },
+    {
+      "path": "/static/js/shared/live.js",
+      "status": 200,
+      "matches_commit": true
+    },
+    {
+      "path": "/api/rentals/65/checkout",
+      "status": 401,
+      "anonymous_payment_blocked": true
+    },
+    {
+      "path": "/api/rentals/65/outstanding/checkout",
+      "status": 401,
+      "anonymous_payment_blocked": true
+    }
+  ],
+  "verification_limits": "No authenticated Stripe payment or physical door cycle was performed. The controller heartbeat was already stale before deployment."
+}
