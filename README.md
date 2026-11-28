@@ -194,9 +194,3 @@ To include database tests, start PostgreSQL and prefix the command with
 | [Submission checklist](docs/implementation-plan.md)                                                                       | Remaining checks, deadline and submission files         |
 | [AI assistance log](docs/AI_Chat_Log.md)                                                                                  | Recorded use of AI during development                   |
 | [CA cover sheet](docs/submission/ca-cover-sheet.pdf) and [AI usage cover sheet](docs/submission/ai-usage-cover-sheet.pdf) | Completed submission documents                          |
-
-The [Checkpoint 1 slides](docs/presentations/UniStow-ICA-Checkpoint-1.pptx)
-and [11 November review](docs/presentations/UniStow-Progress-Review-2026-11-11.pptx)
-are historical snapshots. Their proposed technologies, designs and issue lists
-reflect those stages, including plans later changed or removed. Use the guides
-above for the current implementation and remaining work.
