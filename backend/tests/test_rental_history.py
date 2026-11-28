@@ -1,6 +1,5 @@
 import os
 import unittest
-
 from sqlalchemy import text
 
 import test_commands

@@ -1,8 +1,7 @@
 import unittest
 from datetime import datetime, timezone
-from unittest.mock import patch
-
 from pydantic import ValidationError
+from unittest.mock import patch
 
 import test_login
 from schemas import RentalRequest

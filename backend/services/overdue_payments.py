@@ -1,11 +1,10 @@
 import os
 from datetime import datetime
-from uuid import uuid4
-
 from fastapi import HTTPException
 from sqlalchemy import DateTime, func, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
+from uuid import uuid4
 
 from models import Locker, OverdueCharge, OverduePayment, Rental
 from services.booking_eligibility import lock_account, lock_rental_account

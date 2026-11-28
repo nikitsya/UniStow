@@ -1,14 +1,13 @@
 import os
-from datetime import datetime
-from functools import lru_cache
-from typing import Literal
-from uuid import uuid4
-
 import stripe
+from datetime import datetime
 from fastapi import HTTPException
+from functools import lru_cache
 from sqlalchemy import DateTime, exists, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from stripe.params.checkout import SessionCreateParams, SessionCreateParamsPaymentIntentData
+from typing import Literal
+from uuid import uuid4
 
 from models import Locker, LockerCommand, Payment, Rental
 from services.booking_eligibility import require_booking_eligibility

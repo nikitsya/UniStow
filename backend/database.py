@@ -1,6 +1,6 @@
-import os
 from pathlib import Path
 
+import os
 from dotenv import load_dotenv
 from sqlalchemy import URL
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine

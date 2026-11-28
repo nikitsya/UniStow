@@ -1,8 +1,7 @@
 import unittest
-from unittest.mock import patch
-
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.exc import SQLAlchemyError
+from unittest.mock import patch
 
 from main import app
 

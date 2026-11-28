@@ -1,13 +1,13 @@
+from pathlib import Path
+
 import importlib.util
 import json
 import unittest
-from pathlib import Path
+from fastapi import HTTPException
 from time import time
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 from uuid import uuid4
-
-from fastapi import HTTPException
 
 from services.door_events import COMMANDS, EVENTS, DoorEvents
 

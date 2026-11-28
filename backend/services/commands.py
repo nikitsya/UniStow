@@ -1,9 +1,8 @@
 from datetime import datetime, timedelta
-from uuid import uuid4
-
 from fastapi import HTTPException
 from sqlalchemy import DateTime, and_, func, literal, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
+from uuid import uuid4
 
 from models import Locker, LockerCommand, Payment, Rental
 

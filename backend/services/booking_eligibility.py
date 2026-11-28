@@ -1,8 +1,7 @@
-from typing import TypedDict
-
 from fastapi import HTTPException
 from sqlalchemy import and_, exists, func, not_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from typing import TypedDict
 
 from models import Locker, OverdueCharge, OverduePayment, Rental, User
 

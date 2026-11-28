@@ -1,9 +1,8 @@
-from typing import Annotated
-
 import stripe
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.concurrency import run_in_threadpool
+from typing import Annotated
 
 from auth.sessions import check_browser_request, current_user, end_session, start_session
 from auth.users import authenticate_user, create_user

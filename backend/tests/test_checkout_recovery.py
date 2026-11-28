@@ -1,13 +1,12 @@
 import os
+import stripe
 import unittest
 from datetime import datetime, timedelta, timezone
-from types import SimpleNamespace
-from unittest.mock import patch
-
-import stripe
 from fastapi import HTTPException
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
+from types import SimpleNamespace
+from unittest.mock import patch
 
 from services.checkout import checkout_fits
 from services.payment_confirmation import cancel_pending_reservation

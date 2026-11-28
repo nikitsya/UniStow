@@ -1,15 +1,14 @@
 import asyncio
 import os
+import stripe
 import time
 import unittest
 from datetime import timedelta
-from types import SimpleNamespace
-from unittest.mock import patch
-
-import stripe
 from fastapi import HTTPException
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
+from types import SimpleNamespace
+from unittest.mock import patch
 
 import test_commands
 import test_overdue_billing

@@ -1,14 +1,14 @@
-from datetime import datetime, timezone
 from pathlib import Path
-from typing import Annotated
 from zoneinfo import ZoneInfo
 
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import and_, exists, func, or_, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
+from typing import Annotated
 
 from auth.sessions import current_user
 from database import get_db

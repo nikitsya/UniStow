@@ -1,14 +1,13 @@
 import asyncio
 import logging
+import stripe
 from collections.abc import Iterator
 from contextlib import asynccontextmanager
 from datetime import date, datetime, time, timedelta
-from uuid import uuid4
-
-import stripe
 from sqlalchemy import DateTime, func, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
+from uuid import uuid4
 
 from database import engine
 from models import Locker, OverdueCharge, Payment, Rental

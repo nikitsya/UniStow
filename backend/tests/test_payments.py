@@ -1,9 +1,8 @@
 import unittest
 from datetime import datetime, timedelta, timezone
-from unittest.mock import Mock, patch
-
 from fastapi import HTTPException
 from sqlalchemy import text
+from unittest.mock import Mock, patch
 
 import test_login
 from main import app

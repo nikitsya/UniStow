@@ -1,6 +1,5 @@
-from unittest.mock import patch
-
 from sqlalchemy import text
+from unittest.mock import patch
 
 import test_registration
 

@@ -2,13 +2,12 @@
 import json
 import logging
 import os
+import paho.mqtt.client as mqtt
 from contextlib import asynccontextmanager
+from fastapi import HTTPException
 from threading import Event, Lock
 from time import time
 from uuid import UUID, uuid4
-
-import paho.mqtt.client as mqtt
-from fastapi import HTTPException
 
 EVENTS = 'unistow/locker-4/events'
 COMMANDS = 'unistow/locker-4/commands'

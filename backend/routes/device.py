@@ -1,12 +1,11 @@
 import os
 import secrets
-from typing import Annotated, Literal
-from uuid import UUID
-
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, model_validator
 from sqlalchemy import func, update
 from sqlalchemy.ext.asyncio import AsyncSession
+from typing import Annotated, Literal
+from uuid import UUID
 
 from database import get_db
 from models import Locker

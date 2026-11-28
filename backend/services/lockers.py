@@ -1,5 +1,4 @@
 from datetime import timedelta
-
 from sqlalchemy import and_, exists, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 

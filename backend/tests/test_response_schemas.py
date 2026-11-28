@@ -1,9 +1,8 @@
 import unittest
-from unittest.mock import AsyncMock, patch
-
 from fastapi import FastAPI
 from fastapi.exceptions import ResponseValidationError
 from httpx import ASGITransport, AsyncClient
+from unittest.mock import AsyncMock, patch
 
 from auth.sessions import check_browser_request
 from database import get_db

@@ -1,9 +1,8 @@
 from datetime import date, datetime
-from typing import Any
-
 from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Identity, Text, false, func, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
+from typing import Any
 
 from database import Base
 

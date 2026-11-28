@@ -1,6 +1,7 @@
+from pathlib import Path
+
 import importlib.util
 import unittest
-from pathlib import Path
 
 spec = importlib.util.spec_from_file_location('run_locker',
                                               Path(__file__).resolve().parents[2] / 'hardware/run_locker.py')

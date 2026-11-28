@@ -1,12 +1,11 @@
 import os
 import unittest
 from datetime import datetime, timedelta, timezone
-from types import SimpleNamespace
-from unittest.mock import patch
-
 from fastapi import HTTPException
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
+from types import SimpleNamespace
+from unittest.mock import patch
 
 import test_commands
 from services.booking_eligibility import booking_eligibility

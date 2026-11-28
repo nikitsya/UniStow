@@ -1,10 +1,10 @@
 """Forward Stripe test events locally without printing secret keys."""
+from pathlib import Path
+
 import os
 import re
 import shutil
 import subprocess
-from pathlib import Path
-
 from dotenv import dotenv_values, set_key
 
 
