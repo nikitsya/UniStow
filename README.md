@@ -72,25 +72,25 @@ The diagram shows the production configuration defined in this repository.
 
 ```mermaid
 flowchart LR
-   subgraph EC2["AWS EC2 · Docker"]
-      Proxy[Nginx]
-      App[FastAPI]
-      DB[(PostgreSQL)]
-      Broker[Eclipse Mosquitto]
-   end
-   Browser[Web browser] -->|HTTPS| Proxy
-   Proxy -->|Internal HTTPS| App
-   App -->|SQL over TLS| DB
-   Browser -->|HTTPS hosted Checkout| Stripe[Stripe sandbox]
-   App -->|HTTPS API requests| Stripe
+    subgraph EC2["AWS EC2 · Docker"]
+        Proxy[Nginx]
+        App[FastAPI]
+        DB[(PostgreSQL)]
+        Broker[Eclipse Mosquitto]
+    end
+    Browser[Web browser] -->|HTTPS| Proxy
+    Proxy -->|Internal HTTPS| App
+    App -->|SQL over TLS| DB
+    Browser -->|HTTPS hosted Checkout| Stripe[Stripe sandbox]
+    App -->|HTTPS API requests| Stripe
     Stripe -->|HTTPS webhook| Proxy
-   App -->|MQTT/TLS: opening commands| Broker
-   Broker -->|MQTT/TLS: opening commands| Pi[Raspberry Pi 400]
-   Pi -->|MQTT/TLS: door state and acknowledgements| Broker
-   Broker -->|MQTT/TLS: door state and acknowledgements| App
-   Pi -->|HTTPS: heartbeat and collection| Proxy
-   Pi -->|GPIO18: control pulses| Latch[Servo latch]
-   Sensor[Door sensor] -->|GPIO17: contact state| Pi
+    App -->|MQTT/TLS: opening commands| Broker
+    Broker -->|MQTT/TLS: opening commands| Pi[Raspberry Pi 400]
+    Pi -->|MQTT/TLS: door state and acknowledgements| Broker
+    Broker -->|MQTT/TLS: door state and acknowledgements| App
+    Pi -->|HTTPS: heartbeat and collection| Proxy
+    Pi -->|GPIO18: control pulses| Latch[Servo latch]
+    Sensor[Door sensor] -->|GPIO17: contact state| Pi
 ```
 
 FastAPI publishes opening commands to `unistow/locker-4/commands`. The Pi

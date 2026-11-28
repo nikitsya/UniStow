@@ -12,13 +12,13 @@ door contact. The PNG export is shown below.
 
 ![Locker 4 breadboard wiring](../docs/images/hardware/unistow-wiring.png)
 
-| Connection          | Raspberry Pi header     | Route                                  | Wire colour |
-|---------------------|-------------------------|----------------------------------------|-------------|
-| Servo supply        | 5V, physical pin 2      | Directly to servo VCC                  | Red         |
-| Door contact ground | GND, physical pin 6     | A10, joined to one white contact lead  | Black       |
-| Servo ground        | GND, physical pin 9     | Directly to servo GND                  | Brown       |
-| Door contact input  | GPIO17, physical pin 11 | A15, joined to the other white lead    | Orange      |
-| Servo pulse         | GPIO18, physical pin 12 | Directly to servo signal               | Yellow      |
+| Connection          | Raspberry Pi header     | Route                                 | Wire colour |
+|---------------------|-------------------------|---------------------------------------|-------------|
+| Servo supply        | 5V, physical pin 2      | Directly to servo VCC                 | Red         |
+| Door contact ground | GND, physical pin 6     | A10, joined to one white contact lead | Black       |
+| Servo ground        | GND, physical pin 9     | Directly to servo GND                 | Brown       |
+| Door contact input  | GPIO17, physical pin 11 | A15, joined to the other white lead   | Orange      |
+| Servo pulse         | GPIO18, physical pin 12 | Directly to servo signal              | Yellow      |
 
 On 27 November 2026, the author supplied the photographs below and confirmed
 all five physical header positions in the table. The servo connects directly
@@ -34,7 +34,8 @@ has a black ground lead, while the physical servo ground lead is brown.
 
 Physical header positions differ from GPIO numbers. The Pi 400's header
 orientation also differs from the Pi 4B symbol: use the **PIN1** marking on the
-actual Pi 400 and the [official Raspberry Pi GPIO reference](https://www.raspberrypi.com/documentation/computers/raspberry-pi.html)
+actual Pi 400 and
+the [official Raspberry Pi GPIO reference](https://www.raspberrypi.com/documentation/computers/raspberry-pi.html)
 when identifying contacts.
 
 ![Pi 400 header with red, black, brown, orange and yellow jumper wires, photographed on 27 November 2026](../docs/images/hardware/unistow-pi-header-2026-11-27.jpeg)

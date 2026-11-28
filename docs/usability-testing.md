@@ -636,33 +636,32 @@ actions available.
 
 Stopping `uniflow-locker` on the Pi produced `inactive`. The rental page then
 showed **Door: Unknown**, a temporary-unavailability notice and both actions
-disabled. Starting the service produced `active`; the page returned to
-**Door: Closed** with the controls available.
+disabled. Starting the service produced `active`; the page returned to **Door: Closed** with the controls available.
 
-| Controller stopped | Controller restarted |
-|--------------------|----------------------|
+| Controller stopped                                                                                                                | Controller restarted                                                                                                               |
+|-----------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------|
 | ![Pi terminal showing uniflow-locker inactive after systemctl stop](images/hardware/unistow-pi-controller-stopped-2026-11-27.png) | ![Pi terminal showing uniflow-locker active after systemctl start](images/hardware/unistow-pi-controller-restarted-2026-11-27.png) |
 
-| Before stopping the controller | Controller offline |
-|--------------------------------|--------------------|
+| Before stopping the controller                                                                                                                                | Controller offline                                                                                                                                                  |
+|---------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | ![Active paid rental 61 showing a closed door and available controls before the interruption](images/testing/rental-61-before-controller-stop-2026-11-27.png) | ![Rental 61 showing Door Unknown, temporary unavailability and disabled opening and finishing controls](images/testing/rental-61-controller-offline-2026-11-27.png) |
 
 ![Rental 61 showing Door Closed and available controls after the controller was restarted](images/testing/rental-61-controller-restored-2026-11-27.png)
 
 The author also pressed **Open locker** at approximately the same time as
-stopping the service. The interface first displayed **Unlocking…**, then
-**We couldn’t confirm whether the locker opened. Check the door before trying
+stopping the service. The interface first displayed **Unlocking…**, then **We couldn’t confirm whether the locker
+opened. Check the door before trying
 again.** The author observed that the real door did not open during this attempt.
 The initial message describes a request in progress; it does not confirm latch
 movement.
 
-| Request in progress | Opening unconfirmed |
-|---------------------|---------------------|
+| Request in progress                                                                                                                                     | Opening unconfirmed                                                                                                                                           |
+|---------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | ![Rental 61 showing Unlocking with both actions disabled during the interrupted request](images/testing/rental-61-interrupted-unlocking-2026-11-27.png) | ![Rental 61 warning that opening could not be confirmed and asking the renter to check the door](images/testing/rental-61-opening-unconfirmed-2026-11-27.png) |
 
 After waiting and restarting the controller following that failed attempt, the
-author confirmed that the door stayed shut without any button presses. A fresh
-**Open locker** request then opened it. No delayed opening from the previous
+author confirmed that the door stayed shut without any button presses. A fresh **Open locker** request then opened it.
+No delayed opening from the previous
 request was observed. This completes the manual interruption and restart check;
 the screenshots record service and interface states, while the physical outcome
 is confirmed by the author.
@@ -673,11 +672,11 @@ The author repeated the light-closure check on the physical Locker 4 prototype
 and supplied the `uniflow-locker` journal. The relevant sequence is shown below;
 times are as displayed in the Pi journal.
 
-| Time | Journal observation |
-|------|---------------------|
-| 22:45:47 | Door reported closed; `Closing commanded (1500 us).` |
-| 22:45:48 | `Latch retracted (2250 us).` |
-| 22:45:49 | Door reported open. |
+| Time     | Journal observation                                       |
+|----------|-----------------------------------------------------------|
+| 22:45:47 | Door reported closed; `Closing commanded (1500 us).`      |
+| 22:45:48 | `Latch retracted (2250 us).`                              |
+| 22:45:49 | Door reported open.                                       |
 | 22:45:51 | Closing commanded again at 1500 us; door reported closed. |
 
 ![Pi journal showing closing at 22:45:47, latch retraction at 22:45:48, an open door report at 22:45:49 and renewed closing with a closed door report at 22:45:51](images/hardware/unistow-pi-light-closure-2026-11-27.png)
@@ -691,17 +690,17 @@ The manual light-closure and recovery test passed.
 ## 27 November 2026 — Resuming an unpaid reservation on a phone (#62)
 
 The author reserved Locker 4 without starting payment, signed out and signed
-back into the same account on a physical phone. Reservation **#62** remained
-**Pending** and **Not paid**, with a one-day period ending at **18:00 on
+back into the same account on a physical phone. Reservation **#62** remained **Pending** and **Not paid**, with a
+one-day period ending at **18:00 on
 28 November 2026** and a total of **EUR 1.00**.
 
 The signed-out account menu offered **Create account** and **Sign in**, and
-Locker 4 appeared unavailable. After signing in, the account menu offered
-**Sign out** and the locker card showed **Continue rental**. Reopening it
+Locker 4 appeared unavailable. After signing in, the account menu offered **Sign out** and the locker card showed
+**Continue rental**. Reopening it
 returned to the same unpaid reservation.
 
-| Signed out | Signed back in |
-|------------|----------------|
+| Signed out                                                                                                                                    | Signed back in                                                                                                     |
+|-----------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------|
 | ![Signed-out account menu offering Create account and Sign in, with Locker 4 unavailable](images/testing/rental-62-signed-out-2026-11-27.png) | ![Signed-in account menu and Locker 4 offering Continue rental](images/testing/rental-62-signed-in-2026-11-27.png) |
 
 The supplied reservation-detail captures before and after signing in are
@@ -724,8 +723,8 @@ capture is identical to the one retained above. The author confirmed that these
 views were captured before confirming **Cancel**, and that both **Keep** and
 tapping outside the dialogue closed it without cancelling the reservation.
 
-| Confirmation dialogue | Reservation still held |
-|-----------------------|------------------------|
+| Confirmation dialogue                                                                                                        | Reservation still held                                                                                                                                           |
+|------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | ![Reservation cancellation dialogue offering Keep and Cancel](images/testing/rental-62-cancellation-dialogue-2026-11-27.png) | ![Locker 4 offering Continue rental with Available 0 during the reservation 62 cancellation check](images/testing/rental-62-retained-locker-card-2026-11-27.png) |
 
 After confirming **Cancel**, reservation #62 showed **Cancelled** and **Not
@@ -733,12 +732,12 @@ paid**, with the message **This reservation has been cancelled. You can choose
 an available locker again.** Payment and cancellation controls were removed.
 My rentals then showed **No current rentals**, while the completed history
 remained visible, including rental #61 at **22:49 on 27 November 2026** and the
-earlier rental #59. The cancelled, unpaid reservation #62 did not appear in
-**Recently completed**, as the author also confirmed; that list contains
+earlier rental #59. The cancelled, unpaid reservation #62 did not appear in **Recently completed**, as the author also
+confirmed; that list contains
 completed rentals.
 
-| Cancelled reservation | My rentals after cancellation |
-|-----------------------|-------------------------------|
+| Cancelled reservation                                                                                                                               | My rentals after cancellation                                                                                                                                                  |
+|-----------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | ![Reservation 62 showing Cancelled and Not paid, with payment and cancellation controls removed](images/testing/rental-62-cancelled-2026-11-27.png) | ![My rentals showing no current rentals and retained completed history after cancelling reservation 62](images/testing/rental-62-my-rentals-after-cancellation-2026-11-27.png) |
 
 The final Lockers capture showed the **Available** filter selected with a count
@@ -769,8 +768,8 @@ no application changes were needed.
 ## 27 November 2026 — Correlated MQTT and collection check (#65)
 
 The author repeated the physical cycle with the empty Locker 4 and the deployed
-website. The server observer first recorded rental **#65** as **active** and
-**paid**. The author confirmed that **Open locker** opened the real door, the
+website. The server observer first recorded rental **#65** as **active** and **paid**. The author confirmed that **Open
+locker** opened the real door, the
 latch held it shut after closing, and **Finish rental**, followed by opening
 and closing the door, led to **Completed** on the phone.
 
@@ -788,10 +787,10 @@ through HTTPS heartbeats; MQTT readings also supply the live application state.
 The same command ID appears in all three observations:
 `6ee62ab8-3287-4b19-83b0-86f1ae05e158`.
 
-| Time (UTC) | Evidence |
-|------------|----------|
-| 23:36:19.718736 | PostgreSQL recorded the `open` command for rental #65 as dispatched. |
-| 23:36:19.750586 | The Pi subscriber received `type: open` on `unistow/locker-4/commands`. |
+| Time (UTC)      | Evidence                                                                                        |
+|-----------------|-------------------------------------------------------------------------------------------------|
+| 23:36:19.718736 | PostgreSQL recorded the `open` command for rental #65 as dispatched.                            |
+| 23:36:19.750586 | The Pi subscriber received `type: open` on `unistow/locker-4/commands`.                         |
 | 23:36:19.785555 | The EC2 subscriber received `type: open_ack` with the matching ID on `unistow/locker-4/events`. |
 
 The [author-supplied Pi output](evidence/rental-65-pi-command-2026-11-27.txt)
@@ -807,18 +806,17 @@ are the observer's UTC receipt or query times, except where a stored timestamp
 is explicitly identified. Only state changes are printed; database polling does
 not capture every intermediate instant.
 
-| Stage | MQTT sensor observation | PostgreSQL observation |
-|-------|-------------------------|------------------------|
-| Initial opening | `open` at 23:36:21.451 | `door_state = open` at 23:36:23.797 |
-| First closure | `closed`, not ready, at 23:36:46.987; ready again at 23:36:49.991 | `closed` at 23:36:47.928; ready at 23:36:52.957 |
-| Opening for collection | `open`, not ready, at 23:36:58.306 | `door_state = open` at 23:36:59.996 |
-| Final closure | `closed` at 23:37:37.171; ready at 23:37:41.879 | `closed` at 23:37:40.226; ready at 23:37:44.248 |
+| Stage                  | MQTT sensor observation                                           | PostgreSQL observation                          |
+|------------------------|-------------------------------------------------------------------|-------------------------------------------------|
+| Initial opening        | `open` at 23:36:21.451                                            | `door_state = open` at 23:36:23.797             |
+| First closure          | `closed`, not ready, at 23:36:46.987; ready again at 23:36:49.991 | `closed` at 23:36:47.928; ready at 23:36:52.957 |
+| Opening for collection | `open`, not ready, at 23:36:58.306                                | `door_state = open` at 23:36:59.996             |
+| Final closure          | `closed` at 23:37:37.171; ready at 23:37:41.879                   | `closed` at 23:37:40.226; ready at 23:37:44.248 |
 
 Collection used HTTPS polling and acknowledgement. Command
-`1ee30f9a-4304-48e3-b49c-a5d966e0a7d3` was stored as dispatched at
-**23:36:57.250482 UTC**. Its `completed_at` timestamp was
-**23:37:41.715190 UTC**, alongside the rental's completion at
-**23:37:41.714064 UTC**. These records show the completion endpoint accepted
+`1ee30f9a-4304-48e3-b49c-a5d966e0a7d3` was stored as dispatched at **23:36:57.250482 UTC**. Its `completed_at` timestamp
+was **23:37:41.715190 UTC**, alongside the rental's completion at **23:37:41.714064 UTC**. These records show the
+completion endpoint accepted
 the acknowledgement for that dispatched collection command.
 
 The [final read-only database result](evidence/rental-65-final-database-2026-11-27.txt)

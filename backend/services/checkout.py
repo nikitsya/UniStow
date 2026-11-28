@@ -54,8 +54,8 @@ async def resume_checkout(db, client, model, payment_id, *, paid_until=None, ref
         except stripe.InvalidRequestError as error:
             now = await checkout_now(db)
             rejected_expiry = (
-                error.param == 'expires_at' and error.http_status in (None, 400)
-                and params.get('expires_at', float('inf')) <= now.timestamp() + 1800
+                    error.param == 'expires_at' and error.http_status in (None, 400)
+                    and params.get('expires_at', float('inf')) <= now.timestamp() + 1800
             )
             if not rejected_expiry:
                 raise
