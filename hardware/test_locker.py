@@ -25,6 +25,8 @@ def main():
     factory = PiGPIOFactory(host="localhost")
     try:
         # GPIO17: physical pin 11. GPIO18: physical pin 12.
+        # GPIO Zero supports None to leave the servo uncontrolled at startup.
+        # noinspection PyTypeChecker
         with Button(17, pull_up=True, bounce_time=0.1, pin_factory=factory) as door, \
                 Servo(18, initial_value=None,
                       min_pulse_width=CLOSED_PULSE_US / 1_000_000,
