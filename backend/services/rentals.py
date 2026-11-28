@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from models import Locker, Payment, Rental
 from services.booking_eligibility import require_booking_eligibility
+from services.checkout import SHORT_RENTAL_MESSAGE, checkout_fits
 
 IRELAND = ZoneInfo("Europe/Dublin")
 TERMS_VERSION = "2026-10-25"
@@ -63,6 +64,8 @@ async def reserve_locker(db: AsyncSession, user_id: int, locker_id: int, days: i
         raise HTTPException(status_code=409, detail="This locker is temporarily unavailable.")
 
     paid_until = rental_end(now, days)
+    if not checkout_fits(paid_until, now):
+        raise HTTPException(409, {'code': 'rental_period_too_short', 'message': SHORT_RENTAL_MESSAGE})
     reserved_until = min(now + timedelta(minutes=15), paid_until)
     rental = Rental(
         user_id=user_id, locker_id=locker_id, status="pending", prepaid_days=days,

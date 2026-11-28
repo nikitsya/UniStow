@@ -1,17 +1,18 @@
 import os
-from datetime import datetime, timedelta
+from datetime import datetime
 from functools import lru_cache
 from typing import Literal
 from uuid import uuid4
 
 import stripe
 from fastapi import HTTPException
-from sqlalchemy import DateTime, exists, func, or_, select, update
+from sqlalchemy import DateTime, exists, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from stripe.params.checkout import SessionCreateParams, SessionCreateParamsPaymentIntentData
 
 from models import Locker, LockerCommand, Payment, Rental
 from services.booking_eligibility import require_booking_eligibility
+from services.checkout import CHECKOUT_WINDOW, CHECKOUT_DEADLINE_MESSAGE, checkout_fits, resume_checkout
 from services.rentals import PAYMENT_METHOD_TERMS_VERSION
 
 
@@ -65,9 +66,9 @@ async def owned_rental(db: AsyncSession, rental_id: int, user_id: int):
 
 def checkout_parameters(rental, base_url: str, now) -> CheckoutParameters:
     # Stripe requires at least 30 minutes; allow a minute for the API request.
-    expires_at = now + timedelta(minutes=31)
-    if expires_at >= rental["paid_until"]:
-        raise HTTPException(status_code=409, detail="Too close to the rental deadline to start checkout.")
+    expires_at = now + CHECKOUT_WINDOW
+    if not checkout_fits(rental["paid_until"], now):
+        raise HTTPException(409, {'code': 'checkout_deadline_passed', 'message': CHECKOUT_DEADLINE_MESSAGE})
     params: CheckoutParameters = {
         "mode": "payment", "payment_method_types": ["card"],
         "branding_settings": {"display_name": "UniStow"},
@@ -113,29 +114,15 @@ async def create_checkout(db: AsyncSession, rental_id: int, user_id: int):
         payment = Payment(rental_id=rental_id, request_key=str(uuid4()), checkout_params=dict(params))
         db.add(payment)
         await db.flush()
-    # Copy the request before commit, including when the session expires ORM objects.
-    checkout_session_id = payment.checkout_session_id
-    created_at = payment.created_at
-    checkout_params = payment.checkout_params
-    request_key = payment.request_key
     # Keep the durable request even if Stripe times out or the browser disconnects.
     await db.commit()
     try:
-        if checkout_session_id:
-            checkout = await client.v1.checkout.sessions.retrieve_async(checkout_session_id)
-        else:
-            if now - created_at > timedelta(hours=23):
-                raise HTTPException(status_code=409, detail="This checkout needs reconciliation before retrying.")
-            checkout = await client.v1.checkout.sessions.create_async(
-                checkout_params, options={"idempotency_key": request_key}
-            )
-            await db.execute(
-                update(Payment).where(Payment.rental_id == rental_id)
-                .values(checkout_session_id=checkout.id)
-            )
-            await db.commit()
+        checkout = await resume_checkout(db, client, Payment, rental_id, paid_until=rental['paid_until'])
     except stripe.StripeError:
         raise HTTPException(status_code=503, detail="Could not open Stripe. Please retry this reservation.") from None
+    if checkout is None:
+        raise HTTPException(409, {'code': 'checkout_expired', 'message':
+            'This unpaid reservation has expired. Please choose a locker and rental period again.'})
     if checkout.livemode:
         raise HTTPException(status_code=503, detail="Only test payments are supported.")
     if checkout.status != "open" or not checkout.url:

@@ -181,7 +181,7 @@ on the payment records for rentals 41 and 45.
 
 **Manual EC2 billing check, rental 41.** Commit `5e1d586` and migration 003
 were deployed on 9 November. Automatic billing was disabled. After saving a
-backup, the related rental dates were moved back one day to make a EUR 1 charge
+backup, the related rental dates were moved back one day to make an EUR 1 charge
 due. Two manual worker runs produced one paid record and one successful
 PaymentIntent receiving 100 cents. The second run reused both records.
 
@@ -834,3 +834,44 @@ checkout screenshots, and #61 supplies the disconnected-controller check.
 Together with the full backend regression, these records complete the
 pre-recording rental-cycle verification. The assessed screencast remains a
 separate submission task.
+
+## 28 November 2026 — Checkout recovery and rental cutoff regression
+
+Local regression checks cover a connection failure before Stripe receives the
+request, a lost successful response, a delayed retry after the saved expiry is
+too close, and a second lost response after expiry repair. A repeated expiry
+rejection stops after one repair and preserves the pending reservation. The repaired request
+keeps its idempotency key, amount and rental reference. A separate test covers
+outstanding-payment recovery without changing the selected debt. Independent
+PostgreSQL transactions verify that two concurrent retries share one session.
+
+Cancellation checks cover recovery and expiry of the original session, rejection
+before creation, another connection failure and a payment that has already
+succeeded. An uncertain request remains held; a verified paid rental is not
+cancelled. Unrelated validation errors and idempotency conflicts do not repair
+parameters or release the locker. Requests older than 23 hours still require
+operator review.
+
+Cutoff checks cover 17:28, 17:29, 17:45 and 18:00 in Ireland, including summer
+and winter UTC offsets. The API rejects a rental period that cannot reach
+checkout before its deadline without inserting a reservation. The booking form
+offers 2–4 days during the restricted interval. An unstarted payment that has
+run out of time is disabled with an explanation, while cancellation remains
+available.
+
+All **139 backend tests passed**, with **no skips**, in **12.014 seconds** using
+local PostgreSQL and mocked Stripe and device actions. The
+[complete test output](evidence/backend-tests-2026-11-28.txt) records the command
+and results. These checks include the 122 existing tests and 17 new regression
+tests.
+
+A headless Chrome check at a 390-pixel viewport used the current Jinja templates,
+CSS and JavaScript with local fixtures and mocked API responses. It verified
+the two-day default and EUR 2 total during the cutoff, rejection of one day,
+handling of a stale booking page, correction to two days, the payment deadline
+message, disabled Pay control and working cancellation dialogue. No browser
+JavaScript errors were reported. The captured pages were visually inspected.
+
+These are local automated checks, not new physical-phone or deployed Stripe
+results. No production configuration or database schema was changed. The
+physical-phone extra-day payment check and final screencast remain separate work.

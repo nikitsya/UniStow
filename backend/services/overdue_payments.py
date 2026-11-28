@@ -1,5 +1,5 @@
 import os
-from datetime import datetime, timedelta
+from datetime import datetime
 from uuid import uuid4
 
 from fastapi import HTTPException
@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from models import Locker, OverdueCharge, OverduePayment, Rental
 from services.booking_eligibility import lock_account, lock_rental_account
+from services.checkout import CHECKOUT_WINDOW, resume_checkout
 from services.overdue_billing import validate_intent
 from services.payments import owned_rental, stripe_client
 
@@ -132,26 +133,18 @@ async def create_outstanding_checkout(db: AsyncSession, rental_id, user_id):
                             'quantity': 1}],
             'success_url': f'{base}/rentals/{rental_id}?outstanding_returned=1',
             'cancel_url': f'{base}/rentals/{rental_id}',
-            'expires_at': int((now + timedelta(minutes=31)).timestamp()),
+            'expires_at': int((now + CHECKOUT_WINDOW).timestamp()),
         }
         payment = (await db.execute(insert(OverduePayment).values(
             id=recovery_id, rental_id=rental_id, charge_ids=[c['id'] for c in charges],
             amount_cents=amount, checkout_params=params,
         ).returning(*OverduePayment.__table__.columns))).mappings().one()
-    payment = dict(payment)
+    payment_id = payment['id']
     await db.commit()
-    if payment['checkout_session_id']:
-        checkout = (await client.v1.checkout.sessions.retrieve_async(payment['checkout_session_id'])).to_dict()
-    else:
-        if now - payment['created_at'] >= timedelta(hours=23):
-            raise HTTPException(409, 'This payment needs reconciliation before retrying.')
-        checkout = (await client.v1.checkout.sessions.create_async(
-            payment['checkout_params'], options={'idempotency_key': payment['id']}
-        )).to_dict()
-        await db.execute(update(OverduePayment).where(OverduePayment.id == payment['id']).values(
-            checkout_session_id=checkout['id'],
-        ))
-        await db.commit()
+    result = await resume_checkout(db, client, OverduePayment, payment_id)
+    if result is None:
+        raise HTTPException(409, 'This payment attempt has expired. Please try again.')
+    checkout = result.to_dict()
     await apply_recovery(db, checkout)
     if checkout['status'] != 'open' or not checkout.get('url'):
         raise HTTPException(409, 'Refresh the page to check the outstanding payment.')

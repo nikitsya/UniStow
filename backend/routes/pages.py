@@ -14,8 +14,10 @@ from auth.sessions import current_user
 from database import get_db
 from models import Locker, OverdueCharge, OverduePayment, Payment, Rental
 from services.booking_eligibility import booking_eligibility
+from services.checkout import CHECKOUT_DEADLINE_MESSAGE, SHORT_RENTAL_MESSAGE, checkout_fits
 from services.lockers import read_lockers
 from services.payments import owned_rental
+from services.rentals import rental_end
 
 router = APIRouter()
 frontend_directory = Path(__file__).resolve().parents[2] / "frontend"
@@ -155,6 +157,9 @@ async def reservation(request: Request, rental_id: int, db: Annotated[AsyncSessi
     return templates.TemplateResponse(request, "rentals/reservation.html", {
         "open_test": open_test, "http_ready": controller_ready,
         "title": "My rental | UniStow", "rental": owned, "billing": billing,
+        "checkout_blocked": (owned['status'] == 'pending' and not owned.get('payment_status')
+                             and not checkout_fits(owned['paid_until'], datetime.now(timezone.utc))),
+        "checkout_deadline_message": CHECKOUT_DEADLINE_MESSAGE,
         "eligibility": await booking_eligibility(db, user['id']),
         "ends_at": ends_at.strftime("%d %B %Y at %H:%M"),
         "door_state": door_state, "device_online": device_online,
@@ -180,7 +185,10 @@ async def rental(request: Request, locker_id: int, db: Annotated[AsyncSession, D
                                           "message": "This locker is temporarily unavailable. Please choose another locker.",
                                           "retry_url": "/"}, status_code=409
         )
+    now = datetime.now(timezone.utc)
+    minimum_days = 1 if checkout_fits(rental_end(now, 1), now) else 2
     return templates.TemplateResponse(
         request, "rentals/rental.html", {"title": f"{locker['name']} | UniStow", "locker": locker,
-                                         "eligibility": await booking_eligibility(db, user['id'])}
+                                         "eligibility": await booking_eligibility(db, user['id']),
+                                         "minimum_days": minimum_days, "short_rental_message": SHORT_RENTAL_MESSAGE}
     )

@@ -7,6 +7,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models import Locker, Payment, PaymentEvent, Rental
+from services.checkout import resume_checkout
 from services.payments import owned_rental, stripe_client
 from services.rentals import PAYMENT_METHOD_TERMS_VERSION
 
@@ -169,7 +170,14 @@ async def cancel_pending_reservation(db: AsyncSession, rental_id: int, user_id: 
     session_id = await db.scalar(select(Payment.checkout_session_id).where(Payment.rental_id == rental_id))
     await db.commit()
     if not session_id:
-        raise HTTPException(409, "Checkout is being prepared. Please try again shortly.")
+        try:
+            checkout = await resume_checkout(db, stripe_client(), Payment, rental_id,
+                                             paid_until=rental['paid_until'], refresh_expiry=False)
+        except stripe.StripeError:
+            raise HTTPException(503, 'Could not confirm cancellation. Please try again.') from None
+        if checkout is None:
+            return
+        session_id = checkout.id
     try:
         checkout = (await stripe_client().v1.checkout.sessions.expire_async(session_id)).to_dict()
     except stripe.InvalidRequestError:

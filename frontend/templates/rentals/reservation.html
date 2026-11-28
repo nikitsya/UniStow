@@ -4,9 +4,9 @@
 {% set header_title %}My rental · Locker {{ rental.number }}{% endset %}
 {% block extra_head %}
     {{ super() }}
-    <script defer src="{{ url_for('static', path='js/rentals/payment.js') }}?v=7"></script>
+    <script defer src="{{ url_for('static', path='js/rentals/payment.js') }}?v=8"></script>
     <script defer src="{{ url_for('static', path='js/rentals/open_locker.js') }}?v=8"></script>
-    <script defer src="{{ url_for('static', path='js/shared/live.js') }}?v=12"></script>
+    <script defer src="{{ url_for('static', path='js/shared/live.js') }}?v=13"></script>
     <script defer src="{{ url_for('static', path='js/rentals/outstanding_payment.js') }}?v=1"></script>
 {% endblock %}
 {% block screen_content %}
@@ -72,18 +72,20 @@
         <p aria-atomic="true" class="operator-help" hidden id="refresh-notice" role="status"></p>
         <div id="rental-actions">
             {% if rental.status == 'pending' %}
-                <p class="operator-help" id="payment-message" role="status">Your rental starts after payment is
-                    confirmed.</p>
+                <p class="operator-help" id="payment-message" role="status">
+                    {% if checkout_blocked %}{{ checkout_deadline_message }}{% else %}Your rental starts after paymentis
+                        confirmed.{% endif %}</p>
                 {% if not eligibility.can_book and rental.payment_status == 'pending' %}
                     <p class="operator-help">A checkout authorised before this balance appeared can still complete this
                         rental.
                         Any confirmed payment for it will be honoured. You can also cancel this reservation.</p>
                 {% endif %}
                 <button class="confirm-button" data-booking-blocked="{{ 'false' if eligibility.can_book else 'true' }}"
+                        data-checkout-blocked="{{ 'true' if checkout_blocked else 'false' }}"
                         data-checkout-url="{{ url_for('checkout', rental_id=rental.id) }}"
                         data-login-url="{{ url_for('sign_in') }}?rental_id={{ rental.id }}"
                         data-reconcile-url="{{ url_for('reconcile', rental_id=rental.id) }}"
-                        {{ 'disabled' if not eligibility.can_book else '' }}
+                        {{ 'disabled' if not eligibility.can_book or checkout_blocked else '' }}
                         id="pay-button" type="button">Pay €{{ '%.2f' |
         format(rental.total_price_cents / 100) }}
                 </button>

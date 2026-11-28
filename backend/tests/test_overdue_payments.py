@@ -1,5 +1,6 @@
 import os
 import unittest
+from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -40,7 +41,7 @@ class OutstandingPaymentTests(test_commands.CommandTestCase):
 
     @staticmethod
     def wrap(value):
-        return SimpleNamespace(to_dict=lambda: dict(value))
+        return SimpleNamespace(**value, to_dict=lambda: dict(value))
 
     def cancel(self, *_args, **_kwargs):
         self.intent['status'] = 'canceled'
@@ -184,6 +185,34 @@ class OutstandingPaymentTests(test_commands.CommandTestCase):
             self.client_stripe.v1.checkout.sessions.create_async.call_args.kwargs['options']['idempotency_key'],
             saved[0])
         self.assertEqual(await self.db.scalar(text('SELECT count(*) FROM overdue_payments')), 1)
+
+    async def test_delayed_retry_repairs_expiry_without_changing_the_debt_or_key(self):
+        import stripe
+
+        self.client_stripe.v1.checkout.sessions.create_async.side_effect = stripe.APIConnectionError('Not delivered')
+        with self.assertRaises(stripe.APIConnectionError):
+            await create_outstanding_checkout(self.db, self.rental_id, 1)
+        saved = (await self.db.execute(text('SELECT * FROM overdue_payments'))).mappings().one()
+        now = datetime.fromtimestamp(saved['checkout_params']['expires_at'], timezone.utc) - timedelta(minutes=29)
+
+        def delayed_create(params, **kwargs):
+            if params['expires_at'] - now.timestamp() < 1800:
+                raise stripe.InvalidRequestError('Expiry is too soon', 'expires_at', http_status=400)
+            return self.create(params, **kwargs)
+
+        self.client_stripe.v1.checkout.sessions.create_async.side_effect = delayed_create
+        with patch('services.checkout.checkout_now', return_value=now):
+            await create_outstanding_checkout(self.db, self.rental_id, 1)
+        calls = self.client_stripe.v1.checkout.sessions.create_async.await_args_list
+        self.assertEqual(calls[0], calls[1])
+        self.assertEqual(calls[1].kwargs, calls[2].kwargs)
+        self.assertGreater(calls[2].args[0]['expires_at'], calls[1].args[0]['expires_at'])
+        self.assertEqual(await self.db.scalar(text('SELECT count(*) FROM overdue_payments')), 1)
+        self.assertEqual(await self.db.scalar(text('SELECT charge_ids FROM overdue_payments')), saved['charge_ids'])
+        self.client_stripe.v1.payment_intents.cancel_async.assert_awaited_once()
+        self.pay()
+        await apply_recovery(self.db, self.checkout)
+        self.assertTrue((await booking_eligibility(self.db, 1))['can_book'])
 
     async def test_settlement_leaves_another_rentals_balance_restricted(self):
         other = await self.connection.scalar(text("""

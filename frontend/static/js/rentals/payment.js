@@ -34,7 +34,8 @@ window.initialisePayment = function () {
         } finally {
             window.paymentBusy = false;
             cancelButton.disabled = Boolean(window.rentalUnavailable);
-            payButton.disabled = cancelButton.disabled || payButton.dataset.bookingBlocked === 'true';
+            payButton.disabled = cancelButton.disabled || payButton.dataset.bookingBlocked === 'true'
+                || payButton.dataset.checkoutBlocked === 'true';
         }
     });
     payButton.addEventListener('click', async () => {
@@ -52,6 +53,12 @@ window.initialisePayment = function () {
             }
             const result = await response.json();
             if (!response.ok) {
+                if (['checkout_deadline_passed', 'checkout_expired'].includes(result.detail?.code)) {
+                    payButton.dataset.checkoutBlocked = 'true';
+                    paymentMessage.textContent = result.detail.message;
+                    document.dispatchEvent(new Event('rental-updated'));
+                    return;
+                }
                 if (result.detail?.code === 'account_booking_restricted') {
                     payButton.dataset.bookingBlocked = 'true';
                     paymentMessage.textContent = result.detail.message;
@@ -67,7 +74,8 @@ window.initialisePayment = function () {
         } finally {
             window.paymentBusy = false;
             cancelButton.disabled = Boolean(window.rentalUnavailable);
-            payButton.disabled = cancelButton.disabled || payButton.dataset.bookingBlocked === 'true';
+            payButton.disabled = cancelButton.disabled || payButton.dataset.bookingBlocked === 'true'
+                || payButton.dataset.checkoutBlocked === 'true';
         }
     });
 

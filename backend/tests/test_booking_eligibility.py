@@ -2,9 +2,11 @@ import asyncio
 import os
 import time
 import unittest
+from datetime import timedelta
 from types import SimpleNamespace
 from unittest.mock import patch
 
+import stripe
 from fastapi import HTTPException
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -76,10 +78,10 @@ class BookingEligibilityTests(test_commands.CommandTestCase):
         self.assertEqual(response.status_code, 409)
         self.assertEqual(response.json()['detail']['code'], 'account_booking_restricted')
         self.assertEqual(response.json()['detail']['unpaid_cents'], 100)
-        with patch('services.payments.stripe_client', return_value=fake_stripe_client()) as stripe:
+        with patch('services.payments.stripe_client', return_value=fake_stripe_client()) as stripe_mock:
             response = await self.client.post(f"/api/rentals/{pending['id']}/checkout", headers=self.headers)
             self.assertEqual(response.status_code, 409)
-            stripe.return_value.v1.checkout.sessions.create_async.assert_not_called()
+            stripe_mock.return_value.v1.checkout.sessions.create_async.assert_not_called()
         self.assertEqual(await self.connection.scalar(text('SELECT count(*) FROM rentals')), 2)
         self.assertEqual(await self.connection.scalar(text('SELECT count(*) FROM payments')), 1)
         page = await self.client.get(f"/rentals/{pending['id']}")
@@ -280,3 +282,58 @@ class BookingConcurrencyTests(test_overdue_billing.OverdueBillingTestCase):
         with patch('services.payments.stripe_client', return_value=client):
             await self.assert_waits_for_balance(lambda booking_db: create_checkout(booking_db, rental['id'], 1))
         client.v1.checkout.sessions.create_async.assert_called_once()
+
+    async def test_concurrent_retries_share_the_repaired_checkout(self):
+        async with self.db.begin() as connection:
+            await connection.execute(text("UPDATE overdue_charges SET status='waived' WHERE id=1"))
+        async with AsyncSession(self.db) as setup_db:
+            rental = await reserve_locker(setup_db, 1, 2, 2)
+            now = await setup_db.scalar(text('SELECT clock_timestamp()'))
+        client = fake_stripe_client()
+        client.v1.checkout.sessions.create_async.side_effect = stripe.APIConnectionError('Not delivered')
+        with patch('services.payments.stripe_client', return_value=client):
+            async with AsyncSession(self.db) as initial_db:
+                with self.assertRaises(HTTPException):
+                    await create_checkout(initial_db, rental['id'], 1)
+            now += timedelta(minutes=2)
+            creating = asyncio.Event()
+            release = asyncio.Event()
+            second_started = asyncio.Event()
+            second_pid = []
+            session = SimpleNamespace(id='cs_one_session', status='open', livemode=False,
+                                      url='https://checkout.stripe.com/test')
+
+            async def create(params, **_kwargs):
+                if params['expires_at'] - now.timestamp() < 1800:
+                    raise stripe.InvalidRequestError('Expiry is too soon', 'expires_at', http_status=400)
+                creating.set()
+                await asyncio.wait_for(release.wait(), timeout=5)
+                return session
+
+            async def pay(is_second=False):
+                async with AsyncSession(self.db) as request_db:
+                    if is_second:
+                        second_pid.append(await request_db.scalar(text('SELECT pg_backend_pid()')))
+                        second_started.set()
+                    return await create_checkout(request_db, rental['id'], 1)
+
+            client.v1.checkout.sessions.create_async.side_effect = create
+            client.v1.checkout.sessions.retrieve_async.return_value = session
+            with patch('services.checkout.checkout_now', return_value=now):
+                first_task = asyncio.create_task(pay())
+                second_task = None
+                try:
+                    await asyncio.wait_for(creating.wait(), timeout=3)
+                    second_task = asyncio.create_task(pay(is_second=True))
+                    await asyncio.wait_for(second_started.wait(), timeout=3)
+                    await self.wait_for_lock(second_pid[0])
+                    self.assertFalse(second_task.done())
+                finally:
+                    release.set()
+                    results = await asyncio.wait_for(
+                        asyncio.gather(*[task for task in (first_task, second_task) if task]), timeout=5)
+            self.assertEqual(results, [{'url': session.url}, {'url': session.url}])
+        calls = client.v1.checkout.sessions.create_async.await_args_list
+        self.assertEqual(len(calls), 3)
+        self.assertEqual(len({call.kwargs['options']['idempotency_key'] for call in calls}), 1)
+        client.v1.checkout.sessions.retrieve_async.assert_awaited_once_with(session.id)

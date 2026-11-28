@@ -18,12 +18,14 @@
                   data-price-cents="{{ locker.price_per_day_cents }}" id="rental-form" method="post" novalidate>
                 <div class="field">
                     <label for="days">Number of days</label>
-                    <input aria-describedby="days-help" id="days" inputmode="numeric" max="4" min="1" name="days"
+                    <input aria-describedby="days-help" id="days" inputmode="numeric" max="4" min="{{ minimum_days }}"
+                           name="days"
                            required
                            step="1" type="number"
-                           value="1">
+                           value="{{ minimum_days }}">
                 </div>
-                <p aria-live="polite" class="field-help" id="days-help">Rent for up to 4 calendar days.</p>
+                <p aria-live="polite" class="field-help"
+                   id="days-help">{{ short_rental_message if minimum_days > 1 else 'Rent for up to 4 calendar days.' }}</p>
                 <p aria-atomic="true" aria-live="polite" class="total">Total price:
                     <output for="days" id="total">€0.00</output>
                 </p>

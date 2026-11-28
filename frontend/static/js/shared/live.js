@@ -99,6 +99,7 @@
             }
             const actionsChanged = rental.dataset.status !== next.dataset.status
                 || document.querySelector('#pay-button')?.dataset.bookingBlocked !== next.querySelector('#pay-button')?.dataset.bookingBlocked
+                || document.querySelector('#pay-button')?.dataset.checkoutBlocked !== next.querySelector('#pay-button')?.dataset.checkoutBlocked
                 || document.querySelector('#pay-outstanding-button')?.textContent !== next.querySelector('#pay-outstanding-button')?.textContent
                 || Boolean(document.querySelector('#pay-button')) !== Boolean(next.querySelector('#pay-button'))
                 || Boolean(document.querySelector('#open-locker-button')) !== Boolean(next.querySelector('#open-locker-button'));

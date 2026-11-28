@@ -3,7 +3,7 @@ const form = document.querySelector('#rental-form');
 if (form) {
     const daysInput = document.querySelector('#days');
     const help = document.querySelector('#days-help');
-    const defaultHelp = help.textContent;
+    let defaultHelp = help.textContent;
     const total = document.querySelector('#total');
     const confirm = document.querySelector('#confirm');
     const confirmation = document.querySelector('#confirmation');
@@ -15,10 +15,11 @@ if (form) {
 
     function updatePrice() {
         const days = Number(daysInput.value);
-        const valid = daysInput.value !== '' && daysInput.validity.valid && Number.isInteger(days) && days >= 1 && days <= 4;
+        const minimum = Number(daysInput.min);
+        const valid = daysInput.value !== '' && daysInput.validity.valid && Number.isInteger(days) && days >= minimum && days <= 4;
         const hasError = !valid && (daysInput.value !== '' || daysInput.validity.badInput);
         daysInput.setAttribute('aria-invalid', String(hasError));
-        help.textContent = hasError ? 'Enter between 1 and 4 days' : defaultHelp;
+        help.textContent = hasError ? `Enter between ${minimum} and 4 days. ${defaultHelp}` : defaultHelp;
         help.classList.toggle('error', hasError);
         total.textContent = currency.format(valid ? days * priceCents / 100 : 0);
         confirm.disabled = submitting || reserved || !valid || !consent.checked;
@@ -56,6 +57,14 @@ if (form) {
             }
             if (!response.ok) {
                 const result = await response.json();
+                if (result.detail?.code === 'rental_period_too_short') {
+                    daysInput.min = '2';
+                    defaultHelp = result.detail.message;
+                    help.textContent = defaultHelp;
+                    confirmation.textContent = result.detail.message;
+                    confirmation.classList.add('error');
+                    return;
+                }
                 if (result.detail?.code === 'account_booking_restricted') {
                     confirmation.textContent = result.detail.message + ' ';
                     const link = document.createElement('a');

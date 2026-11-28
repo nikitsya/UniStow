@@ -9,7 +9,7 @@ controls the servo latch and reports the magnetic door sensor.
 ## How it works
 
 1. Sign in and choose Locker 4, the only physical locker. The other eight are placeholders.
-2. Select 1–4 calendar days, accept the terms and reserve. The default is one day at EUR 1.
+2. Select 1–4 calendar days, accept the terms and reserve. One day costs EUR 1.
 3. Continue to the rental page and select **Pay**. Confirmed payment enables access.
 4. Use **Open locker** during the paid period. Your locker card shows **Continue rental**.
 5. Select **Finish rental**, collect everything and close the door. The controller
@@ -18,6 +18,12 @@ controls the servo latch and reports the magnetic door sensor.
 Days end at **18:00, Europe/Dublin**. Before 18:00, the reservation date is day one;
 at or after 18:00, the next date is day one. The deadline is calculated when reserving
 and does not move when payment is confirmed. Prices and times are checked by the server.
+
+Starting checkout requires more than 31 minutes before the booked deadline. From
+17:29 until 18:00, the booking form offers 2–4 days and explains the restriction;
+one-day bookings resume at 18:00. These times use Europe/Dublin. A reservation
+made earlier can also run out of time to start payment; its page explains how to
+cancel and choose another period. An already-created checkout keeps its own expiry.
 
 An unpaid reservation is held for up to 15 minutes. Starting checkout keeps it blocked
 until Stripe payment is reconciled; checkout has its own expiry. Rental status, door state

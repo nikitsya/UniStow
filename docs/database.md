@@ -8,7 +8,7 @@ UniStow uses PostgreSQL 16. [schema.sql](../database/schema.sql) defines the cur
 | `sessions`         | Hashed session tokens, user references and expiry times                                |
 | `lockers`          | Number, size, daily price, enabled flag, door state and controller readiness           |
 | `rentals`          | Owner, locker, booked dates, price, status and accepted overdue terms                  |
-| `payments`         | One Stripe checkout request per rental, fixed parameters, retry key and payment status |
+| `payments`         | One Stripe checkout request per rental, saved parameters, retry key and payment status |
 | `payment_events`   | Processed Stripe event IDs to prevent duplicate handling                               |
 | `locker_commands`  | Opening/collection commands, controller ID, expiry, dispatch and completion times      |
 | `overdue_charges`  | Daily charge records, durable Stripe requests and collection status                    |
@@ -44,7 +44,7 @@ PostgreSQL database. See the initial setup instructions below.
 ## Rental rules
 
 - Lockers are numbered 1–9. Only Locker 4 is enabled; it costs 100 cents per day.
-- Rent for 1–4 calendar days, with one day selected by default.
+- Rent for 1–4 calendar days, with the shortest currently payable period selected by default.
 - The server calculates `starts_at` and `paid_until` when reserving. Payment confirmation
   enables access without extending the booked deadline.
 - Before 18:00 in `Europe/Dublin`, the reservation date is day one. At or after 18:00,
@@ -52,14 +52,44 @@ PostgreSQL database. See the initial setup instructions below.
 - `reserved_until` is 15 minutes after reservation, or the rental deadline if sooner.
   Expired holds without a checkout can be released; they are marked `cancelled` when
   another reservation is made. A saved checkout must be reconciled before release.
-- Stripe checkout currently expires 31 minutes after its creation. This differs from
-  the initial reservation hold. Repeated payment requests reuse the saved checkout.
+- Starting checkout requires more than 31 minutes before `paid_until`. One-day
+  bookings are therefore unavailable from 17:29 until 18:00 in Europe/Dublin;
+  the form offers 2–4 days and the API rejects a stale one-day selection without
+  creating a reservation. An existing unpaid reservation can still be cancelled.
+- A new Stripe request sets its expiry 31 minutes ahead. This differs from the
+  initial reservation hold. Repeated payment requests reuse the saved checkout.
 - Completion requires the collection cycle and controller acknowledgement. Expiry alone
   does not free an occupied locker.
 
 Amounts use integer cents. Timestamps use `timestamptz` to represent instants;
 calendar-day calculations and user-facing times use `Europe/Dublin`, including clock changes.
 A database viewer may display timestamps in its own session time zone.
+
+### Recovering checkout creation
+
+Initial and outstanding-payment checkouts save their request before contacting
+Stripe. Creation and expiry repairs take a payment row lock so concurrent tabs
+and app workers cannot overwrite each other's request. A lost response is retried
+with the same parameters and idempotency key, allowing Stripe to return an already
+created session. Creation is not retried after the saved request is 23 hours old;
+that case requires operator review before Stripe's idempotency retention may end.
+
+If Stripe explicitly rejects a stale `expires_at` parameter with a validation
+error, no session was created by that request. Only then can the service save a
+fresh 31-minute expiry and retry with the **same key**. Amount, rental reference,
+consent and selected charges remain unchanged. A timeout, unrelated validation
+error or idempotency conflict never triggers this repair or releases the locker.
+If the repaired initial checkout would reach the rental deadline, the rejected
+unpaid attempt expires and its reservation is cancelled instead.
+
+Cancellation can also recover a missing session ID by replaying the saved request
+and expiring that session. A stale-expiry validation rejection lets cancellation
+finish without creating a replacement. If Stripe has already accepted payment,
+the verified payment is honoured; an uncertain response keeps the reservation held.
+Background reconciliation retrieves known sessions and does not create new ones.
+
+References: [Stripe idempotent requests](https://docs.stripe.com/api/idempotent_requests)
+and [Checkout expiry](https://docs.stripe.com/api/checkout/sessions/create#checkout_session_create-expires_at).
 
 ## Device state
 
